@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static com.overseascasuals.recsbot.data.Supply.*;
 import static com.overseascasuals.recsbot.data.DemandShift.*;
@@ -40,21 +41,19 @@ public class ItemInfo
             {Cycle5Weak, Cycle5Strong, Cycle6Strong, Cycle7Weak, Cycle7Strong}}; //Day4
     
     //Constant info
-    Item item;
-    int baseValue;
+    public Item item;
+    public int baseValue;
     ItemCategory category1;
     ItemCategory category2;
-    int time;
-    Map<RareMaterial, Integer> materialsRequired;
-    int materialValue;
+    public int time;
+    public Map<RareMaterial, Integer> materialsRequired;
+    public int materialValue;
+    public int rankUnlocked;
     
     //Weekly info
-    Popularity popularity;
-    PeakCycle previousPeak;
-    PeakCycle peak = Unknown;
-    int[] craftedPerDay;
-    ArrayList<ObservedSupply> observedSupplies;
-    int rankUnlocked;
+    public int popularityRatio;
+    public PeakCycle peak = Unknown;
+    public int[] craftedPerDay;
     
     public ItemInfo(Item i, ItemCategory cat1, ItemCategory cat2, int value, int hours, int rank, Map<RareMaterial,Integer> mats)
     {
@@ -80,40 +79,12 @@ public class ItemInfo
     }
     
     //Set start-of-week data
-    public void setInitialData(Popularity pop, PeakCycle prevPeak)
+    public void setInitialData(int pop, PeakCycle peak)
     {
-        setInitialData(pop, prevPeak, Sufficient, None);
-    }
-    public void setInitialData(Popularity pop, PeakCycle prevPeak, DemandShift startingDemand)
-    {
-        setInitialData(pop, prevPeak, Insufficient, startingDemand);
-    }
-    public void setInitialData(Popularity pop, PeakCycle prevPeak, Supply startingSupply, DemandShift startingDemand)
-    {
-        setInitialData(pop,prevPeak,new ObservedSupply(startingSupply, startingDemand));   
-    }
-    
-    public void setInitialData(Popularity pop, PeakCycle prev, ObservedSupply ob)
-    {
-        popularity = pop;
-        previousPeak = prev;
-
+        popularityRatio = pop;
+        this.peak = peak;
         craftedPerDay = new int[7];
-        observedSupplies = new ArrayList<ObservedSupply>();
-        addObservedDay(ob);
     }
-    
-    public void addObservedDay(Supply supply, DemandShift demand)
-    {
-        addObservedDay(new ObservedSupply(supply, demand));
-    }
-    
-    public void addObservedDay(ObservedSupply ob)
-    {
-        observedSupplies.add(ob);
-        setPeakBasedOnObserved();
-    }
-    
     public void addCrafted(int num, int day)
     {
         craftedPerDay[day]+=num;
@@ -127,68 +98,10 @@ public class ItemInfo
         
         return sum;
     }
-    
-    private void setPeakBasedOnObserved() {
-        if (peak.isTerminal && peak != Cycle2Weak)
-            return;
-        if (observedSupplies.get(0).supply == Insufficient) {
-            DemandShift observedDemand = observedSupplies.get(0).demandShift;
 
-            if (previousPeak.isReliable) {
-                if (observedDemand == None || observedDemand == Skyrocketing) {
-                    peak = Cycle2Strong;
-                    return;
-                } else {
-                    peak = Cycle2Weak;
-                    return;
-                }
-            } else if (observedSupplies.size() > 1) {
-                DemandShift observedDemand2 = observedSupplies.get(1).demandShift;
-                if (observedDemand2 == Skyrocketing) {
-                    peak = Cycle2Strong;
-                    return;
-                } else if (observedDemand2 == Increasing) {
-                    peak = Cycle2Weak;
-                    return;
-                } else
-                    LOG.warn(item + " does not match any known patterns for day 2");
-            } else {
-                peak = Cycle2Weak;
-            }
-        } else if (observedSupplies.size() > 1) {
-            int daysToCheck = Math.min(4, observedSupplies.size());
-            for (int day = 1; day < daysToCheck; day++) {
-                ObservedSupply observedToday = observedSupplies.get(day);
-                LOG.trace(item + " observed: " + observedToday);
-                int crafted = getCraftedBeforeDay(day);
-                boolean found = false;
-
-                for (int i = 0; i < PEAKS_TO_CHECK[day - 1].length; i++) {
-                    PeakCycle potentialPeak = PEAKS_TO_CHECK[day - 1][i];
-                    int expectedPrevious = getSupplyOnDayByPeak(potentialPeak, day - 1);
-                    int expectedSupply = getSupplyOnDayByPeak(potentialPeak, day);
-                    ObservedSupply expectedObservation = new ObservedSupply(getSupplyBucket(crafted + expectedSupply),
-                            getDemandShift(expectedPrevious, expectedSupply));
-                    LOG.trace("Checking against peak " + potentialPeak + ", expecting: " + expectedObservation);
-
-                    if (observedToday.equals(expectedObservation)) {
-                        LOG.trace("match found!");
-                        peak = potentialPeak;
-                        found = true;
-                        if (peak.isTerminal)
-                            return;
-                    }
-                }
-
-                if (!found)
-                    System.out.println(item + " does not match any known patterns for day " + (day + 1));
-            }
-        }
-    }
-    
     public int getSupplyAfterCraft(int day, int newCrafts)
     {
-        return getSupplyOnDay( day) + newCrafts;
+        return getSupplyOnDay(day) + newCrafts;
     }
     
     public int getSupplyOnDay(int day)
@@ -217,12 +130,12 @@ public class ItemInfo
         return item == other.item;
     }
     
-    public boolean peaksOnOrBeforeDay(int day, HashSet<Item> reservedItems)
+    public boolean peaksOnOrBeforeDay(int day, Set<Item> reservedItems)
     {
         if(reservedItems.size()>0 && !reservedItems.contains(item))
             return true;
             
-        if(time == 4) //D2 can borrow from the future if it's a 4hr craft
+        if(time == 4) //We can always borrow 4hr crafts
             return true;
         if(peak == Cycle2Weak || peak == Cycle2Strong || peak == Cycle2Unknown)
             return day > 0;
@@ -253,32 +166,13 @@ public class ItemInfo
             return Surplus;
         return Overflowing;
     }
-    
-    public static int getSupplyOnDayByPeak(PeakCycle peak, int day)
-    {
-        int supply = SUPPLY_PATH[peak.ordinal()][0];
-        for(int c = 1; c<=day; c++)
-            supply += SUPPLY_PATH[peak.ordinal()][c];
-        
-        return supply;
-    }
-    
-    public static DemandShift getDemandShift(int prevSupply, int newSupply)
-    {
-        int diff = newSupply - prevSupply;
-        if(diff < -5)
-            return Skyrocketing;
-        if(diff < -1)
-            return Increasing;
-        if(diff < 2)
-            return None;
-        if(diff < 6)
-            return Decreasing;
-        return Plummeting;
-    }
-    
     public String toString()
     {
         return item+", "+peak;
+    }
+
+    public int getValueWithSupply(Supply supply)
+    {
+        return baseValue * supply.multiplier * popularityRatio / 10000;
     }
 }

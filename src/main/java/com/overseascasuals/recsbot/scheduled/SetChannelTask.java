@@ -45,7 +45,7 @@ public class SetChannelTask implements ScheduledTask
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7 ;
 
         String newTitle = "Cycle "+(day+1)+" (Season "+week+")";
-        System.out.println("Running the cron job on id: "+currentDayChannel + " to new title "+newTitle);
+        LOG.info("Running the cron job on id: "+currentDayChannel + " to new title "+newTitle);
 
         channel.edit().withName(newTitle).subscribe();
     }

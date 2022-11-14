@@ -1,26 +1,20 @@
 package com.overseascasuals.recsbot.mysql;
 
-import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import java.io.Serializable;
 import java.util.Objects;
 
 @Embeddable
-public class PeakID implements Serializable
+public class CraftID implements Serializable
 {
     private int week;
     private int day;
-    @Column(name="item_id")
-    private int itemID;
 
-    public PeakID()
-    {}
+    public CraftID(){}
 
-    public PeakID(int week, int day, int item)
-    {
+    public CraftID(int week, int day) {
         this.week = week;
         this.day = day;
-        this.itemID = item;
     }
 
     public int getWeek() {
@@ -39,32 +33,23 @@ public class PeakID implements Serializable
         this.day = day;
     }
 
-    public int getItemID() {
-        return itemID;
-    }
-
-    public void setItemID(int itemID) {
-        this.itemID = itemID;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        PeakID peakID = (PeakID) o;
-        return week == peakID.week && day == peakID.day && itemID == peakID.itemID;
+        CraftID craftID = (CraftID) o;
+        return week == craftID.week && day == craftID.day;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(week, day, itemID);
+        return Objects.hash(week, day);
     }
 
     @Override
     public String toString() {
         return
                 "week=" + week +
-                ", day=" + day +
-                ", itemID=" + itemID;
+                ", day=" + day;
     }
 }

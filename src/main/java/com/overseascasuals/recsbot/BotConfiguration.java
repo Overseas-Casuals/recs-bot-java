@@ -35,12 +35,6 @@ public class BotConfiguration
     @Autowired
     private ThreadPoolTaskScheduler taskScheduler;
 
-    @Autowired
-    PeakRepository peakRepository;
-
-    @Autowired
-    PopularityRepository popularityRepository;
-
     @Bean
     public <T extends Event> GatewayDiscordClient gatewayDiscordClient(List<EventListener<T>> eventListeners, List<ScheduledTask> taskList)
     {
@@ -63,14 +57,6 @@ public class BotConfiguration
                     .subscribe();
         }
         LOG.debug("Listening to "+eventListeners.size()+" event(s)");
-
-        List<CraftPeaks> peaks = peakRepository.findPeaksByDay(11,3);
-        for(var peak : peaks)
-        {
-            System.out.println(peak);
-        }
-        Popularity currentPop = popularityRepository.findByWeek(11);
-        System.out.println(currentPop);
 
         for(var task : taskList)
         {
