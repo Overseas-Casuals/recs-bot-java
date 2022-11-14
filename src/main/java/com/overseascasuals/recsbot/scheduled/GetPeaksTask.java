@@ -1,9 +1,12 @@
 package com.overseascasuals.recsbot.scheduled;
 
+import com.overseascasuals.recsbot.data.ItemInfo;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.channel.NewsChannel;
 import discord4j.core.object.entity.channel.TextChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -14,9 +17,10 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class GetPeaksTask implements ScheduledTask
 {
+    private static Logger LOG = LoggerFactory.getLogger(GetPeaksTask.class);
     @Value("${recsChannel}")
     private String recsChannel;
-    private String cron = "0 10 8 * * ?";
+    private String cron = "0 10 8 ? * TUE-FRI";
 
     private GatewayDiscordClient client;
 
@@ -27,7 +31,7 @@ public class GetPeaksTask implements ScheduledTask
     }
 
     @Override
-    public void setClient(GatewayDiscordClient client) {
+    public void initialize(GatewayDiscordClient client) {
         this.client = client;
     }
 

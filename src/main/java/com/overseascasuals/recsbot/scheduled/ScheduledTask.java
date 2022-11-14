@@ -6,5 +6,5 @@ import discord4j.core.GatewayDiscordClient;
 public interface ScheduledTask extends Runnable
 {
     String getCron();
-    void setClient(GatewayDiscordClient client);
+    void initialize(GatewayDiscordClient client);
 }
