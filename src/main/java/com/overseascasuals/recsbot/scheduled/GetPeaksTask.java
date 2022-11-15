@@ -82,6 +82,10 @@ public class GetPeaksTask implements ScheduledTask
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7 ;
 
+        /*var dbPeaks = peakRepository.findPeaksByDay(week, day);
+        if(dbPeaks != null && dbPeaks.size() > 0)*/
+
+
         String response = restService.getURLResponse(tcURL);
 
         boolean valid = false;
@@ -137,7 +141,7 @@ public class GetPeaksTask implements ScheduledTask
             ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
             LOG.warn("Peaks were invalid. Rescheduling");
-            int delay = 10;
+            int delay = 15;
             scheduler.schedule(this, delay, TimeUnit.MINUTES);
             scheduler.shutdown();
         }
@@ -279,15 +283,6 @@ public class GetPeaksTask implements ScheduledTask
             LOG.error("Invalid peaks for D2 "+", num2Strong = "+num2Strong+"/4"+", num2Weak = "+num2Weak+"/4"+", num3Strong = "+num3Strong+"/4"+", num3Weak = "+num3Weak+"/4"+", num45 = "+num45+"/16"+", num67 = "+num67+"/18");
         if (day == 1)
             return valid;
-        List<CraftPeaks> day2Peaks = peakRepository.findPeaksByDay(week,1);
-        for(int i=0; i<day2Peaks.size();i++)
-        {
-            if(!day2Peaks.get(i).getPeak().equals(newPeaks.get(i).getPeak()))
-            {
-                LOG.warn("Discrepancy between DB peak "+day2Peaks.get(i).getPeak()+" and observed peak "+newPeaks.get(i).getPeak()+
-                        " Supply: "+tcDays.get(1).getObjects().get(i+1));
-            }
-        }
 
         //Day 3
         num67 = 0;
