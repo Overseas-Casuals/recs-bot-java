@@ -85,10 +85,16 @@ public class ItemInfo
         this.peak = peak;
         craftedPerDay = new int[7];
     }
-    public void addCrafted(int num, int day)
+    public void setCrafted(int num, int day)
     {
-        craftedPerDay[day]+=num;
+        craftedPerDay[day]=num;
     }
+
+    public void clearCrafted(int day)
+    {
+        craftedPerDay[day]=0;
+    }
+
     
     private int getCraftedBeforeDay(int day)
     {

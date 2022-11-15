@@ -108,7 +108,7 @@ public class WorkshopSchedule
         return cost;
     }
     
-    public int getValueWithGrooveEstimate(int day, int startingGroove, boolean rested)
+    public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested)
     {
         int craftsAbove4 = getNumCrafts() - 4;
         int daysToGroove = 6 - day;
@@ -193,7 +193,8 @@ public class WorkshopSchedule
         }
                 
         //Allow for the accounting for materials if desired
-        return grooveValue + workshopValue - (int)(getMaterialCost() * Solver.materialWeight);
+        WorkshopValue value = new WorkshopValue(grooveValue + workshopValue, getMaterialCost());
+        return value;
     }
     
     public boolean usesTooMany(Map<Item,Integer> limitedUse)
@@ -247,7 +248,20 @@ public class WorkshopSchedule
         
         return limitedUses;
     }
-    
+
+    @Override
+    public String toString()
+    {
+        StringBuilder sb = new StringBuilder();
+        for(var item : items)
+        {
+            sb.append(item.getDisplayName()).append(", ");
+        }
+        sb.setLength(sb.length()-2);
+
+        return sb.toString();
+    }
+
     public boolean equals(Object other)
     {
         if(other instanceof WorkshopSchedule)

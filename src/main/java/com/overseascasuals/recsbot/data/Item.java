@@ -58,9 +58,6 @@ public enum Item
     {
         displayName = display;
     }
-    
-    public String toString()
-    {
-        return displayName;
-    }
+
+    public String getDisplayName() { return displayName; }
 }

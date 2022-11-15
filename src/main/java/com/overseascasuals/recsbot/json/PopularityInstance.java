@@ -1,22 +1,36 @@
 package com.overseascasuals.recsbot.json;
 
-public class PopularityInstance {
-    private int id;
-    private int ratio;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-    public int getId() {
-        return id;
+import java.io.Serializable;
+
+public class PopularityInstance implements Serializable {
+    private int ID;
+    private int Ratio;
+
+    public int getID() {
+        return ID;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    @JsonProperty("ID")
+    public void setID(int ID) {
+        this.ID = ID;
     }
 
     public int getRatio() {
-        return ratio;
+        return Ratio;
     }
 
+    @JsonProperty("Ratio")
     public void setRatio(int ratio) {
-        this.ratio = ratio;
+        this.Ratio = ratio;
+    }
+
+    @Override
+    public String toString() {
+        return "PopularityInstance{" +
+                "id=" + ID +
+                ", ratio=" + Ratio +
+                '}';
     }
 }

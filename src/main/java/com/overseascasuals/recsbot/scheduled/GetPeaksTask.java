@@ -57,6 +57,8 @@ public class GetPeaksTask implements ScheduledTask
 
     private static ObjectMapper objectMapper = new ObjectMapper();
 
+    private TextChannel channel;
+
 
     @Override
     public String getCron()
@@ -67,6 +69,8 @@ public class GetPeaksTask implements ScheduledTask
     @Override
     public void initialize(GatewayDiscordClient client) {
         this.client = client;
+        channel = client.getChannelById(Snowflake.of(recsChannel))
+                .cast(TextChannel.class).block();
     }
 
     @Override
@@ -78,7 +82,6 @@ public class GetPeaksTask implements ScheduledTask
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7 ;
 
-
         String response = restService.getURLResponse(tcURL);
 
         boolean valid = false;
@@ -88,7 +91,7 @@ public class GetPeaksTask implements ScheduledTask
         {
             //Parse data from JSON
              tcDays = objectMapper.readValue(response, new TypeReference<>(){});
-             valid = tcDays != null && tcDays.size() > day;
+             valid = tcDays != null && tcDays.size() > day && tcDays.get(0).getObjects() != null && tcDays.get(0).getObjects().size() > 0;
         }
         catch(Exception e)
         {
@@ -123,8 +126,11 @@ public class GetPeaksTask implements ScheduledTask
             }
             //Also send to Discord
             var peaksArray = thisWeeksPeaks.stream().map(craftPeaks -> craftPeaks.getPeak()).toArray();
-            client.getChannelById(Snowflake.of(recsChannel))
-                    .cast(TextChannel.class).flatMap(newsChannel -> newsChannel.createMessage("peaks: " + Arrays.toString(peaksArray))).subscribe();
+            channel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
+
+            var list = solver.getRecommendationsForToday(week, day, false);
+            for(var recs : list)
+                channel.createMessage("Cycle "+(day+2)+":\n"+recs.toString()).subscribe();
         }
         else
         {

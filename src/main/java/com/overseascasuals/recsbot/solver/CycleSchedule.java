@@ -10,7 +10,7 @@ public class CycleSchedule
 {
     Logger LOG = LoggerFactory.getLogger(CycleSchedule.class);
     int day;
-    int startingGroove;
+    public int startingGroove;
     int endingGroove;
     WorkshopSchedule[] workshops = new WorkshopSchedule[3];
     HashMap<Item, Integer> numCrafted;
@@ -34,6 +34,11 @@ public class CycleSchedule
             workshops[index] = new WorkshopSchedule(crafts);
         else
             workshops[index].setCrafts(crafts);
+    }
+
+    public List<Item> getItems()
+    {
+        return workshops[0].getItems();
     }
     
     public int getValue() 
@@ -94,7 +99,11 @@ public class CycleSchedule
         return cost;
     }
     
-    
+    @Override
+    public String toString()
+    {
+        return workshops[0].toString();
+    }
     public boolean equals(Object other)
     {
         if(other instanceof CycleSchedule)
