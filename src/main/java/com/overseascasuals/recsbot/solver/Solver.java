@@ -157,7 +157,7 @@ public class Solver
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
             }
-            var peaks = peakRepository.findPeaksByDay(week, day);
+            var peaks = peakRepository.findPeaksByDay(week, Math.min(day,3));
 
             for(int i=0;i<items.length;i++)
             {
@@ -168,8 +168,10 @@ public class Solver
             for(int i=1; i<=day; i++)
             {
                 CycleCraft crafts = craftRepository.findCraftsByDay(week, i);
+                if(crafts == null)
+                    continue;
                 LOG.info("Found history for day {}: {}", i+1, crafts);
-                if(crafts.getCraft1().isEmpty())
+                if(crafts.getCraft1() == null || crafts.getCraft1().isEmpty())
                 {
                     LOG.info("Found rest day on day {}", i+1);
                     rested = i;
@@ -191,6 +193,7 @@ public class Solver
                         Item item = Item.valueOf(name);
                         items[item.ordinal()].setCrafted(numToAdd, i);
                     }
+                    groove = Math.min(groove, GROOVE_MAX);
                 }
                 LOG.info("groove after day {}: {}", i+1, groove);
             }
