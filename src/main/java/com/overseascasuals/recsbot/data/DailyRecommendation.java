@@ -31,41 +31,30 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         restRecommended = false;
         this.bestRec = bestRec;
         dailyValue = value;
+        int startingGroove = bestRec.startingGroove;
         bestRec.startingGroove = 0;
         groovelessValue = bestRec.getValue();
+        bestRec.startingGroove = startingGroove;
     }
 
     public boolean isRestRecommended() {
         return restRecommended;
     }
 
-    public void setRestRecommended(boolean restRecommended) {
-        this.restRecommended = restRecommended;
-    }
 
     public CycleSchedule getBestRec() {
         return bestRec;
     }
 
-    public void setBestRec(CycleSchedule bestRec) {
-        this.bestRec = bestRec;
-    }
 
     public int getDailyValue() {
         return dailyValue;
-    }
-
-    public void setDailyValue(int dailyValue) {
-        this.dailyValue = dailyValue;
     }
 
     public int getGroovelessValue() {
         return groovelessValue;
     }
 
-    public void setGroovelessValue(int groovelessValue) {
-        this.groovelessValue = groovelessValue;
-    }
 
     public boolean isTentative() {
         return tentative;
@@ -90,9 +79,9 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         this.day = day;
     }
 
-    private String prettyPrint(Map.Entry<WorkshopSchedule, WorkshopValue> rec)
+    public String prettyPrint(Map.Entry<WorkshopSchedule, WorkshopValue> rec)
     {
-        return rec.getKey() +"\tGross: "+rec.getValue().getGross()+"\tNet: "+rec.getValue().getNet();
+        return rec.getKey() +"\tGross: "+rec.getValue().getGross()+"\tNet: "+rec.getValue().getNet()+"\tGroove bonus: "+rec.getValue().getGroove();
     }
 
     @Override

@@ -2,7 +2,7 @@ package com.overseascasuals.recsbot.scheduled;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.overseascasuals.recsbot.data.PeakCycle;
+import com.overseascasuals.recsbot.OCUtils;
 import com.overseascasuals.recsbot.json.ItemSupply;
 import com.overseascasuals.recsbot.json.RestService;
 import com.overseascasuals.recsbot.json.TCDay;
@@ -10,8 +10,7 @@ import com.overseascasuals.recsbot.mysql.*;
 import com.overseascasuals.recsbot.solver.Solver;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
-import discord4j.core.object.entity.channel.NewsChannel;
-import discord4j.core.object.entity.channel.TextChannel;
+import discord4j.core.object.entity.channel.MessageChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
@@ -34,10 +33,13 @@ import static com.overseascasuals.recsbot.data.DemandShift.*;
 public class GetPeaksTask implements ScheduledTask
 {
     private static Logger LOG = LoggerFactory.getLogger(GetPeaksTask.class);
-    @Value("${recsChannel}")
+    @Value("${discord.recsChannel}")
     private String recsChannel;
     @Value("${tcUrl}")
     private String tcURL;
+
+    @Value("${discord.c1HelperRole}")
+    String c1PeakRole;
 
     @Autowired
     PeakRepository peakRepository;
@@ -57,8 +59,7 @@ public class GetPeaksTask implements ScheduledTask
 
     private static ObjectMapper objectMapper = new ObjectMapper();
 
-    private TextChannel channel;
-
+    private MessageChannel channel;
 
     @Override
     public String getCron()
@@ -70,7 +71,7 @@ public class GetPeaksTask implements ScheduledTask
     public void initialize(GatewayDiscordClient client) {
         this.client = client;
         channel = client.getChannelById(Snowflake.of(recsChannel))
-                .cast(TextChannel.class).block();
+                .cast(MessageChannel.class).block();
     }
 
     @Override
@@ -80,38 +81,45 @@ public class GetPeaksTask implements ScheduledTask
         var d2 = new Date();
 
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
-        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7 ;
+        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+        //int day = 2;
 
-        /*var dbPeaks = peakRepository.findPeaksByDay(week, day);
-        if(dbPeaks != null && dbPeaks.size() > 0)*/
-
-
-        String response = restService.getURLResponse(tcURL);
-
-        boolean valid = false;
+        boolean validTCPeaks = false;
         List<TCDay> tcDays = null;
+        boolean alreadyHavePeaks = false;
+        String response = null;
 
-        try
+        var peaksByDay = peakRepository.findPeaksByDay(week, day);
+        if(peaksByDay != null && peaksByDay.size() > 0)
         {
-            //Parse data from JSON
-             tcDays = objectMapper.readValue(response, new TypeReference<>(){});
-             valid = tcDays != null && tcDays.size() > day && tcDays.get(0).getObjects() != null && tcDays.get(0).getObjects().size() > 0;
+            LOG.info("Peaks for day {} already found. Skipping grabbing from TC.", day+1);
+            alreadyHavePeaks = true;
         }
-        catch(Exception e)
+        else
         {
-            LOG.error("Error parsing data from TC: "+response, e);
+            response = restService.getURLResponse(tcURL);
+
+            try
+            {
+                //Parse data from JSON
+                if(response != null)
+                    tcDays = objectMapper.readValue(response, new TypeReference<>(){});
+                validTCPeaks = tcDays != null && tcDays.size() > day && tcDays.get(0).getObjects() != null && tcDays.get(0).getObjects().size() > 0;
+            }
+            catch(Exception e)
+            {
+                LOG.error("Error parsing data from TC: "+response, e);
+            }
         }
 
-        List<CraftPeaks> thisWeeksPeaks = null;
-
-        if(valid)
+        if(validTCPeaks)
         {
-            thisWeeksPeaks = new ArrayList<>();
+            peaksByDay = new ArrayList<>();
             List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
-            valid = validatePeaks(thisWeeksPeaks, lastWeeksPeaks, tcDays, week, day);
+            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, day);
         }
 
-        if(valid)
+        if(validTCPeaks)
         {
             //Send to DB
             if(day==0)
@@ -124,19 +132,13 @@ public class GetPeaksTask implements ScheduledTask
                 popularityRepository.save(pop);
             }
 
-            for(var singlePeak : thisWeeksPeaks)
+            for(var singlePeak : peaksByDay)
             {
                 peakRepository.save(singlePeak);
             }
-            //Also send to Discord
-            var peaksArray = thisWeeksPeaks.stream().map(craftPeaks -> craftPeaks.getPeak()).toArray();
-            channel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
-            var list = solver.getRecommendationsForToday(week, day, false);
-            for(var recs : list)
-                channel.createMessage("Cycle "+(day+2)+":\n"+recs.toString()).subscribe();
         }
-        else
+        else if (!alreadyHavePeaks)
         {
             ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
@@ -144,18 +146,19 @@ public class GetPeaksTask implements ScheduledTask
             int delay = 15;
             scheduler.schedule(this, delay, TimeUnit.MINUTES);
             scheduler.shutdown();
+            return;
         }
 
-       /* List<CraftPeaks> peaks = peakRepository.findPeaksByDay(11,3);
-        for(var peak : peaks)
-        {
-            System.out.println(peak);
-        }
-        Popularity currentPop = popularityRepository.findByWeek(11);
-        System.out.println(currentPop);*/
+        //Also send to Discord
+        var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).toArray();
+        channel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
-
+        var list = solver.getRecommendationsForToday(week, day, false);
+        for(var recs : list)
+            channel.createMessage(OCUtils.generateRecEmbedMessage(recs, c1PeakRole)).subscribe();
     }
+
+
 
     private boolean validatePeaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<TCDay> tcDays, int week, int day)
     {

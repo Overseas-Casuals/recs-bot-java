@@ -1,0 +1,83 @@
+package com.overseascasuals.recsbot;
+
+import com.overseascasuals.recsbot.data.DailyRecommendation;
+import com.overseascasuals.recsbot.data.Item;
+import discord4j.core.spec.EmbedCreateSpec;
+import discord4j.core.spec.MessageCreateSpec;
+import discord4j.rest.util.Color;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.stream.Collectors;
+
+public class OCUtils
+{
+    public static MessageCreateSpec generateRecEmbedMessage(DailyRecommendation rec, String c1PeakRole)
+    {
+        var builder = EmbedCreateSpec.builder().title("Cycle "+(rec.getDay()+1)+" Recommendations");
+        builder.timestamp(Instant.now());
+        var messageSpec = MessageCreateSpec.builder();
+
+
+        if(rec.isTentative())
+        {
+            messageSpec.content("Tentative rec detected! <@&"+c1PeakRole+">");
+
+            builder.color(Color.RED);
+            if(rec.isRestRecommended())
+            {
+                builder.addField("Main Recommendation","Rest", false);
+            }
+
+            else
+            {
+                builder.addField("Tentative Recommendation", String.join(" - ",rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList())), false)
+                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
+                        .addField("With "+rec.getBestRec().startingGroove+" Groove", String.valueOf(rec.getGroovelessValue()), true);
+            }
+            builder.addField("\u200B", "\u200B", false)
+                    .addField("Required Info", String.join(", ", rec.getTroublemakers().stream().map(Item::getDisplayName).collect(Collectors.toList())), true);
+
+            var timeToComplete = Instant.now().truncatedTo(ChronoUnit.HOURS).plus(9, ChronoUnit.HOURS);
+            builder.addField("Estimated Completion", "<t:"+timeToComplete.getEpochSecond()+":R>", true);
+        }
+        else
+        {
+            if(rec.isRestRecommended())
+                builder.color(Color.BLUE).addField("Main Recommendation","Rest", false);
+            else
+            {
+                builder.color(Color.GREEN).addField("Main Recommendation", String.join(" - ",rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList())), false)
+                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
+                        .addField("With "+rec.getBestRec().startingGroove+" Groove", String.valueOf(rec.getDailyValue()), true);
+
+                if(rec.get(0).getValue().getGroove() > 0)
+                    builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
+            }
+
+
+            //Add alts also
+            builder.addField("\u200B", "\u200B", false);
+
+            StringBuilder altSb = new StringBuilder();
+            StringBuilder grossSb = new StringBuilder();
+            StringBuilder netSb = new StringBuilder();
+            for(var alt : rec)
+            {
+                altSb.append(String.join(" - ", alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList()))).append('\n');
+                grossSb.append(alt.getValue().getWeighted()).append('\n');
+                netSb.append(alt.getValue().getNet()).append('\n');
+            }
+            altSb.setLength(altSb.length()-1);
+            grossSb.setLength(grossSb.length()-1);
+            netSb.setLength(netSb.length()-1);
+
+            builder.addField("Alternatives", altSb.toString(), true)
+                    .addField("Weighted Value", grossSb.toString(), true);
+            //.addField("Net", netSb.toString(), true);
+        }
+
+        messageSpec.addEmbed(builder.build());
+        return messageSpec.build();
+    }
+}

@@ -16,7 +16,7 @@ import java.util.Date;
 public class SetChannelTask implements ScheduledTask
 {
     private static Logger LOG = LoggerFactory.getLogger(SetChannelTask.class);
-    @Value("${currentDayChannelID}")
+    @Value("${discord.currentDayChannelID}")
     private String currentDayChannel;
     private String cron = "0 0 8 * * ?";
 

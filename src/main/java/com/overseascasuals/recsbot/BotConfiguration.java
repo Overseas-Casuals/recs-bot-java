@@ -29,7 +29,7 @@ import java.util.List;
 public class BotConfiguration
 {
     private static Logger LOG = LoggerFactory.getLogger(BotConfiguration.class);
-    @Value("${token}")
+    @Value("${discord.token}")
     private String token;
 
     @Autowired

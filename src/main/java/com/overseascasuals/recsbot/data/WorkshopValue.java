@@ -6,11 +6,13 @@ public class WorkshopValue implements Comparable<WorkshopValue> {
     int gross;
     int net;
     int weighted;
+    int groove;
 
-    public WorkshopValue(int gross, int materialCost) {
+    public WorkshopValue(int gross, int grooveBonus, int materialCost) {
         this.gross = gross;
         this.net = gross-materialCost;
-        this.weighted = gross - (int)(materialCost * Solver.materialWeight);
+        groove = grooveBonus;
+        this.weighted = gross + grooveBonus - (int)(materialCost * Solver.materialWeight);
     }
 
     public int getGross() {
@@ -24,6 +26,10 @@ public class WorkshopValue implements Comparable<WorkshopValue> {
     public int getWeighted()
     {
      return weighted;
+    }
+
+    public int getGroove() {
+        return groove;
     }
 
     @Override

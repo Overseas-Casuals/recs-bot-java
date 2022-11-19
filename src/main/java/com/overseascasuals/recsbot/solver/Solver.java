@@ -108,7 +108,7 @@ public class Solver
     private static final int alternatives = 10;
 
     private final static ObjectMapper objectMapper = new ObjectMapper();
-    public static int averageDayValue = 4300;
+    public static int averageDayValue = 4044;
     public int rested = -1;
     private int islandRank = 10;
     public static double materialWeight = 0.5;
@@ -293,8 +293,9 @@ public class Solver
             if(schedule.numCrafted == null)
                 schedule.getValue();
             schedule.numCrafted.forEach((k, v) -> items[k.ordinal()].setCrafted(v, schedule.day));
-
-            crafts.setCrafts(schedule.getItems());
+            var items = schedule.getItems();
+            groove+=(items.size()-1) * NUM_WORKSHOPS;
+            crafts.setCrafts(items);
         }
 
         craftRepository.save(crafts);
@@ -599,7 +600,7 @@ public class Solver
 
         LOG.trace("Sum: " + sum + " average: " + sum / permutations);
         sum /= permutations;
-        WorkshopValue value = new WorkshopValue(sum, 0);
+        WorkshopValue value = new WorkshopValue(sum, 0, 0);
         solution.setValue(value);
 
         for (ItemInfo item : c5Peaks)

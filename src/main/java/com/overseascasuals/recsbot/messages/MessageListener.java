@@ -1,19 +1,23 @@
 package com.overseascasuals.recsbot.messages;
 
+import com.overseascasuals.recsbot.OCUtils;
 import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.data.PeakCycle;
 import com.overseascasuals.recsbot.solver.Solver;
+import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Message;
+import discord4j.core.object.entity.channel.TextChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import reactor.core.publisher.Mono;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public abstract class MessageListener {
     Logger LOG = LoggerFactory.getLogger(MessageListener.class);
+
+    @Value("${discord.c1HelperRole}")
+    String c1PeakRole;
 
     @Autowired
     Solver solver;
@@ -34,8 +38,10 @@ public abstract class MessageListener {
     private Mono<Void> processSetPeakCommand(Message eventMessage)
     {
         Exception e = null;
+        var guildID = eventMessage.getChannel().cast(TextChannel.class).map(textChannel -> textChannel.getGuildId()).block();
         LOG.info("Parsing !setpeak command "+eventMessage.getContent());
-        if(eventMessage.getAuthor().map(user -> !user.isBot()).orElse(false))
+        var hasRole = eventMessage.getAuthor().map(user -> user.asMember(guildID).map(member -> member.getRoleIds().contains(Snowflake.of(c1PeakRole))).block()).orElse(false);
+        if(hasRole)
         {
             String[] commandParts = eventMessage.getContent().split(" ");
             if(commandParts.length == 3)
@@ -43,6 +49,13 @@ public abstract class MessageListener {
                 try{
                     Item item = Item.valueOf(commandParts[1]);
                     boolean valid = false;
+                    if(!solver.hasTentativeD2())
+                    {
+                        return Mono.just(eventMessage)
+                                .flatMap(Message::getChannel)
+                                .flatMap(channel -> channel.createMessage("Current day doesn't need confirmation of any peaks."))
+                                .then();
+                    }
                     if(commandParts[2].toLowerCase().contains("strong"))
                     {
                         solver.updatePeak(item, PeakCycle.Cycle2Strong);
@@ -59,7 +72,7 @@ public abstract class MessageListener {
                         var recs = solver.getRecommendationsForToday();
                         return Mono.just(eventMessage)
                                 .flatMap(Message::getChannel)
-                                .flatMap(channel -> channel.createMessage(recs.get(0).toString()))
+                                .flatMap(channel -> channel.createMessage(OCUtils.generateRecEmbedMessage(recs.get(0), c1PeakRole)))
                                 .then();
                     }
 
@@ -69,6 +82,13 @@ public abstract class MessageListener {
                     e = ex;
                 }
             }
+        }
+        else
+        {
+            return Mono.just(eventMessage)
+                    .flatMap(Message::getChannel)
+                    .flatMap(channel -> channel.createMessage("Error: not authorized to set peaks."))
+                    .then();
         }
 
         final String text = "Could not parse !setpeak command "+eventMessage.getContent() + (e==null?"":"\nException: "+e.getMessage());

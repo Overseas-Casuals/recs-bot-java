@@ -19,6 +19,7 @@ public class CycleCraft
     private String craft3;
     private String craft4;
     private String craft5;
+    private String craft6;
 
     public CraftID getCraftID() {
         return craftID;
@@ -68,7 +69,15 @@ public class CycleCraft
         this.craft5 = craft5;
     }
 
-    public String[] getCrafts() { return new String[]{craft1,craft2,craft3,craft4,craft5}; }
+    public String getCraft6() {
+        return craft6;
+    }
+
+    public void setCraft6(String craft6) {
+        this.craft6 = craft6;
+    }
+
+    public String[] getCrafts() { return new String[]{craft1,craft2,craft3,craft4,craft5,craft6}; }
     public void setCrafts(List<Item> crafts)
     {
         if(crafts.size()>0)
@@ -91,6 +100,10 @@ public class CycleCraft
             craft5=crafts.get(4).toString();
         else
             craft5="";
+        if(crafts.size()>5)
+            craft6=crafts.get(5).toString();
+        else
+            craft6="";
     }
 
     @Override
@@ -102,6 +115,7 @@ public class CycleCraft
                 ", craft3='" + craft3 + '\'' +
                 ", craft4='" + craft4 + '\'' +
                 ", craft5='" + craft5 + '\'' +
+                ", craft6='" + craft6 + '\'' +
                 '}';
     }
 }

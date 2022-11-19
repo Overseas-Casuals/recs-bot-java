@@ -1,12 +1,12 @@
 package com.overseascasuals.recsbot.solver;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.ArrayList;
-import java.util.HashMap;
+
 import com.overseascasuals.recsbot.data.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.overseascasuals.recsbot.solver.Solver.NUM_WORKSHOPS;
 
 public class WorkshopSchedule
 {
@@ -75,7 +75,7 @@ public class WorkshopSchedule
         return false;
     }
     
-    public int getValueForCurrent(int day, int craftedSoFar, int currentGroove, boolean isEfficient)
+    public int getValueForCurrent(int day, int craftedSoFar, int currentGroove, boolean isEfficient, boolean verboseLogging)
     {
         ItemInfo craft = crafts.get(currentIndex);        
         int baseValue = craft.baseValue * Solver.WORKSHOP_BONUS * (100+currentGroove) / 10000;
@@ -84,7 +84,8 @@ public class WorkshopSchedule
         
         if(isEfficient)
             adjustedValue *= 2;
-            LOG.trace(craft.item+" is worth "+adjustedValue +" with "+currentGroove+" groove at "+ItemInfo.getSupplyBucket(supply)+ " supply ("+supply+") and "+craft.popularityRatio+" popularity");
+        if(verboseLogging)
+            LOG.info(craft.item+" is worth "+adjustedValue +" with "+currentGroove+" groove at "+ItemInfo.getSupplyBucket(supply)+ " supply ("+supply+") and "+craft.popularityRatio+" popularity with peak "+craft.peak);
         
         return adjustedValue;
     }
@@ -110,67 +111,91 @@ public class WorkshopSchedule
     
     public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested)
     {
+        boolean verboseLogging = false;
+        /*if ((items.size() == 6 && items.get(0) == Item.Earrings && items.get(1) == Item.BoiledEgg && items.get(2) == Item.Butter
+                && items.get(3) == Item.TomatoRelish && items.get(4) == Item.Butter && items.get(5) == Item.BoiledEgg) ||
+                (items.size() == 5 && items.get(0) == Item.Butter && items.get(1) == Item.BoiledEgg && items.get(2) == Item.CulinaryKnife
+                        && items.get(3) == Item.Brush && items.get(4) == Item.PorcelainVase))
+            verboseLogging = true;*/
         int craftsAbove4 = getNumCrafts() - 4;
         int daysToGroove = 6 - day;
         if (!rested)
             daysToGroove--;
 
+        if (verboseLogging)
+            LOG.info("Calculating workshop value for day {} and crafts {}  ({} above 4) Rested? {}. Crafting days after this: {}", day + 1, Arrays.toString(items.toArray()), craftsAbove4, rested, daysToGroove);
+
         //How many days will it take to hit max normally
-        int estimatedGroovePerDay = 9;
-        int expectedEndingGroove = startingGroove + estimatedGroovePerDay;
+        int estimatedGroovePerDay = 3 * NUM_WORKSHOPS;
+        int expectedStartingGroove = startingGroove + estimatedGroovePerDay;
+
+        boolean penalty = false;
 
         if (craftsAbove4 < 0)
-            expectedEndingGroove -= 3;
-
-        int craftingDaysLeft = daysToGroove;
-        int fullDays = 0;
-        int numRowsOfPartialDay = 0;
-        while (craftingDaysLeft > 0 && expectedEndingGroove < Solver.GROOVE_MAX)
         {
-            LOG.trace("Have {} crafting days after today, should end at {} groove, seeing what happens tomorrow after we get to {}", craftingDaysLeft, expectedEndingGroove, expectedEndingGroove+estimatedGroovePerDay);
-            if (expectedEndingGroove + estimatedGroovePerDay <= Solver.GROOVE_MAX)
-            {
-                fullDays++;
-                expectedEndingGroove += estimatedGroovePerDay;
-                craftingDaysLeft--;
-                LOG.trace("We can fit in a whole day");
-            }
-            else
-            {
-                int grooveToGo = Solver.GROOVE_MAX - expectedEndingGroove;
-                numRowsOfPartialDay = (grooveToGo + 1) / 3;
-                expectedEndingGroove = Solver.GROOVE_MAX;
+            penalty = true;
+            expectedStartingGroove += NUM_WORKSHOPS * craftsAbove4;
 
-                LOG.trace("There's {} groove left to add today, so lets say that's {} rows", grooveToGo, numRowsOfPartialDay);
-            }
+            craftsAbove4 *= -1;
         }
 
-
-        float grooveBonus = 0f;
-        switch (numRowsOfPartialDay)
+        float grooveBonus = 0;
+        for (int i = 0; i < craftsAbove4; i++)
         {
-            case 1:
-                grooveBonus = fullDays + 0.15f;
-                break;
-            case 2:
-                grooveBonus = fullDays + .5f;
-                break;
-            case 3:
-                grooveBonus = fullDays + .65f;
-                break;
-            case 4:
-                grooveBonus = fullDays + 1;
-                break;
-            default:
-                grooveBonus = fullDays;
-                break;
+            int craftingDaysLeft = daysToGroove;
+            int fullDays = 0;
+            int numRowsOfPartialDay = 0;
+            int expectedEndingGroove = expectedStartingGroove;
+            while (craftingDaysLeft > 0 && expectedEndingGroove < Solver.GROOVE_MAX)
+            {
+                if(verboseLogging)
+                    LOG.info("Have {} crafting days after today, should end at {} groove, seeing what happens tomorrow after we get to {}", craftingDaysLeft, expectedEndingGroove, expectedEndingGroove + estimatedGroovePerDay);
+                if (expectedEndingGroove + estimatedGroovePerDay + NUM_WORKSHOPS - 1 <= Solver.GROOVE_MAX)
+                {
+                    fullDays++;
+                    expectedEndingGroove += estimatedGroovePerDay;
+                    craftingDaysLeft--;
+                    if(verboseLogging)
+                    LOG.info("We can fit in a whole day");
+                }
+                else
+                {
+                    int grooveToGo = Solver.GROOVE_MAX - expectedEndingGroove;
+                    numRowsOfPartialDay = (grooveToGo + 1) / NUM_WORKSHOPS;
+                    expectedEndingGroove = Solver.GROOVE_MAX;
+                    if(verboseLogging)
+                    LOG.info("There's {} groove left to add today for bonus craft #{}, so lets say that's {} rows", grooveToGo, i+1, numRowsOfPartialDay);
+                }
+            }
+
+            switch (numRowsOfPartialDay) {
+                case 1:
+                    grooveBonus += fullDays + 0.10f;
+                    break;
+                case 2:
+                    grooveBonus += fullDays + .5f;
+                    break;
+                case 3:
+                    grooveBonus += fullDays + .60f;
+                    break;
+                case 4:
+                    grooveBonus += fullDays + 1;
+                    break;
+                default:
+                    grooveBonus += fullDays;
+                    break;
+            }
+
+            expectedStartingGroove+=NUM_WORKSHOPS;
+            if(verboseLogging)
+                LOG.info("Groove bonus {}% over {} days, with the last day giving {} rows", grooveBonus, daysToGroove, numRowsOfPartialDay);
         }
-
-        LOG.trace("Groove bonus {}% over {} days, with the last day giving {} rows", grooveBonus*craftsAbove4, daysToGroove, numRowsOfPartialDay);
-
         float valuePerDay = Solver.averageDayValue;
 
-        grooveBonus = (grooveBonus * craftsAbove4 * valuePerDay) / 100f;
+        grooveBonus = (grooveBonus * valuePerDay) / 100f;
+
+        if (penalty)
+            grooveBonus *= -1;
 
         int grooveValue = 0;
 
@@ -180,20 +205,25 @@ public class WorkshopSchedule
         }
 
         int workshopValue = 0;
-        HashMap<Item,Integer> numCrafted = new HashMap<Item, Integer>(); 
+        HashMap<Item,Integer> numCrafted = new HashMap<>();
         currentIndex = 0;
         for(int i=0; i<getNumCrafts(); i++)
         {
             ItemInfo completedCraft = getCurrentCraft();
             boolean efficient = currentCraftIsEfficient();
-            workshopValue += getValueForCurrent(day, numCrafted.getOrDefault(completedCraft.item, 0), startingGroove + i*3, efficient);
+            int previouslyCrafted = numCrafted.getOrDefault(completedCraft.item, 0);
+            int nextGroove = Math.min(startingGroove + i*NUM_WORKSHOPS, Solver.GROOVE_MAX);
+            workshopValue += getValueForCurrent(day, previouslyCrafted, nextGroove, efficient, verboseLogging);
             currentIndex++;
-            int amountCrafted = efficient? 6 : 3;
-            numCrafted.put(completedCraft.item, numCrafted.getOrDefault(completedCraft.item, 0) + amountCrafted);
+            int amountCrafted = efficient? NUM_WORKSHOPS*2 : NUM_WORKSHOPS;
+            numCrafted.put(completedCraft.item, previouslyCrafted + amountCrafted);
+
+            if (verboseLogging)
+                LOG.info("Processing craft {}, made previously: {}, efficient: {}", completedCraft.item, previouslyCrafted, efficient);
         }
                 
         //Allow for the accounting for materials if desired
-        WorkshopValue value = new WorkshopValue(grooveValue + workshopValue, getMaterialCost());
+        WorkshopValue value = new WorkshopValue( workshopValue, grooveValue, getMaterialCost());
         return value;
     }
     
