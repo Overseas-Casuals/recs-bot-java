@@ -47,6 +47,6 @@ public class SetChannelTask implements ScheduledTask
         String newTitle = "Cycle "+(day+1)+" (Season "+week+")";
         LOG.info("Running the cron job on id: "+currentDayChannel + " to new title "+newTitle);
 
-        channel.edit().withName(newTitle).subscribe();
+        channel.edit().withName(newTitle).block();
     }
 }
