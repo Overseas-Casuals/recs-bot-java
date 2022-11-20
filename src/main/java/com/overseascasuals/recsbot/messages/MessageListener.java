@@ -6,7 +6,7 @@ import com.overseascasuals.recsbot.data.PeakCycle;
 import com.overseascasuals.recsbot.solver.Solver;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.TextChannel;
+import discord4j.core.object.entity.channel.NewsChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +38,7 @@ public abstract class MessageListener {
     private Mono<Void> processSetPeakCommand(Message eventMessage)
     {
         Exception e = null;
-        var guildID = eventMessage.getChannel().cast(TextChannel.class).map(textChannel -> textChannel.getGuildId()).block();
+        var guildID = eventMessage.getChannel().cast(NewsChannel.class).map(textChannel -> textChannel.getGuildId()).block();
         LOG.info("Parsing !setpeak command "+eventMessage.getContent());
         var hasRole = eventMessage.getAuthor().map(user -> user.asMember(guildID).map(member -> member.getRoleIds().contains(Snowflake.of(c1PeakRole))).block()).orElse(false);
         if(hasRole)
@@ -69,13 +69,13 @@ public abstract class MessageListener {
                     if(!solver.hasTentativeD2())
                     {
                         LOG.info("command is valid, telling the Solver");
-                        var recs = solver.getRecommendationsForToday();
+                        var recs = solver.redoDay2Recs();
+
                         return Mono.just(eventMessage)
                                 .flatMap(Message::getChannel)
-                                .flatMap(channel -> channel.createMessage(OCUtils.generateRecEmbedMessage(recs.get(0), c1PeakRole)))
+                                .flatMap(channel -> channel.createMessage(OCUtils.generateRecEmbedMessage(recs.get(0), c1PeakRole)).flatMap(Message::publish))
                                 .then();
                     }
-
                 }
                 catch (IllegalArgumentException ex)
                 {

@@ -10,6 +10,7 @@ import com.overseascasuals.recsbot.mysql.*;
 import com.overseascasuals.recsbot.solver.Solver;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
+import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,15 +82,16 @@ public class GetPeaksTask implements ScheduledTask
         var d2 = new Date();
 
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
-        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
-        //int day = 2;
+        //int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+        int day = 0;
 
         boolean validTCPeaks = false;
         List<TCDay> tcDays = null;
         boolean alreadyHavePeaks = false;
         String response = null;
 
-        var peaksByDay = peakRepository.findPeaksByDay(week, day);
+        int peakday = Math.min(day, 3);
+        var peaksByDay = peakRepository.findPeaksByDay(week, peakday);
         if(peaksByDay != null && peaksByDay.size() > 0)
         {
             LOG.info("Peaks for day {} already found. Skipping grabbing from TC.", day+1);
@@ -130,12 +132,15 @@ public class GetPeaksTask implements ScheduledTask
                 pop.setPopularity(tcDays.get(0).getPopularity());
                 pop.setNextPopularity(tcDays.get(0).getPredictedPopularity());
                 popularityRepository.save(pop);
+                LOG.info("Sending popularity to island.ws: "+restService.postPopularity(week,tcDays.get(0).getPopularity(),  tcDays.get(0).getPredictedPopularity()));
             }
 
             for(var singlePeak : peaksByDay)
             {
                 peakRepository.save(singlePeak);
             }
+
+            LOG.info("Sending peaks to island.ws: "+restService.postPeaks(week, day, peaksByDay));
 
         }
         else if (!alreadyHavePeaks)
@@ -153,9 +158,16 @@ public class GetPeaksTask implements ScheduledTask
         var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).toArray();
         channel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
-        var list = solver.getRecommendationsForToday(week, day, false);
+        var list = solver.getDailyRecommendations(week, day, false);
         for(var recs : list)
-            channel.createMessage(OCUtils.generateRecEmbedMessage(recs, c1PeakRole)).subscribe();
+        {
+            var message = channel.createMessage(OCUtils.generateRecEmbedMessage(recs, c1PeakRole));
+            if(recs.isTentative())
+                message.subscribe();
+            else
+              message.flatMap(Message::publish).subscribe();
+        }
+
     }
 
 

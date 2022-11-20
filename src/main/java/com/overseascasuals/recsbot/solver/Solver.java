@@ -3,26 +3,20 @@ package com.overseascasuals.recsbot.solver;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.overseascasuals.recsbot.data.*;
-import com.overseascasuals.recsbot.json.PopularityInstance;
 import com.overseascasuals.recsbot.json.PopularityJson;
 import com.overseascasuals.recsbot.json.RestService;
-import com.overseascasuals.recsbot.messages.MessageListener;
 import com.overseascasuals.recsbot.mysql.*;
-import org.checkerframework.checker.units.qual.C;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.overseascasuals.recsbot.data.Item.*;
 import static com.overseascasuals.recsbot.data.ItemCategory.*;
@@ -137,12 +131,13 @@ public class Solver
         //Get supply value from api?
     }
 
-    public List<DailyRecommendation> getRecommendationsForToday()
+    public List<DailyRecommendation> redoDay2Recs()
     {
-        return getRecommendationsForToday(week, day, false);
+        return getDailyRecommendations(week, 0, true);
     }
-    public List<DailyRecommendation> getRecommendationsForToday(int week, int day, boolean hardRefresh)
+    public List<DailyRecommendation> getDailyRecommendations(int week, int day, boolean hardRefresh)
     {
+        LOG.info("Getting recommendations for week {} day {}, hardrefresh? {}", week, day, hardRefresh);
         if(hardRefresh || this.week != week)
         {
             rested = -1;
@@ -621,6 +616,7 @@ public class Solver
 
     public Set<Item> getTentativeD2Items(int valueToCompare)
     {
+        Map<Item, Integer> troubleValues = new HashMap<>();
         List<ItemInfo> c2Unknowns = new ArrayList<>();
         for (ItemInfo item : items)
             if (item.peak == Cycle2Unknown)
@@ -629,16 +625,40 @@ public class Solver
         LOG.info("Checking {} unknown D2 peaks.", c2Unknowns.size());
 
         d2Troublemakers = new HashSet<>();
-        for (int i = 0; i < c2Unknowns.size(); i++)
-        {
+        for (int i = 0; i < c2Unknowns.size(); i++) {
             c2Unknowns.get(i).peak = Cycle2Strong;
             LOG.info("Setting {} to strong peak", c2Unknowns.get(i).item);
-            var schedule = getBestSchedule(1,0,null);
-            if(schedule.getValue().getWeighted()>valueToCompare)
-                d2Troublemakers.add(c2Unknowns.get(i).item);
+            var schedule = getBestSchedule(1, 0, null);
+            int value = schedule.getValue().getWeighted();
+            if (value > valueToCompare) {
+                LOG.info("{} could star in a higher value schedule", c2Unknowns.get(i).item.getDisplayName());
+                troubleValues.put(c2Unknowns.get(i).item, value);
+            }
             c2Unknowns.get(i).peak = Cycle2Unknown;
         }
 
+        for(var troublemaker : troubleValues.entrySet())
+        {
+            items[troublemaker.getKey().ordinal()].peak = Cycle2Strong;
+            for (int i = 0; i < c2Unknowns.size(); i++)
+            {
+                if(troubleValues.containsKey(c2Unknowns.get(i).item)) //If we already know it's a problem, skip it
+                    continue;
+                c2Unknowns.get(i).peak = Cycle2Strong;
+                LOG.info("Setting {} to strong peak to complement {}", c2Unknowns.get(i).item.getDisplayName(), troublemaker.getKey().getDisplayName());
+                var schedule = getBestSchedule(1,0,null);
+                int value = schedule.getValue().getWeighted();
+                if(value>troublemaker.getValue())
+                {
+                    LOG.info("{} could help {} get to even greater heights!", c2Unknowns.get(i).item.getDisplayName(), troublemaker.getKey().getDisplayName());
+                    d2Troublemakers.add(c2Unknowns.get(i).item);
+                }
+                c2Unknowns.get(i).peak = Cycle2Unknown;
+            }
+            items[troublemaker.getKey().ordinal()].peak = Cycle2Unknown;
+        }
+
+        d2Troublemakers.addAll(troubleValues.keySet());
         return d2Troublemakers;
     }
 

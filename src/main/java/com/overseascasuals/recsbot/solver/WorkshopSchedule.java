@@ -112,10 +112,9 @@ public class WorkshopSchedule
     public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested)
     {
         boolean verboseLogging = false;
-        /*if ((items.size() == 6 && items.get(0) == Item.Earrings && items.get(1) == Item.BoiledEgg && items.get(2) == Item.Butter
-                && items.get(3) == Item.TomatoRelish && items.get(4) == Item.Butter && items.get(5) == Item.BoiledEgg) ||
-                (items.size() == 5 && items.get(0) == Item.Butter && items.get(1) == Item.BoiledEgg && items.get(2) == Item.CulinaryKnife
-                        && items.get(3) == Item.Brush && items.get(4) == Item.PorcelainVase))
+        /*if
+                (items.size() == 5 && items.get(0) == Item.BakedPumpkin && items.get(1) == Item.BoiledEgg && items.get(2) == Item.Horn
+                        && items.get(3) == Item.Brush && items.get(4) == Item.Horn)
             verboseLogging = true;*/
         int craftsAbove4 = getNumCrafts() - 4;
         int daysToGroove = 6 - day;
