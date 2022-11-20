@@ -82,8 +82,8 @@ public class GetPeaksTask implements ScheduledTask
         var d2 = new Date();
 
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
-        //int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
-        int day = 0;
+        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+        //int day = 0;
 
         boolean validTCPeaks = false;
         List<TCDay> tcDays = null;
