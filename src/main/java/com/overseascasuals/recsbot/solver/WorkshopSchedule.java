@@ -5,14 +5,20 @@ import java.util.Map.Entry;
 import com.overseascasuals.recsbot.data.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import static com.overseascasuals.recsbot.solver.Solver.NUM_WORKSHOPS;
 
+
+@Component
 public class WorkshopSchedule
 {
     Logger LOG = LoggerFactory.getLogger(WorkshopSchedule.class);
-    private List<ItemInfo> crafts;
-    private List<Item> items; //Just a dupe of crafts, but accessible
+
+    private final List<ItemInfo> crafts;
+    private final List<Item> items; //Just a dupe of crafts, but accessible
     List<Integer> completionHours;
     public int currentIndex = 0; //Used for cycle scheduler to figure out crafts stuff
 
@@ -20,9 +26,9 @@ public class WorkshopSchedule
     
     public WorkshopSchedule(List<Item> crafts)
     {
-        completionHours = new ArrayList<Integer>();
-        this.crafts = new ArrayList<ItemInfo>();
-        items = new ArrayList<Item>();
+        completionHours = new ArrayList<>();
+        this.crafts = new ArrayList<>();
+        items = new ArrayList<>();
         rareMaterialsRequired = new HashMap<>();
         setCrafts(crafts);
     }
@@ -30,7 +36,7 @@ public class WorkshopSchedule
     public void setCrafts(List<Item> newCrafts)
     {
         crafts.clear();
-        newCrafts.forEach(item -> {crafts.add(Solver.items[item.ordinal()]);});
+        newCrafts.forEach(item -> crafts.add(Solver.items[item.ordinal()]));
         int currentHour = 0;
         completionHours.clear();
         items.clear();
@@ -69,10 +75,8 @@ public class WorkshopSchedule
     {
         if(currentIndex >= crafts.size())
             return false;
-        
-        if(completionHours.get(currentIndex) == hour)
-            return true;
-        return false;
+
+        return completionHours.get(currentIndex) == hour;
     }
     
     public int getValueForCurrent(int day, int craftedSoFar, int currentGroove, boolean isEfficient, boolean verboseLogging)
@@ -93,8 +97,7 @@ public class WorkshopSchedule
     public boolean currentCraftIsEfficient()
     {
         if(currentIndex > 0 && currentIndex < crafts.size())
-            if(crafts.get(currentIndex).getsEfficiencyBonus(crafts.get(currentIndex-1)))
-                return true;
+            return crafts.get(currentIndex).getsEfficiencyBonus(crafts.get(currentIndex - 1));
         
         return false;
     }
@@ -109,13 +112,13 @@ public class WorkshopSchedule
         return cost;
     }
     
-    public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested)
+    public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested, Map<Item,Item> reservedHelpers)
     {
         boolean verboseLogging = false;
-        /*if
-                (items.size() == 5 && items.get(0) == Item.BakedPumpkin && items.get(1) == Item.BoiledEgg && items.get(2) == Item.Horn
+        /*if(items.size() == 5 && items.get(0) == Item.BakedPumpkin && items.get(1) == Item.BoiledEgg && items.get(2) == Item.Horn
                         && items.get(3) == Item.Brush && items.get(4) == Item.Horn)
             verboseLogging = true;*/
+
         int craftsAbove4 = getNumCrafts() - 4;
         int daysToGroove = 6 - day;
         if (!rested)
@@ -128,11 +131,11 @@ public class WorkshopSchedule
         int estimatedGroovePerDay = 3 * NUM_WORKSHOPS;
         int expectedStartingGroove = startingGroove + estimatedGroovePerDay;
 
-        boolean penalty = false;
+        boolean groovePenalty = false;
 
         if (craftsAbove4 < 0)
         {
-            penalty = true;
+            groovePenalty = true;
             expectedStartingGroove += NUM_WORKSHOPS * craftsAbove4;
 
             craftsAbove4 *= -1;
@@ -155,7 +158,7 @@ public class WorkshopSchedule
                     expectedEndingGroove += estimatedGroovePerDay;
                     craftingDaysLeft--;
                     if(verboseLogging)
-                    LOG.info("We can fit in a whole day");
+                        LOG.info("We can fit in a whole day");
                 }
                 else
                 {
@@ -163,26 +166,16 @@ public class WorkshopSchedule
                     numRowsOfPartialDay = (grooveToGo + 1) / NUM_WORKSHOPS;
                     expectedEndingGroove = Solver.GROOVE_MAX;
                     if(verboseLogging)
-                    LOG.info("There's {} groove left to add today for bonus craft #{}, so lets say that's {} rows", grooveToGo, i+1, numRowsOfPartialDay);
+                        LOG.info("There's {} groove left to add today for bonus craft #{}, so lets say that's {} rows", grooveToGo, i+1, numRowsOfPartialDay);
                 }
             }
 
             switch (numRowsOfPartialDay) {
-                case 1:
-                    grooveBonus += fullDays + 0.10f;
-                    break;
-                case 2:
-                    grooveBonus += fullDays + .5f;
-                    break;
-                case 3:
-                    grooveBonus += fullDays + .60f;
-                    break;
-                case 4:
-                    grooveBonus += fullDays + 1;
-                    break;
-                default:
-                    grooveBonus += fullDays;
-                    break;
+                case 1 -> grooveBonus += fullDays + 0.10f;
+                case 2 -> grooveBonus += fullDays + .5f;
+                case 3 -> grooveBonus += fullDays + .60f;
+                case 4 -> grooveBonus += fullDays + 1;
+                default -> grooveBonus += fullDays;
             }
 
             expectedStartingGroove+=NUM_WORKSHOPS;
@@ -193,7 +186,7 @@ public class WorkshopSchedule
 
         grooveBonus = (grooveBonus * valuePerDay) / 100f;
 
-        if (penalty)
+        if (groovePenalty)
             grooveBonus *= -1;
 
         int grooveValue = 0;
@@ -220,19 +213,51 @@ public class WorkshopSchedule
             if (verboseLogging)
                 LOG.info("Processing craft {}, made previously: {}, efficient: {}", completedCraft.item, previouslyCrafted, efficient);
         }
+
+
+        //Figure out if a penalty should apply for using a future item
+        int helperPenalty = 0;
+        for(var kvp : reservedHelpers.entrySet())
+        {
+            if(verboseLogging)
+                LOG.info("Checking helper {} for main item {}", kvp.getValue(), kvp.getKey());
+            ItemInfo mainItem = Solver.items[kvp.getKey().ordinal()];
+            if(items.contains(kvp.getKey())) //We're using the main item so it's fine
+                continue;
+            if(verboseLogging)
+                LOG.info("We're not using main item {}", kvp.getKey());
+            if(mainItem.peaksOnOrBeforeDay(day, null)) //Item has peaked already so it's fine
+                continue;
+            if(verboseLogging)
+                LOG.info("Main item {} hasn't peaked yet", kvp.getKey());
+            if(!items.contains(kvp.getValue())) //We aren't using the helper so it's fine
+                continue;
+            if(verboseLogging)
+                LOG.info("We're using helper {}", kvp.getValue());
+
+            //None of the above conditions are true so it's not fine.
+            //apply a penalty for x usages (2x if efficient)
+            for(int i=0; i<items.size(); i++)
+            {
+                if(items.get(i) == kvp.getValue())
+                {
+                    if(verboseLogging)
+                        LOG.info("We're using helper {} in position {}, so that's {}x the penalty of {}", kvp.getValue(), i, i==0?1:2, Solver.helperPenalty);
+                    helperPenalty+=Solver.helperPenalty*(i==0?1:2);
+                }
+            }
+        }
                 
         //Allow for the accounting for materials if desired
-        WorkshopValue value = new WorkshopValue( workshopValue, grooveValue, getMaterialCost());
-        return value;
+        return new WorkshopValue( workshopValue, grooveValue, getMaterialCost(), helperPenalty);
     }
     
     public boolean usesTooMany(Map<Item,Integer> limitedUse)
     {
         if(limitedUse == null)
             return false;
-        boolean tooMany = false;
        
-        Map<Item, Integer> used = new HashMap<Item,Integer>();
+        Map<Item, Integer> used = new HashMap<>();
             
             
         for(int i=0; i<items.size(); i++)
@@ -253,7 +278,7 @@ public class WorkshopSchedule
         }
         return false;
     }
-    
+
     public Map<Item, Integer> getLimitedUses()
     {
         return getLimitedUses(null);
@@ -263,9 +288,9 @@ public class WorkshopSchedule
     {
         Map<Item,Integer> limitedUses;
         if(previousLimitedUses == null)
-            limitedUses = new HashMap<Item,Integer>();
+            limitedUses = new HashMap<>();
         else
-            limitedUses = new HashMap<Item,Integer>(previousLimitedUses);
+            limitedUses = new HashMap<>(previousLimitedUses);
         
         for(int i=0; i<items.size(); i++)
         {

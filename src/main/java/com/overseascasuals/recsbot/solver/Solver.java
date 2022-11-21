@@ -11,6 +11,7 @@ import com.overseascasuals.recsbot.mysql.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -39,10 +40,38 @@ public class Solver
     @Autowired
     CraftRepository craftRepository;
 
-    final static int WORKSHOP_BONUS = 120;
-    final static int GROOVE_MAX = 35;
+    static int WORKSHOP_BONUS;
+    @Autowired
+    private void setWorkshopBonus(@Value("${solver.island.workshopBonus}")int bonus) {WORKSHOP_BONUS = bonus;}
+    static int GROOVE_MAX;
+    @Autowired
+    private void setMaxGroove(@Value("${solver.island.maxGroove}")int groove) {GROOVE_MAX = groove;}
 
-    final static int NUM_WORKSHOPS = 3;
+    static int NUM_WORKSHOPS;
+    @Autowired
+    private void setNumWorkshops(@Value("${solver.island.workshops}")int numWorkshops) {NUM_WORKSHOPS = numWorkshops;}
+    static int averageDayValue;
+    @Autowired
+    private void setAverageDayValue(@Value("${solver.averageDayValue}")int dayValue) {averageDayValue = dayValue;}
+    private static int islandRank;
+
+    @Autowired
+    private void setIslandRank(@Value("${solver.island.rank}")int rank) {islandRank = rank;}
+    public static double materialWeight;
+    @Autowired
+    private void setMaterialWeight(@Value("${solver.materialWeight}")double weight) {materialWeight = weight;}
+    private static int alternatives;
+    @Autowired
+    private void setNumAlternatives(@Value("${solver.alternatives}")int numAlts) {alternatives = numAlts;}
+    private static boolean valuePerHour = true;
+    private static int itemsToReserve;
+    @Autowired
+    private void setItemsToReserve(@Value("${solver.itemsToReserve}")int items) {itemsToReserve = items;}
+
+
+    static int helperPenalty;
+    @Autowired
+    private void setHelperPenalty(@Value("${solver.reservedHelperPenalty}")int penalty) {helperPenalty = penalty;}
     
     final static ItemInfo[] items = {
             new ItemInfo(Potion,Concoctions,Invalid,28,4,1,null),
@@ -99,18 +128,12 @@ public class Solver
     private int groove = 0;
     private int totalGross = 0;
     private int totalNet = 0;
-    private static final int alternatives = 10;
 
     private final static ObjectMapper objectMapper = new ObjectMapper();
-    public static int averageDayValue = 4044;
     public int rested = -1;
-    private int islandRank = 10;
-    public static double materialWeight = 0.5;
     private boolean guaranteeRestD5 = false;
     private Set<Item> reservedItems = new HashSet<>();
-    private static boolean valuePerHour = true;
-    private static int itemsToReserve = 15;
-
+    private Map<Item, Item> reservedHelpers = new HashMap<>();
     private Set<Item> d2Troublemakers;
 
     private int week = 0;
@@ -137,7 +160,7 @@ public class Solver
     }
     public List<DailyRecommendation> getDailyRecommendations(int week, int day, boolean hardRefresh)
     {
-        LOG.info("Getting recommendations for week {} day {}, hardrefresh? {}", week, day, hardRefresh);
+        LOG.info("Getting recommendations for week {} day {}, hardrefresh? {}. helper penalty {}", week, day, hardRefresh, helperPenalty);
         if(hardRefresh || this.week != week)
         {
             rested = -1;
@@ -283,6 +306,10 @@ public class Solver
 
     private void addCraftedFromCycle(CycleSchedule schedule)
     {
+        addCraftedFromCycle(schedule, true);
+    }
+    private void addCraftedFromCycle(CycleSchedule schedule, boolean real)
+    {
         CycleCraft crafts = new CycleCraft();
         crafts.setCraftID(new CraftID(week, schedule.day));
 
@@ -292,11 +319,13 @@ public class Solver
                 schedule.getValue();
             schedule.numCrafted.forEach((k, v) -> items[k.ordinal()].setCrafted(v, schedule.day));
             var items = schedule.getItems();
-            groove+=(items.size()-1) * NUM_WORKSHOPS;
+
+            groove = schedule.endingGroove;
+
             crafts.setCrafts(items);
         }
-
-        craftRepository.save(crafts);
+        if(real)
+            craftRepository.save(crafts);
     }
 
     public void updatePeak(Item item, PeakCycle peak)
@@ -329,13 +358,55 @@ public class Solver
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
                         (x, y) -> y, LinkedHashMap::new));
+        var bestItemsEntries = bestItems.entrySet();
         Iterator<Entry<Item, Integer>> itemIterator = bestItems.entrySet().iterator();
 
+        List<Item> itemsThatGetReservations = new ArrayList<>();
         for(int i=0;i<itemsToReserve && itemIterator.hasNext(); i++)
         {
             Item next = itemIterator.next().getKey();
-            //System.out.println("Reserving "+next);
+            LOG.info("Reserving item {}", next);
             reservedItems.add(next);
+            if(i<10)
+                itemsThatGetReservations.add(next);
+        }
+
+        reservedHelpers.clear();
+        for(int i=0;i<itemsThatGetReservations.size();i++)
+        {
+            Item itemEnum = itemsThatGetReservations.get(i);
+            ItemInfo mainItem = items[itemEnum.ordinal()];
+            if(mainItem.time != 8)
+                continue;
+            int bestValue = 0;
+            Item bestHelper = Macuahuitl; //This is the most useless thing I can think of
+            boolean hasMultiple = false;
+            for(ItemInfo helper : items)
+            {
+                if(helper.time != 4 || !helper.getsEfficiencyBonus(mainItem))
+                    continue;
+
+                int value = helper.getValueWithSupply(Supply.Sufficient);
+                if(value > bestValue)
+                {
+                    hasMultiple = false;
+                    bestValue = value;
+                    bestHelper = helper.item;
+                }
+                else if(value == bestValue)
+                {
+                    hasMultiple = true;
+                }
+            }
+            if(!hasMultiple)
+            {
+                LOG.info("Reserving helper {} to go with main item {}", bestHelper, itemEnum);
+                reservedHelpers.put(itemEnum, bestHelper);
+            }
+            else
+            {
+                LOG.info("Main item {} has multiple best helpers, so it gets none", itemEnum);
+            }
         }
     }
 
@@ -591,14 +662,14 @@ public class Solver
                     c5Peaks.get(i).peak = Cycle5Weak;
             }
 
-            int toAdd = solution.getKey().getValueWithGrooveEstimate(4, groove, rested >= 0).getWeighted();
+            int toAdd = solution.getKey().getValueWithGrooveEstimate(4, groove, rested >= 0, reservedHelpers).getWeighted();
             LOG.trace("Permutation " + p + " has value " + toAdd);
             sum += toAdd;
         }
 
         LOG.trace("Sum: " + sum + " average: " + sum / permutations);
         sum /= permutations;
-        WorkshopValue value = new WorkshopValue(sum, 0, 0);
+        WorkshopValue value = new WorkshopValue(sum, 0, 0, 0);
         solution.setValue(value);
 
         for (ItemInfo item : c5Peaks)
@@ -708,7 +779,7 @@ public class Solver
         if(workshop.usesTooMany(limitedUse))
             return;
         
-        WorkshopValue value = workshop.getValueWithGrooveEstimate(day, groove, rested >= 0);
+        WorkshopValue value = workshop.getValueWithGrooveEstimate(day, groove, rested >= 0, reservedHelpers);
         // Only add if we don't already have one with this schedule or ours is better
         int oldValue = -1;
         if(safeSchedules.containsKey(workshop))

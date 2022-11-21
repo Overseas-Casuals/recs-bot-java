@@ -138,7 +138,7 @@ public class ItemInfo
     
     public boolean peaksOnOrBeforeDay(int day, Set<Item> reservedItems)
     {
-        if(reservedItems.size()>0 && !reservedItems.contains(item))
+        if(reservedItems!=null && reservedItems.size()>0 && !reservedItems.contains(item))
             return true;
             
         if(time == 4) //We can always borrow 4hr crafts
