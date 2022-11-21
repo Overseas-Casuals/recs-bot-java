@@ -24,13 +24,13 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         bestRec = null;
     }
 
-    public DailyRecommendation(int day, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs, CycleSchedule bestRec, int value)
+    public DailyRecommendation(int day, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs, CycleSchedule bestRec)
     {
         super(recs);
         this.day = day;
         restRecommended = false;
         this.bestRec = bestRec;
-        dailyValue = value;
+        dailyValue = bestRec.getValue();
         int startingGroove = bestRec.startingGroove;
         bestRec.startingGroove = 0;
         groovelessValue = bestRec.getValue();
