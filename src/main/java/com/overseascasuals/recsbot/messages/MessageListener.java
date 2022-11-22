@@ -24,7 +24,7 @@ public abstract class MessageListener {
 
     public Mono<Void> processCommand(Message eventMessage)
     {
-        if(eventMessage.getContent().startsWith("!setpeak"))
+        if(eventMessage.getAuthor().map(user -> !user.isBot()).orElse(false) && eventMessage.getContent().startsWith("!setpeak"))
             return processSetPeakCommand(eventMessage);
 
         return Mono.just(eventMessage)

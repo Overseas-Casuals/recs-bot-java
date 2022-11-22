@@ -23,7 +23,7 @@ public class OCUtils
         {
             messageSpec.content("Tentative rec detected! <@&"+c1PeakRole+">");
 
-            builder.color(Color.RED);
+            //builder.color(Color.RED);
             if(rec.isRestRecommended())
             {
                 builder.addField("Main Recommendation","Rest", false);
