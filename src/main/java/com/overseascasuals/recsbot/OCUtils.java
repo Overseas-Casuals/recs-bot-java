@@ -44,10 +44,20 @@ public class OCUtils
         else
         {
             if(rec.isRestRecommended())
-                builder.color(Color.BLUE).addField("Main Recommendation","Rest", false);
+                builder.color(Color.SUMMER_SKY).addField("Main Recommendation","Rest", false);
             else
             {
-                builder.color(Color.GREEN).addField("Main Recommendation", String.join(" - ",rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList())), false)
+
+                String title = "Main Recommendation";
+                builder.color(Color.SEA_GREEN);
+                if(rec.size() == 1)
+                {
+                    builder.title("Cycle "+(rec.getDay()+1)+" Update!").color(Color.MOON_YELLOW);
+                    title = "Updated Recommendation";
+                }
+
+
+                builder.addField(title, String.join(" - ",rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList())), false)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
                         .addField("With "+rec.getBestRec().startingGroove+" Groove", String.valueOf(rec.getDailyValue()), true);
 
@@ -56,25 +66,29 @@ public class OCUtils
             }
 
 
-            //Add alts also
-            builder.addField("\u200B", "\u200B", false);
-
-            StringBuilder altSb = new StringBuilder();
-            StringBuilder grossSb = new StringBuilder();
-            StringBuilder netSb = new StringBuilder();
-            for(var alt : rec)
+            if(rec.size() > 1)
             {
-                altSb.append(String.join(" - ", alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList()))).append('\n');
-                grossSb.append(alt.getValue().getWeighted()).append('\n');
-                netSb.append(alt.getValue().getNet()).append('\n');
-            }
-            altSb.setLength(altSb.length()-1);
-            grossSb.setLength(grossSb.length()-1);
-            netSb.setLength(netSb.length()-1);
+                //Add alts also
+                builder.addField("\u200B", "\u200B", false);
 
-            builder.addField("Alternatives", altSb.toString(), true)
-                    .addField("Weighted Value", grossSb.toString(), true);
-            //.addField("Net", netSb.toString(), true);
+                StringBuilder altSb = new StringBuilder();
+                StringBuilder grossSb = new StringBuilder();
+                StringBuilder netSb = new StringBuilder();
+                for(var alt : rec)
+                {
+                    altSb.append(String.join(" - ", alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList()))).append('\n');
+                    grossSb.append(alt.getValue().getWeighted()).append('\n');
+                    netSb.append(alt.getValue().getNet()).append('\n');
+                }
+                altSb.setLength(altSb.length()-1);
+                grossSb.setLength(grossSb.length()-1);
+                netSb.setLength(netSb.length()-1);
+
+                builder.addField("Alternatives", altSb.toString(), true)
+                        .addField("Weighted Value", grossSb.toString(), true);
+                //.addField("Net", netSb.toString(), true);
+            }
+
         }
 
         messageSpec.addEmbed(builder.build());

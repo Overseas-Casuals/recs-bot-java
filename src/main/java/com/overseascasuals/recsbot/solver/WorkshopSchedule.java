@@ -247,9 +247,16 @@ public class WorkshopSchedule
                 }
             }
         }
+
+        int prepeakBonus = 0;
+        for(int i=0;i<crafts.size();i++)
+        {
+            if(crafts.get(i).couldPrePeak(day))
+                prepeakBonus+= Solver.helperPenalty*(i==0?1:2);
+        }
                 
         //Allow for the accounting for materials if desired
-        return new WorkshopValue( workshopValue, grooveValue, getMaterialCost(), helperPenalty);
+        return new WorkshopValue( workshopValue, grooveValue, getMaterialCost(), helperPenalty-prepeakBonus);
     }
     
     public boolean usesTooMany(Map<Item,Integer> limitedUse)
