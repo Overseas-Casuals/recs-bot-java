@@ -53,20 +53,18 @@ public abstract class MessageListener {
                     {
                         return Mono.just(eventMessage)
                                 .flatMap(Message::getChannel)
-                                .flatMap(channel -> channel.createMessage("Current day doesn't need confirmation of any peaks."))
+                                .flatMap(channel -> channel.createMessage("Current cycle doesn't need confirmation of any peaks."))
                                 .then();
                     }
                     if(commandParts[2].toLowerCase().contains("strong"))
                     {
-                        solver.updatePeak(item, PeakCycle.Cycle2Strong);
-                        valid = true;
+                        valid = solver.updatePeak(item, PeakCycle.Cycle2Strong);
                     }
                     else if(commandParts[2].toLowerCase().contains("weak"))
                     {
-                        solver.updatePeak(item, PeakCycle.Cycle2Weak);
-                        valid = true;
+                        valid = solver.updatePeak(item, PeakCycle.Cycle2Weak);
                     }
-                    if(!solver.hasTentativeD2())
+                    if(valid && solver.allTentativeD2Set())
                     {
                         LOG.info("command is valid, telling the Solver");
                         var recs = solver.redoDay2Recs();

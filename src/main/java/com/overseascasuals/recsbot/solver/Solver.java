@@ -134,7 +134,7 @@ public class Solver
     private boolean guaranteeRestD5 = false;
     private Set<Item> reservedItems = new HashSet<>();
     private Map<Item, Item> reservedHelpers = new HashMap<>();
-    private Set<Item> d2Troublemakers;
+    private Map<Item, Boolean> d2Troublemakers;
 
     private List<Item> c2Crafts;
     private List<Item> c3Crafts;
@@ -159,7 +159,7 @@ public class Solver
 
     public List<DailyRecommendation> redoDay2Recs()
     {
-        return getDailyRecommendations(week, 0, true);
+        return getDailyRecommendations(week, 0, false);
     }
     public List<DailyRecommendation> getDailyRecommendations(int week, int day, boolean hardRefresh)
     {
@@ -169,6 +169,7 @@ public class Solver
             rested = -1;
             groove = 0;
             reservedItems.clear();
+            d2Troublemakers = null;
             int currentPop = popularityRepository.findByWeek(week).getPopularity();
             String popResponse = restService.getURLResponse("https://xivapi.com/MJICraftworksPopularity/"+currentPop);
 
@@ -259,6 +260,8 @@ public class Solver
 
                 int grooveMadeToday = (currentCrafts.size() - 1) * NUM_WORKSHOPS;
 
+                LOG.info("Rechecking day {}'s recs starting at {} groove", day+1, groove - grooveMadeToday);
+
 
                 var newBest = getBestBruteForceSchedules(day, groove-grooveMadeToday,
                         null, day, 1, currentCrafts.get(0));
@@ -346,6 +349,7 @@ public class Solver
     {
         if(schedule!=null)
         {
+            LOG.info("Setting info for cycle schedule {} (real? {})", schedule, real);
             if(schedule.numCrafted == null)
                 schedule.getValue();
             Arrays.stream(items).forEach(item -> item.setCrafted(schedule.numCrafted.getOrDefault(item.item, 0), schedule.day));
@@ -365,17 +369,20 @@ public class Solver
         }
     }
 
-    public void updatePeak(Item item, PeakCycle peak)
+    public boolean updatePeak(Item item, PeakCycle peak)
     {
-        if(d2Troublemakers.contains(item))
+        if(d2Troublemakers.containsKey(item))
         {
-            d2Troublemakers.remove(item);
+            groove = 0;
+            d2Troublemakers.put(item, true);
             items[item.ordinal()].peak = peak;
             CraftPeaks singlePeak = new CraftPeaks();
             singlePeak.setPeakFromEnum(peak);
             singlePeak.setPeakID(new PeakID(week, day, item.ordinal()+1));
             peakRepository.save(singlePeak);
+            return true;
         }
+        return false;
     }
 
     private void populateReservedItems()
@@ -755,11 +762,27 @@ public class Solver
 
     public boolean hasTentativeD2()
     {
-        return d2Troublemakers != null && d2Troublemakers.size() > 0;
+        LOG.info("Day {} troublemakers: {}", day, d2Troublemakers==null?"null":String.valueOf(d2Troublemakers.size()));
+        return day==0 && d2Troublemakers != null && d2Troublemakers.size() > 0;
     }
 
-    public Set<Item> getTentativeD2Items(int valueToCompare)
+    public boolean allTentativeD2Set()
     {
+        if(!hasTentativeD2())
+            return true;
+
+        for(var value : d2Troublemakers.values())
+            if(!value)
+                return false;
+
+        return true;
+    }
+
+    public Map<Item, Boolean> getTentativeD2Items(int valueToCompare)
+    {
+        if(d2Troublemakers != null)
+            return d2Troublemakers;
+
         Map<Item, Integer> troubleValues = new HashMap<>();
         List<ItemInfo> c2Unknowns = new ArrayList<>();
         for (ItemInfo item : items)
@@ -768,7 +791,7 @@ public class Solver
 
         LOG.info("Checking {} unknown D2 peaks.", c2Unknowns.size());
 
-        d2Troublemakers = new HashSet<>();
+        d2Troublemakers = new HashMap<>();
         for (int i = 0; i < c2Unknowns.size(); i++) {
             c2Unknowns.get(i).peak = Cycle2Strong;
             LOG.info("Setting {} to strong peak", c2Unknowns.get(i).item);
@@ -795,14 +818,15 @@ public class Solver
                 if(value>troublemaker.getValue())
                 {
                     LOG.info("{} could help {} get to even greater heights!", c2Unknowns.get(i).item.getDisplayName(), troublemaker.getKey().getDisplayName());
-                    d2Troublemakers.add(c2Unknowns.get(i).item);
+                    d2Troublemakers.put(c2Unknowns.get(i).item, false);
                 }
                 c2Unknowns.get(i).peak = Cycle2Unknown;
             }
             items[troublemaker.getKey().ordinal()].peak = Cycle2Unknown;
         }
 
-        d2Troublemakers.addAll(troubleValues.keySet());
+        for(var value : troubleValues.keySet())
+            d2Troublemakers.put(value, false);
         return d2Troublemakers;
     }
 

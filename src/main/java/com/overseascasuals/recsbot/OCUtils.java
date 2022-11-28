@@ -33,7 +33,7 @@ public class OCUtils
             {
                 builder.addField("Tentative Recommendation", String.join(" - ",rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList())), false)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
-                        .addField("With "+rec.getBestRec().startingGroove+" Groove", String.valueOf(rec.getGroovelessValue()), true);
+                        .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", String.valueOf(rec.getGroovelessValue()), true);
             }
             builder.addField("\u200B", "\u200B", false)
                     .addField("Required Info", String.join(", ", rec.getTroublemakers().stream().map(Item::getDisplayName).collect(Collectors.toList())), true);
@@ -59,7 +59,7 @@ public class OCUtils
 
                 builder.addField(title, String.join(" - ",rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList())), false)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
-                        .addField("With "+rec.getBestRec().startingGroove+" Groove", String.valueOf(rec.getDailyValue()), true);
+                        .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", String.valueOf(rec.getDailyValue()), true);
 
                 if(rec.get(0).getValue().getGroove() > 0)
                     builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);

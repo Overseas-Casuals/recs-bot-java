@@ -30,11 +30,11 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         this.day = day;
         restRecommended = false;
         this.bestRec = bestRec;
-        dailyValue = bestRec.getValue();
-        int startingGroove = bestRec.startingGroove;
-        bestRec.startingGroove = 0;
+        int startingGroove = bestRec.getStartingGroove();
+        bestRec.setStartingGroove(0);
         groovelessValue = bestRec.getValue();
-        bestRec.startingGroove = startingGroove;
+        bestRec.setStartingGroove(startingGroove);
+        dailyValue = bestRec.getValue();
     }
 
     public boolean isRestRecommended() {
@@ -64,11 +64,13 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         return troublemakers;
     }
 
-    public void setTroublemakers(Set<Item> troublemakers) {
+    public void setTroublemakers(Map<Item, Boolean> troublemakers) {
         if(troublemakers == null || troublemakers.size() == 0)
             return;
-        tentative = true;
-        this.troublemakers = troublemakers;
+        for(var value : troublemakers.values())
+            if(!value)
+                tentative = true;
+        this.troublemakers = troublemakers.keySet();
     }
 
     public int getDay() {

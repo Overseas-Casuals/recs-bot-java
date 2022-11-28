@@ -10,7 +10,7 @@ public class CycleSchedule
 {
     Logger LOG = LoggerFactory.getLogger(CycleSchedule.class);
     int day;
-    public int startingGroove;
+    private int startingGroove;
     int endingGroove;
     WorkshopSchedule[] workshops = new WorkshopSchedule[3];
     HashMap<Item, Integer> numCrafted;
@@ -43,7 +43,7 @@ public class CycleSchedule
     
     public int getValue() 
     {
-       numCrafted = new HashMap<Item, Integer>(); 
+       numCrafted = new HashMap<>();
        
        for(int i=0; i<workshops.length;i++)
            workshops[i].currentIndex = 0;
@@ -102,7 +102,7 @@ public class CycleSchedule
     @Override
     public String toString()
     {
-        return workshops[0].toString();
+        return "Day: "+day+", Items: " + workshops[0].toString() + ", Starting groove: "+startingGroove+", Ending groove: "+endingGroove;
     }
     public boolean equals(Object other)
     {
@@ -117,5 +117,12 @@ public class CycleSchedule
     {
         return workshops.hashCode();
     }
-    
+
+    public int getStartingGroove() {
+        return startingGroove;
+    }
+
+    public void setStartingGroove(int startingGroove) {
+        this.startingGroove = startingGroove;
+    }
 }
