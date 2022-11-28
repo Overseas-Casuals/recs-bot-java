@@ -12,9 +12,9 @@ import java.util.stream.Collectors;
 
 public class OCUtils
 {
-    public static MessageCreateSpec generateRecEmbedMessage(DailyRecommendation rec, String c1PeakRole)
+    public static MessageCreateSpec generateRecEmbedMessage(int season, DailyRecommendation rec, String c1PeakRole)
     {
-        var builder = EmbedCreateSpec.builder().title("Cycle "+(rec.getDay()+1)+" Recommendations");
+        var builder = EmbedCreateSpec.builder().title("Season "+season+", Cycle "+(rec.getDay()+1)+" Recommendations");
         builder.timestamp(Instant.now());
         var messageSpec = MessageCreateSpec.builder();
 

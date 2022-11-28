@@ -36,6 +36,9 @@ public class GetPeaksTask implements ScheduledTask
     private static Logger LOG = LoggerFactory.getLogger(GetPeaksTask.class);
     @Value("${discord.recsChannel}")
     private String recsChannel;
+
+    @Value("${discord.peaksChannel}")
+    private String peaksChannel;
     @Value("${tcUrl}")
     private String tcURL;
 
@@ -61,6 +64,7 @@ public class GetPeaksTask implements ScheduledTask
     private static ObjectMapper objectMapper = new ObjectMapper();
 
     private MessageChannel channel;
+    private MessageChannel peakChannel;
 
     @Override
     public String getCron()
@@ -72,6 +76,8 @@ public class GetPeaksTask implements ScheduledTask
     public void initialize(GatewayDiscordClient client) {
         this.client = client;
         channel = client.getChannelById(Snowflake.of(recsChannel))
+                .cast(MessageChannel.class).block();
+        peakChannel = client.getChannelById(Snowflake.of(peaksChannel))
                 .cast(MessageChannel.class).block();
     }
 
@@ -158,12 +164,12 @@ public class GetPeaksTask implements ScheduledTask
         }
         //Also send to Discord
         var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).toArray();
-        channel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
+        peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
         var list = solver.getDailyRecommendations(week, day, false);
         for(var recs : list)
         {
-            var message = channel.createMessage(OCUtils.generateRecEmbedMessage(recs, c1PeakRole));
+            var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole));
             if(recs.isTentative())
                 message.subscribe();
             else

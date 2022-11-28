@@ -140,6 +140,7 @@ public class Solver
     private List<Item> c3Crafts;
 
     private int week = 0;
+    public int getWeek() {return week;}
     private int day = 0;
 
     private CSVImporter csvImporter;
@@ -918,11 +919,30 @@ public class Solver
         var sortedSchedules = safeSchedules
                 .entrySet().stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
-                .limit(numToReturn)
                 .collect(Collectors.toList());
 
+        List<Integer> redundantIndices = new ArrayList<>();
+        var sets = new HashSet<Map<RareMaterial, Integer>>();
 
-        return sortedSchedules;
+        for(int i=0; i<alternatives * 3 && i<sortedSchedules.size(); i++)
+        {
+            WorkshopSchedule sched = sortedSchedules.get(i).getKey();
+            if(sched.isItemSuperset(sets))
+            {
+                redundantIndices.add(i);
+            }
+            else
+                sets.add(sched.rareMaterialsRequired);
+        }
+
+        for(int j = redundantIndices.size() - 1; j >=0; j--)
+        {
+            //Remove from the end forward because the indices will change once you start removing
+            int i = redundantIndices.get(j);
+            sortedSchedules.remove(i);
+        }
+
+        return sortedSchedules.stream().limit(alternatives).collect(Collectors.toList());
 
     }
     private void addToScheduleMap(List<Item> list, int day, int groove, Map<Item,Integer> limitedUse,

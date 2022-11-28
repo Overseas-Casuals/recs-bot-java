@@ -334,6 +334,30 @@ public class WorkshopSchedule
         }
         return false;
     }
+
+    public boolean isItemSuperset(Set<Map<RareMaterial, Integer>> otherItemSets)
+    {
+        for(var itemSet : otherItemSets)
+        {
+            boolean isSuperset = true;
+            for(var entry : itemSet.entrySet())
+            {
+                //If we don't need this item or we need less of it
+                if(!rareMaterialsRequired.containsKey(entry.getKey()) || rareMaterialsRequired.get(entry.getKey()) < entry.getValue())
+                {
+                    isSuperset = false;
+                    break;
+                }
+            }
+            //If we made it through each item without flipping to false, we're a strict superset of something we already have
+            if(isSuperset)
+            {
+                return true;
+            }
+        }
+        //If we made it through each set without returning true, we aren't a superset of anything
+        return false;
+    }
     
     public int hashCode()
     {
