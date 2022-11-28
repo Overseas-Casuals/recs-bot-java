@@ -924,16 +924,20 @@ public class Solver
         List<Integer> redundantIndices = new ArrayList<>();
         var sets = new HashSet<Map<RareMaterial, Integer>>();
 
-        for(int i=0; i<alternatives * 3 && i<sortedSchedules.size(); i++)
+        if(numToReturn > 1)
         {
-            WorkshopSchedule sched = sortedSchedules.get(i).getKey();
-            if(sched.isItemSuperset(sets))
+            for(int i=0; i<numToReturn * 3 && i<sortedSchedules.size(); i++)
             {
-                redundantIndices.add(i);
+                WorkshopSchedule sched = sortedSchedules.get(i).getKey();
+                if(sched.isItemSuperset(sets))
+                {
+                    redundantIndices.add(i);
+                }
+                else
+                    sets.add(sched.rareMaterialsRequired);
             }
-            else
-                sets.add(sched.rareMaterialsRequired);
         }
+
 
         for(int j = redundantIndices.size() - 1; j >=0; j--)
         {
@@ -942,7 +946,7 @@ public class Solver
             sortedSchedules.remove(i);
         }
 
-        return sortedSchedules.stream().limit(alternatives).collect(Collectors.toList());
+        return sortedSchedules.stream().limit(numToReturn).collect(Collectors.toList());
 
     }
     private void addToScheduleMap(List<Item> list, int day, int groove, Map<Item,Integer> limitedUse,

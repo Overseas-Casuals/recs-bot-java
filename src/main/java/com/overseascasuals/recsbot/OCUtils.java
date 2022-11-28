@@ -73,16 +73,16 @@ public class OCUtils
 
                 StringBuilder altSb = new StringBuilder();
                 StringBuilder grossSb = new StringBuilder();
-                StringBuilder netSb = new StringBuilder();
                 for(var alt : rec)
                 {
-                    altSb.append(String.join(" - ", alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList()))).append('\n');
+                    String altText = String.join(" - ", alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList()));
+                    altSb.append(altText).append('\n');
                     grossSb.append(alt.getValue().getWeighted()).append('\n');
-                    netSb.append(alt.getValue().getNet()).append('\n');
+                    if(altText.length() > "Necklace - Spruce Round Shield - Necklace - Spruce Round Shield".length()) //The longest thing I've seen on one line
+                        grossSb.append('\n');
                 }
                 altSb.setLength(altSb.length()-1);
                 grossSb.setLength(grossSb.length()-1);
-                netSb.setLength(netSb.length()-1);
 
                 builder.addField("Alternatives", altSb.toString(), true)
                         .addField("Weighted Value", grossSb.toString(), true);
