@@ -83,7 +83,10 @@ public class GetPeaksTask implements ScheduledTask
 
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
-        //int day = 0;
+        /*for(day=0; day<4; day++)
+        {*/
+
+
 
         boolean validTCPeaks = false;
         List<TCDay> tcDays = null;
@@ -153,7 +156,6 @@ public class GetPeaksTask implements ScheduledTask
             scheduler.shutdown();
             return;
         }
-
         //Also send to Discord
         var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).toArray();
         channel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
@@ -168,6 +170,7 @@ public class GetPeaksTask implements ScheduledTask
               message.flatMap(Message::publish).subscribe();
         }
 
+        //}
     }
 
 

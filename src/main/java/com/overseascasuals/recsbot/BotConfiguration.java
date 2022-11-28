@@ -66,7 +66,6 @@ public class BotConfiguration
         }
         LOG.debug("Scheduled "+taskList.size()+" task(s)");
 
-        //client.onDisconnect().block();
         return client;
     }
 

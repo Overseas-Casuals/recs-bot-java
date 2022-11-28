@@ -468,19 +468,23 @@ public class Solver
         CycleSchedule bestSchedule = new CycleSchedule(day, groove);
         bestSchedule.setForAllWorkshops(recs.get(0).getKey().getItems());
         addCraftedFromCycle(day, bestSchedule);
-        recommendations.add(new DailyRecommendation(day, recs, bestSchedule));
+        var newRec = new DailyRecommendation(day, recs, bestSchedule);
+        LOG.info("Adding late-week rec {}", newRec);
+        recommendations.add(newRec);
     }
     private void addRestToList(List<Entry<WorkshopSchedule, WorkshopValue>> recs, int day, List<DailyRecommendation> recommendations)
     {
         addCraftedFromCycle(day, null);
-        recommendations.add(new DailyRecommendation(day, recs));
+        var newRec = new DailyRecommendation(day, recs);
+        LOG.info("Resting for late-week rec {}", newRec);
+        recommendations.add(newRec);
     }
     private List<DailyRecommendation> getLateDays()
     {
         List<DailyRecommendation> recommendations = new ArrayList<>();
         int startingGroove = groove;
-        var cycle5Sched = getBestBruteForceSchedules(4, startingGroove, null, 4, alternatives);
-        var cycle6Sched = getBestBruteForceSchedules(5, startingGroove, null, 5, alternatives);
+        var cycle5Sched = getBestBruteForceSchedules(4, startingGroove, null, 6, alternatives);
+        var cycle6Sched = getBestBruteForceSchedules(5, startingGroove, null, 6, alternatives);
         var cycle7Sched = getBestBruteForceSchedules(6, startingGroove, null, 6, alternatives);
 
         // I'm just hardcoding this, This could almost certainly be improved
@@ -509,37 +513,48 @@ public class Solver
             addDailyRecToList(cycle5Sched, 4, startingGroove, recommendations);
 
             startingGroove = groove;
-            cycle6Sched = getBestBruteForceSchedules(5, startingGroove, null, 5, alternatives);
+            cycle6Sched = getBestBruteForceSchedules(5, startingGroove, null, 6, alternatives);
             cycle7Sched = getBestBruteForceSchedules(6, startingGroove, null, 6, alternatives);
-            if(cycle6Sched.get(0).getValue().getWeighted() > cycle7Sched.get(0).getValue().getWeighted())
-            {
-                if(rested == -1)
-                {
-                    //Recalc again to include d7 (since we need to rest then)
-                    cycle6Sched = getBestBruteForceSchedules(5, startingGroove, null, 6, alternatives);
 
+            if(rested == -1)
+            {
+                //Haven't rested, need to pick 5 or 7
+                if(cycle6Sched.get(0).getValue().getWeighted() > cycle7Sched.get(0).getValue().getWeighted())
+                {
                     addDailyRecToList(cycle6Sched, 5, startingGroove, recommendations);
                     addRestToList(getBestBruteForceSchedules(6, startingGroove, null, 6, alternatives), 6, recommendations);
-
                 }
                 else
+                {
+                    addRestToList(cycle6Sched, 5, recommendations);
+                    addDailyRecToList(cycle7Sched, 6, startingGroove, recommendations);
+                }
+            }
+            else //Using all 3
+            {
+                CycleSchedule best6 = new CycleSchedule(5, startingGroove);
+                best6.setForAllWorkshops(cycle6Sched.get(0).getKey().getItems());
+                addCraftedFromCycle(5, best6, false);
+                var recalced7Sched = getBestBruteForceSchedules(6, startingGroove, null, 6, alternatives);
+
+                var only6Sched = getBestBruteForceSchedules(5, startingGroove, null, 5, alternatives);
+                CycleSchedule bestOnly6 = new CycleSchedule(5, startingGroove);
+                bestOnly6.setForAllWorkshops(only6Sched.get(0).getKey().getItems());
+                addCraftedFromCycle(5, bestOnly6, false);
+                var only7Sched = getBestBruteForceSchedules(6, startingGroove, null, 6, alternatives);
+
+                if(cycle6Sched.get(0).getValue().getWeighted() + recalced7Sched.get(0).getValue().getWeighted() > only6Sched.get(0).getValue().getWeighted() + only7Sched.get(0).getValue().getWeighted())
                 {
                     addDailyRecToList(cycle6Sched, 5, startingGroove, recommendations);
-                    addDailyRecToList(getBestBruteForceSchedules(6, groove, null, 6, alternatives), 6, groove, recommendations);
+                    addDailyRecToList(recalced7Sched, 6, groove, recommendations);
                 }
-            }
-            else
-            {
-                if(rested == -1)
-                    addRestToList(cycle6Sched, 5, recommendations);
                 else
                 {
-                    Map<Item,Integer> reserved7Set = cycle7Sched.get(0).getKey().getLimitedUses();
-                    addDailyRecToList(getBestBruteForceSchedules(5, startingGroove, reserved7Set, 6, alternatives), 5, startingGroove, recommendations);
+                    addDailyRecToList(only6Sched, 5, startingGroove, recommendations);
+                    addDailyRecToList(only7Sched,6,groove, recommendations);
                 }
-
-                addDailyRecToList(getBestBruteForceSchedules(6, groove, null, 6, alternatives), 6, groove, recommendations);
             }
+
         }
         else if (bestDay == 6) // Day 7 is best
         {
@@ -627,38 +642,69 @@ public class Solver
             Map<Item,Integer> reserved6 = cycle6Sched.get(0).getKey().getLimitedUses();
             //System.out.println("Recalcing D5 allowing D6's items");
 
-            cycle5Sched = getBestBruteForceSchedules(4, startingGroove, reserved6, 5, alternatives);
-            cycle7Sched = getBestBruteForceSchedules(6, startingGroove, null, 6, alternatives);
+            var recalcedCycle5Sched = getBestBruteForceSchedules(4, startingGroove, reserved6, 5, alternatives);
+            var recalcedCycle7Sched = getBestBruteForceSchedules(6, startingGroove, null, 6, alternatives);
             /*System.out.println("c5 sched:" +Arrays.toString(recalcedCycle5Sched.getKey().getItems().toArray())+ " ("
                     +recalcedCycle5Sched.getValue()+") compared to c7: "+Arrays.toString(recalcedCycle7Sched.getKey().getItems().toArray())
             +" ("+recalcedCycle7Sched.getValue()+")");*/
 
-            int worstDay;
-            if(cycle5Sched.get(0).getValue().getWeighted() > cycle7Sched.get(0).getValue().getWeighted())
-                worstDay = 6;
-            else
-                worstDay = 4;
+            var onlyCycle6Sched = getBestBruteForceSchedules(5, startingGroove, null, 5, alternatives);
+            CycleSchedule bestOnly6 = new CycleSchedule(5, startingGroove);
+            bestOnly6.setForAllWorkshops(onlyCycle6Sched.get(0).getKey().getItems());
+            addCraftedFromCycle(5, bestOnly6, false);
+            var onlyCycle7Sched = getBestBruteForceSchedules(6, startingGroove, null, 6, alternatives);
 
 
-            if (rested > 0 || worstDay != 4)
-            {
-                addDailyRecToList(cycle5Sched, 4, startingGroove, recommendations);
-                addDailyRecToList(getBestBruteForceSchedules(5, groove, null, 5, alternatives), 5, groove, recommendations);
-            }
-            else
-            {
-                addRestToList(cycle5Sched, 4, recommendations);
-                addDailyRecToList(cycle6Sched, 5, startingGroove, recommendations);
-            }
 
-            cycle7Sched = getBestBruteForceSchedules(6, groove, null, 6, alternatives);
-            if (rested > 0)
+            Map<Item,Integer> reservedOnly6 = onlyCycle6Sched.get(0).getKey().getLimitedUses();
+            var onlyCycle5Sched = getBestBruteForceSchedules(4, startingGroove,
+                    reservedOnly6, 5, alternatives);
+
+            if(rested == -1)
             {
-                //System.out.println("Recalcing day 7 and adding");
-                addDailyRecToList(cycle7Sched, 6, groove, recommendations);
+                //We only care about either 5 or 7, not both
+                int best56Combo = cycle6Sched.get(0).getValue().getWeighted() + recalcedCycle5Sched.get(0).getValue().getWeighted();
+                int best67Combo = cycle6Sched.get(0).getValue().getWeighted() + recalcedCycle7Sched.get(0).getValue().getWeighted();
+                int best76Combo = onlyCycle6Sched.get(0).getValue().getWeighted() + onlyCycle7Sched.get(0).getValue().getWeighted();
+
+                int bestOverall = Math.max(best76Combo, Math.max(best67Combo, best56Combo));
+                if(bestOverall == best56Combo)
+                {
+                    addDailyRecToList(recalcedCycle5Sched, 4, startingGroove, recommendations);
+                    addDailyRecToList(getBestBruteForceSchedules(5, groove, null, 6, alternatives), 5, groove, recommendations);
+                    addRestToList(recalcedCycle7Sched, 6, recommendations);
+                }
+                else
+                {
+                    addRestToList(recalcedCycle5Sched, 4, recommendations);
+                    if(bestOverall == best67Combo)
+                    {
+                        addDailyRecToList(cycle6Sched, 5, startingGroove, recommendations);
+                    }
+                    else
+                    {
+                        addDailyRecToList(onlyCycle6Sched, 5, startingGroove, recommendations);
+                    }
+                    addDailyRecToList(getBestBruteForceSchedules(6, groove, null, 6, alternatives), 6, groove, recommendations);
+                }
             }
-            else
-                addRestToList(cycle7Sched, 6, recommendations);
+            else //We're using all 3 days
+            {
+                if(cycle6Sched.get(0).getValue().getWeighted() + recalcedCycle5Sched.get(0).getValue().getWeighted() + recalcedCycle7Sched.get(0).getValue().getWeighted()
+                        > onlyCycle5Sched.get(0).getValue().getWeighted() + onlyCycle6Sched.get(0).getValue().getWeighted() + onlyCycle7Sched.get(0).getValue().getWeighted())
+                {
+                    //Using 6 first
+                    addDailyRecToList(recalcedCycle5Sched, 4, startingGroove, recommendations);
+                    addDailyRecToList(getBestBruteForceSchedules(5, groove, null, 6, alternatives), 5, groove, recommendations);
+                }
+                else
+                {
+                    //6 takes too much from 7 so we just do it straight
+                    addDailyRecToList(onlyCycle5Sched, 4, startingGroove, recommendations);
+                    addDailyRecToList(getBestBruteForceSchedules(5, groove, null, 5, alternatives), 5, groove, recommendations);
+                }
+                addDailyRecToList(getBestBruteForceSchedules(6, groove, null, 6, alternatives), 6, groove, recommendations);
+            }
         }
         return recommendations;
     }
