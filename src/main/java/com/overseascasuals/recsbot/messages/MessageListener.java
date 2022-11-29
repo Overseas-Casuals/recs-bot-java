@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import reactor.core.publisher.Mono;
 
+import java.util.Date;
+
 public abstract class MessageListener {
     Logger LOG = LoggerFactory.getLogger(MessageListener.class);
 
@@ -49,7 +51,22 @@ public abstract class MessageListener {
                 try{
                     Item item = Item.valueOf(commandParts[1]);
                     boolean valid = false;
-                    if(!solver.hasTentativeD2())
+                    boolean strong = false;
+                    if(!solver.hasTentativeD2())//Might be uninitialized
+                    {
+                        LOG.info("Has no D2 info. Maaaaaaybe we needed to reboot the server and now it lost it.");
+                        var d1 = new Date(1661241600000l);
+                        var d2 = new Date();
+
+                        int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
+                        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+                        if(day==0)
+                        {
+                            solver.getDailyRecommendations(week, day, true);
+                        }
+                    }
+
+                    if(!solver.hasTentativeD2()) //Really just doesn't have anything
                     {
                         return Mono.just(eventMessage)
                                 .flatMap(Message::getChannel)
@@ -59,19 +76,40 @@ public abstract class MessageListener {
                     if(commandParts[2].toLowerCase().contains("strong"))
                     {
                         valid = solver.updatePeak(item, PeakCycle.Cycle2Strong);
+                        strong = true;
                     }
                     else if(commandParts[2].toLowerCase().contains("weak"))
                     {
                         valid = solver.updatePeak(item, PeakCycle.Cycle2Weak);
                     }
-                    if(valid && solver.allTentativeD2Set())
+
+                    if(valid)
                     {
                         LOG.info("command is valid, telling the Solver");
-                        var recs = solver.redoDay2Recs();
+                        if(solver.allTentativeD2Set())
+                        {
+                            var recs = solver.redoDay2Recs();
 
+                            return Mono.just(eventMessage)
+                                    .flatMap(Message::getChannel)
+                                    .flatMap(channel -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), recs.get(0), c1PeakRole)).flatMap(Message::publish))
+                                    .then();
+                        }
+                        else
+                        {
+                            final String text = "Item "+item.getDisplayName()+" set to "+(strong?"strong":"weak"+" peak. Still waiting on more required info.");
+                            return Mono.just(eventMessage)
+                                    .flatMap(Message::getChannel)
+                                    .flatMap(channel -> channel.createMessage(text))
+                                    .then();
+                        }
+                    }
+                    else
+                    {
+                        LOG.info("command is for item we don't need");
                         return Mono.just(eventMessage)
                                 .flatMap(Message::getChannel)
-                                .flatMap(channel -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), recs.get(0), c1PeakRole)).flatMap(Message::publish))
+                                .flatMap(channel -> channel.createMessage("No peak info needed for "+item.getDisplayName()))
                                 .then();
                     }
                 }
