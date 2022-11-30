@@ -305,6 +305,8 @@ public class Solver
                     {
                         LOG.debug("Guaranteed resting D5 so recalculating D4");
                         todayRecs = getBestBruteForceSchedules(dayToSolve, groove,  null, dayToSolve + 1, alternatives);
+                        bestSchedule = todayRecs.get(0);
+                        schedule.setForAllWorkshops(bestSchedule.getKey().getItems());
                     }
                 }
             }
