@@ -35,6 +35,9 @@ public class BotConfiguration
     @Value("${test}")
     private String testStr;
 
+    @Value("${spring.profiles.active}")
+    private String activeProfile;
+
     @Autowired
     private ThreadPoolTaskScheduler taskScheduler;
 
@@ -65,10 +68,11 @@ public class BotConfiguration
         {
             task.initialize(client);
             taskScheduler.schedule(task, new CronTrigger(task.getCron(), ZoneId.of("UTC")));
-            //task.run();
+            if("local".equals(activeProfile))
+                task.run();
         }
         LOG.debug("Scheduled "+taskList.size()+" task(s)");
-        LOG.info("Using testStr {}", testStr);
+        LOG.info("{}", testStr);
 
         return client;
     }
