@@ -264,10 +264,13 @@ public class Solver
                 LOG.info("Rechecking day {}'s recs starting at {} groove", day+1, groove - grooveMadeToday);
 
 
+                WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, groove-grooveMadeToday, rested>=0, reservedHelpers);
                 var newBest = getBestBruteForceSchedules(day, groove-grooveMadeToday,
                         null, day, 1, currentCrafts.get(0));
 
-                if(!newBest.get(0).getKey().getItems().equals(currentCrafts))
+                LOG.info("Old value for day {}: {}, new value {}", day+1, oldValue.getWeighted(), newBest.get(0).getValue().getWeighted());
+
+                if(newBest.get(0).getValue().getWeighted() > oldValue.getWeighted())
                 {
                     LOG.info("Schedule updated detected for day {}! Now crafting {}", day+1,
                             Arrays.toString(newBest.get(0).getKey().getItems().toArray()));

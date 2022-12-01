@@ -78,8 +78,6 @@ public class OCUtils
                     String altText = String.join(" - ", alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList()));
                     altSb.append(altText).append('\n');
                     grossSb.append(alt.getValue().getWeighted()).append('\n');
-                    if(altText.length() > "Necklace - Spruce Round Shield - Necklace - Spruce Round Shield".length()) //The longest thing I've seen on one line
-                        grossSb.append('\n');
                 }
                 altSb.setLength(altSb.length()-1);
                 grossSb.setLength(grossSb.length()-1);

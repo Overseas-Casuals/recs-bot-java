@@ -45,6 +45,12 @@ public class GetPeaksTask implements ScheduledTask
     @Value("${discord.c1HelperRole}")
     String c1PeakRole;
 
+    @Value("${testing.startDay}")
+    int startDay;
+
+    @Value("${testing.endDay}")
+    int endDay;
+
     @Autowired
     PeakRepository peakRepository;
 
@@ -89,94 +95,97 @@ public class GetPeaksTask implements ScheduledTask
 
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
-        /*for(day=0; day<4; day++)
-        {*/
-
-
-
-        boolean validTCPeaks = false;
-        List<TCDay> tcDays = null;
-        boolean alreadyHavePeaks = false;
-        String response = null;
-
-        int peakday = Math.min(day, 3);
-        var peaksByDay = peakRepository.findPeaksByDay(week, peakday);
-        if(peaksByDay != null && peaksByDay.size() > 0)
+        if(startDay == -1)
         {
-            LOG.info("Peaks for day {} already found. Skipping grabbing from TC.", day+1);
-            alreadyHavePeaks = true;
+            startDay = day;
+            endDay = day;
         }
-        else
-        {
-            response = restService.getURLResponse(tcURL);
 
-            try
+        for(day=startDay; day<=endDay; day++)
+        {
+            boolean validTCPeaks = false;
+            List<TCDay> tcDays = null;
+            boolean alreadyHavePeaks = false;
+            String response = null;
+
+            int peakday = Math.min(day, 3);
+            var peaksByDay = peakRepository.findPeaksByDay(week, peakday);
+            if(peaksByDay != null && peaksByDay.size() > 0)
             {
-                //Parse data from JSON
-                if(response != null)
-                    tcDays = objectMapper.readValue(response, new TypeReference<>(){});
-                validTCPeaks = tcDays != null && tcDays.size() > day && tcDays.get(0).getObjects() != null && tcDays.get(0).getObjects().size() > 0;
+                LOG.info("Peaks for day {} already found. Skipping grabbing from TC.", day+1);
+                alreadyHavePeaks = true;
             }
-            catch(Exception e)
-            {
-                LOG.error("Error parsing data from TC: "+response, e);
-            }
-        }
-
-        if(validTCPeaks)
-        {
-            peaksByDay = new ArrayList<>();
-            List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
-            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, day);
-        }
-
-        if(validTCPeaks)
-        {
-            //Send to DB
-            if(day==0)
-            {
-                //write popularity data
-                Popularity pop = new Popularity();
-                pop.setWeek(week);
-                pop.setPopularity(tcDays.get(0).getPopularity());
-                pop.setNextPopularity(tcDays.get(0).getPredictedPopularity());
-                popularityRepository.save(pop);
-                LOG.info("Sending popularity to island.ws: "+restService.postPopularity(week,tcDays.get(0).getPopularity(),  tcDays.get(0).getPredictedPopularity()));
-            }
-
-            for(var singlePeak : peaksByDay)
-            {
-                peakRepository.save(singlePeak);
-            }
-
-            LOG.info("Sending peaks to island.ws: "+restService.postPeaks(week, day, peaksByDay));
-
-        }
-        else if (!alreadyHavePeaks)
-        {
-            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-
-            LOG.warn("Peaks were invalid. Rescheduling");
-            int delay = 15;
-            scheduler.schedule(this, delay, TimeUnit.MINUTES);
-            scheduler.shutdown();
-            return;
-        }
-        //Also send to Discord
-        var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).toArray();
-        peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
-
-        var list = solver.getDailyRecommendations(week, day, false);
-        for(var recs : list)
-        {
-            var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole));
-            if(recs.isTentative())
-                message.subscribe();
             else
-              message.flatMap(Message::publish).subscribe();
-        }
+            {
+                response = restService.getURLResponse(tcURL);
 
-        //}
+                try
+                {
+                    //Parse data from JSON
+                    if(response != null)
+                        tcDays = objectMapper.readValue(response, new TypeReference<>(){});
+                    validTCPeaks = tcDays != null && tcDays.size() > day && tcDays.get(0).getObjects() != null && tcDays.get(0).getObjects().size() > 0;
+                }
+                catch(Exception e)
+                {
+                    LOG.error("Error parsing data from TC: "+response, e);
+                }
+            }
+
+            if(validTCPeaks)
+            {
+                peaksByDay = new ArrayList<>();
+                List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
+                validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, day);
+            }
+
+            if(validTCPeaks)
+            {
+                //Send to DB
+                if(day==0)
+                {
+                    //write popularity data
+                    Popularity pop = new Popularity();
+                    pop.setWeek(week);
+                    pop.setPopularity(tcDays.get(0).getPopularity());
+                    pop.setNextPopularity(tcDays.get(0).getPredictedPopularity());
+                    popularityRepository.save(pop);
+                    LOG.info("Sending popularity to island.ws: "+restService.postPopularity(week,tcDays.get(0).getPopularity(),  tcDays.get(0).getPredictedPopularity()));
+                }
+
+                for(var singlePeak : peaksByDay)
+                {
+                    peakRepository.save(singlePeak);
+                }
+
+                LOG.info("Sending peaks to island.ws: "+restService.postPeaks(week, day, peaksByDay));
+
+            }
+            else if (!alreadyHavePeaks)
+            {
+                ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
+                LOG.warn("Peaks were invalid. Rescheduling");
+                int delay = 15;
+                scheduler.schedule(this, delay, TimeUnit.MINUTES);
+                scheduler.shutdown();
+                return;
+            }
+            //Also send to Discord
+            var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).toArray();
+            peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
+
+            var list = solver.getDailyRecommendations(week, day, false);
+            for(var recs : list)
+            {
+                var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole));
+                if(recs.isTentative())
+                    message.subscribe();
+                else
+                  message.flatMap(Message::publish).subscribe();
+            }
+
+        }
     }
 
 
