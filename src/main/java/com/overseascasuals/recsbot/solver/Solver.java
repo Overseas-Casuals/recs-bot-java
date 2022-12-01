@@ -798,7 +798,7 @@ public class Solver
 
         LOG.trace("Sum: " + sum + " average: " + sum / permutations);
         sum /= permutations;
-        WorkshopValue value = new WorkshopValue(sum, 0, 0, 0);
+        WorkshopValue value = new WorkshopValue(sum, 0, 0, 0, 0 );
         solution.setValue(value);
 
         for (ItemInfo item : c5Peaks)

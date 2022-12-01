@@ -256,7 +256,7 @@ public class WorkshopSchedule
         }
                 
         //Allow for the accounting for materials if desired
-        return new WorkshopValue( workshopValue, grooveValue, getMaterialCost(), helperPenalty-prepeakBonus);
+        return new WorkshopValue( workshopValue, grooveValue, getMaterialCost(), helperPenalty, prepeakBonus);
     }
     
     public boolean usesTooMany(Map<Item,Integer> limitedUse)

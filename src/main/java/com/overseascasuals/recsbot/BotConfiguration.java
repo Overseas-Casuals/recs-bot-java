@@ -32,6 +32,9 @@ public class BotConfiguration
     @Value("${discord.token}")
     private String token;
 
+    @Value("${test}")
+    private String testStr;
+
     @Autowired
     private ThreadPoolTaskScheduler taskScheduler;
 
@@ -65,6 +68,7 @@ public class BotConfiguration
             //task.run();
         }
         LOG.debug("Scheduled "+taskList.size()+" task(s)");
+        LOG.info("Using testStr {}", testStr);
 
         return client;
     }
