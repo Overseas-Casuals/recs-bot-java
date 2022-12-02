@@ -83,7 +83,7 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
 
     public String prettyPrint(Map.Entry<WorkshopSchedule, WorkshopValue> rec)
     {
-        return rec.getKey() +"\tGross: "+rec.getValue().getGross()+"\tNet: "+rec.getValue().getNet()+"\tGroove bonus: "+rec.getValue().getGroove()+"\tPenalty: "+rec.getValue().getPenalty()+"\tPeak bonus:"+rec.getValue().getPeakBonus();
+        return rec.getKey() +"\tGross: "+rec.getValue().getGross()+"\tNet: "+rec.getValue().getNet()+"\tGroove bonus: "+rec.getValue().getGroove()+"\tPenalty: "+rec.getValue().getPenalty()+"\tPeak bonus: "+rec.getValue().getPeakBonus()+" Total: "+rec.getValue().getWeighted();
     }
 
     @Override

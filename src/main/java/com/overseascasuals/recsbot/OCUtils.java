@@ -8,6 +8,7 @@ import discord4j.rest.util.Color;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class OCUtils
@@ -87,6 +88,28 @@ public class OCUtils
                 //.addField("Net", netSb.toString(), true);
             }
 
+        }
+
+        messageSpec.addEmbed(builder.build());
+        return messageSpec.build();
+    }
+
+    public static MessageCreateSpec generateCrimeTimeEmbed(int season, List<DailyRecommendation> recs)
+    {
+        var builder = EmbedCreateSpec.builder().title("Season "+season+", Crime Time Recommendations");
+        builder.timestamp(Instant.now());
+        var messageSpec = MessageCreateSpec.builder();
+
+        builder.color(Color.SEA_GREEN);
+
+        for(int i=0; i<recs.size(); i++)
+        {
+            if(i>0)
+                builder.addField("\u200B", "\u200B", false);
+            var rec = recs.get(i);
+            builder.addField("Cycle "+(i+5), String.join(" - ",rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList())), false)
+                    .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
+                    .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", String.valueOf(rec.getDailyValue()), true);
         }
 
         messageSpec.addEmbed(builder.build());

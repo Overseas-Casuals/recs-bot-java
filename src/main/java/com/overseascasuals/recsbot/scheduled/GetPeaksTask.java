@@ -51,6 +51,9 @@ public class GetPeaksTask implements ScheduledTask
     @Value("${testing.endDay}")
     int endDay;
 
+    @Value("${testing.week}")
+    int weekOverride;
+
     @Autowired
     PeakRepository peakRepository;
 
@@ -100,6 +103,8 @@ public class GetPeaksTask implements ScheduledTask
             startDay = day;
             endDay = day;
         }
+        if(weekOverride!=-1)
+            week = weekOverride;
 
         for(day=startDay; day<=endDay; day++)
         {
@@ -185,6 +190,10 @@ public class GetPeaksTask implements ScheduledTask
                   message.flatMap(Message::publish).subscribe();
             }
 
+            if(day == 3)
+            {
+                channel.createMessage(OCUtils.generateCrimeTimeEmbed(week, solver.getCrimeTimeRecs())).flatMap(Message::publish).subscribe();
+            }
         }
     }
 

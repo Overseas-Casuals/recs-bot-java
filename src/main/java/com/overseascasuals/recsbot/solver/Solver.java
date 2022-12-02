@@ -68,6 +68,8 @@ public class Solver
     @Autowired
     private void setItemsToReserve(@Value("${solver.itemsToReserve}")int items) {itemsToReserve = items;}
 
+    @Value("${spring.profiles.active}")
+    private String activeProfile;
 
     static int helperPenalty;
     @Autowired
@@ -126,14 +128,12 @@ public class Solver
             new ItemInfo(Crook,Arms,Woodworks,120,8,9,Map.of(Fang,4))};
     
     private int groove = 0;
-    private int totalGross = 0;
-    private int totalNet = 0;
 
     private final static ObjectMapper objectMapper = new ObjectMapper();
     public int rested = -1;
     private boolean guaranteeRestD5 = false;
     private Set<Item> reservedItems = new HashSet<>();
-    private Map<Item, Item> reservedHelpers = new HashMap<>();
+    private Map<Item, ReservedHelper> reservedHelpers = new HashMap<>();
     private Map<Item, Boolean> d2Troublemakers;
 
     private List<Item> c2Crafts;
@@ -347,6 +347,26 @@ public class Solver
         return listOfRecs;
     }
 
+    public List<DailyRecommendation> getCrimeTimeRecs()
+    {
+        rested = 2;
+        List<Item> crimeCrafts = Arrays.asList(BoiledEgg, BakedPumpkin, ParsnipSalad, GrilledClam, SquidInk, TomatoRelish);
+
+        CycleSchedule crime1 = new CycleSchedule(1, 0);
+        crime1.setForAllWorkshops(crimeCrafts);
+        addCraftedFromCycle(1, crime1, false);
+
+        CycleSchedule crime2 = new CycleSchedule(2, groove);
+        crime2.setForAllWorkshops(new ArrayList<>());
+        addCraftedFromCycle(2, crime2, false);
+
+        CycleSchedule crime3 = new CycleSchedule(3, groove);
+        crime3.setForAllWorkshops(crimeCrafts);
+        addCraftedFromCycle(3, crime3, false);
+
+        return getLateDays();
+    }
+
     private void addCraftedFromCycle(int day, CycleSchedule schedule)
     {
         addCraftedFromCycle(day, schedule, true);
@@ -363,7 +383,7 @@ public class Solver
             groove = schedule.endingGroove;
         }
 
-        if(real)
+        if(real && "live".equals(activeProfile))
         {
             CycleCraft crafts = new CycleCraft();
             crafts.setCraftID(new CraftID(week, day));
@@ -373,6 +393,8 @@ public class Solver
                 crafts.setCrafts(new ArrayList<>());
             craftRepository.save(crafts);
         }
+        else
+            LOG.info("Not saving crafts because we're testing");
     }
 
     public boolean updatePeak(Item item, PeakCycle peak)
@@ -385,7 +407,8 @@ public class Solver
             CraftPeaks singlePeak = new CraftPeaks();
             singlePeak.setPeakFromEnum(peak);
             singlePeak.setPeakID(new PeakID(week, day, item.ordinal()+1));
-            peakRepository.save(singlePeak);
+            if("live".equals(activeProfile))
+                peakRepository.save(singlePeak);
             return true;
         }
         return false;
@@ -409,7 +432,7 @@ public class Solver
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
                         (x, y) -> y, LinkedHashMap::new));
         var bestItemsEntries = bestItems.entrySet();
-        Iterator<Entry<Item, Integer>> itemIterator = bestItems.entrySet().iterator();
+        Iterator<Entry<Item, Integer>> itemIterator = bestItemsEntries.iterator();
 
         List<Item> itemsThatGetReservations = new ArrayList<>();
         for(int i=0;i<itemsToReserve && itemIterator.hasNext(); i++)
@@ -430,7 +453,8 @@ public class Solver
                 continue;
             int bestValue = 0;
             Item bestHelper = Macuahuitl; //This is the most useless thing I can think of
-            boolean hasMultiple = false;
+            int secondBest = 0;
+            Item secondHelper = Macuahuitl;
             for(ItemInfo helper : items)
             {
                 if(helper.time != 4 || !helper.getsEfficiencyBonus(mainItem))
@@ -439,23 +463,26 @@ public class Solver
                 int value = helper.getValueWithSupply(Supply.Sufficient);
                 if(value > bestValue)
                 {
-                    hasMultiple = false;
+                    secondBest = bestValue;
+                    secondHelper = bestHelper;
                     bestValue = value;
                     bestHelper = helper.item;
                 }
-                else if(value == bestValue)
+                else if(value > secondBest)
                 {
-                    hasMultiple = true;
+                    secondBest = value;
+                    secondHelper = helper.item;
                 }
             }
-            if(!hasMultiple)
+            int swap = bestValue - secondBest;
+            int stepDown = bestValue - (int)(bestValue  * .6);
+            if(swap > 0)
             {
-                LOG.info("Reserving helper {} to go with main item {}", bestHelper, itemEnum);
-                reservedHelpers.put(itemEnum, bestHelper);
-            }
-            else
-            {
-                LOG.info("Main item {} has multiple best helpers, so it gets none", itemEnum);
+                int penalty = Math.min(swap, stepDown);
+                int finalPenalty = penalty/Math.max(i, 1)  + 1;
+                LOG.info("Reserving helper "+bestHelper+" to go with main item "+itemEnum+" (#"+(i+1)+"), difference between "+bestHelper+" and "+secondHelper+"? "+ swap+" cost of stepping down? "+stepDown+" Penalty: "+finalPenalty);
+
+                reservedHelpers.put(itemEnum, new ReservedHelper(bestHelper, finalPenalty));
             }
         }
     }

@@ -112,7 +112,7 @@ public class WorkshopSchedule
         return cost;
     }
     
-    public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested, Map<Item,Item> reservedHelpers)
+    public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested, Map<Item,ReservedHelper> reservedHelpers)
     {
         boolean verboseLogging = false;
         /*if(items.size() == 5 && items.get(0) == Item.BakedPumpkin && items.get(1) == Item.BoiledEgg && items.get(2) == Item.Horn
@@ -230,7 +230,7 @@ public class WorkshopSchedule
                 continue;
             if(verboseLogging)
                 LOG.info("Main item {} hasn't peaked yet", kvp.getKey());
-            if(!items.contains(kvp.getValue())) //We aren't using the helper so it's fine
+            if(!items.contains(kvp.getValue().item)) //We aren't using the helper so it's fine
                 continue;
             if(verboseLogging)
                 LOG.info("We're using helper {}", kvp.getValue());
@@ -239,11 +239,11 @@ public class WorkshopSchedule
             //apply a penalty for x usages (2x if efficient)
             for(int i=0; i<items.size(); i++)
             {
-                if(items.get(i) == kvp.getValue())
+                if(items.get(i) == kvp.getValue().item)
                 {
                     if(verboseLogging)
-                        LOG.info("We're using helper {} in position {}, so that's {}x the penalty of {}", kvp.getValue(), i, i==0?1:2, Solver.helperPenalty);
-                    helperPenalty+=Solver.helperPenalty*(i==0?1:2);
+                        LOG.info("We're using helper {} in position {}, so that's {}x the penalty of {}", kvp.getValue(), i, i==0?1:2, kvp.getValue().penalty);
+                    helperPenalty+=kvp.getValue().penalty*(i==0?1:2);
                 }
             }
         }
@@ -314,11 +314,16 @@ public class WorkshopSchedule
     public String toString()
     {
         StringBuilder sb = new StringBuilder();
-        for(var item : items)
+        if(items.size() > 0)
         {
-            sb.append(item.getDisplayName()).append(", ");
+            for(var item : items)
+            {
+                sb.append(item.getDisplayName()).append(", ");
+            }
+            sb.setLength(sb.length()-2);
         }
-        sb.setLength(sb.length()-2);
+        else
+            sb.append("No crafts");
 
         return sb.toString();
     }
