@@ -332,7 +332,7 @@ public class Solver
             listOfRecs.add(rec);
 
             if(dayToSolve==1)
-                rec.setTroublemakers(getTentativeD2Items(bestSchedule.getValue().getWeighted()));
+                rec.setTroublemakers(getTentativeD2Items(bestSchedule.getValue().getWeighted(), shouldRest));
 
 
             LOG.info("{}", rec);
@@ -757,9 +757,7 @@ public class Solver
         int weightedValue = rec.getValue().getWeighted();
         LOG.debug("Comparing d" + (day + 1) + " (" + weightedValue + ") to worst-case future days");
         
-        Map<Item,Integer> reservedSet = new HashMap<Item,Integer>();
-        for(Item item : rec.getKey().getItems())
-            reservedSet.put(item, 0);
+        Map<Item,Integer> reservedSet = rec.getKey().getLimitedUses();
         for (int d = day + 1; d < 7; d++)
         {
             Entry<WorkshopSchedule, WorkshopValue> solution;
@@ -775,9 +773,7 @@ public class Solver
                         + Arrays.toString(solution.getKey().getItems().toArray())
                         + " value: " + solution.getValue());
             worstInFuture = Math.min(worstInFuture, solution.getValue().getWeighted());
-            
-            for(Item item : solution.getKey().getItems())
-                reservedSet.put(item, 0);
+            reservedSet = solution.getKey().getLimitedUses(reservedSet);
             
             if (bestD5 > 0 && d > 4 && solution.getValue().getWeighted() < bestD5) //If we're checking a later day and it's worse than our best D5
                 bestD5IsWorst = false;
@@ -857,7 +853,7 @@ public class Solver
         return true;
     }
 
-    public Map<Item, Boolean> getTentativeD2Items(int valueToCompare)
+    public Map<Item, Boolean> getTentativeD2Items(int valueToCompare, boolean shouldRest)
     {
         if(d2Troublemakers != null)
             return d2Troublemakers;
@@ -876,10 +872,22 @@ public class Solver
             LOG.info("Setting {} to strong peak", c2Unknowns.get(i).item);
             var schedule = getBestSchedule(1, 0, null);
             int value = schedule.getValue().getWeighted();
-            if (value > valueToCompare) {
+            if (value > valueToCompare)
+            {
                 LOG.info("{} could star in a higher value schedule", c2Unknowns.get(i).item.getDisplayName());
-                troubleValues.put(c2Unknowns.get(i).item, value);
+
+                if(shouldRest)
+                {
+                    boolean shouldStillRest = isWorseThanAllFollowing(schedule, 1);
+                    if(!shouldStillRest) //We only care if it changes the rec from rest
+                        troubleValues.put(c2Unknowns.get(i).item, value);
+                    else
+                        LOG.info("We were resting and now we still want to rest so who cares");
+                }
+                else
+                    troubleValues.put(c2Unknowns.get(i).item, value);
             }
+
             c2Unknowns.get(i).peak = Cycle2Unknown;
         }
 

@@ -17,7 +17,7 @@ public class ItemInfo
 {
     private static Logger LOG = LoggerFactory.getLogger(ItemInfo.class);
     //Contains exact supply values for concrete paths and worst-case supply values for tentative ones
-    private static final int[][] SUPPLY_PATH = {{0, 0, -6, 0, 0, 0, 0}, //Unknown
+    private static final int[][] SUPPLY_PATH = {{0, 0, -8, 0, 0, 0, 0}, //Unknown
             {-4, -4, 10, 0, 0, 0, 0}, //Cycle2Weak 
             {-8, -7, 15, 0, 0, 0, 0}, //Cycle2Strong
             {0, -4, -4, 10, 0, 0, 0}, //Cycle3Weak
