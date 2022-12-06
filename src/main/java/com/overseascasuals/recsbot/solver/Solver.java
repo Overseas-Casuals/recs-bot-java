@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 
 import java.io.IOException;
 import java.util.*;
@@ -172,13 +173,22 @@ public class Solver
             reservedItems.clear();
             d2Troublemakers = null;
             int currentPop = popularityRepository.findByWeek(week).getPopularity();
-            String popResponse = restService.getURLResponse("https://xivapi.com/MJICraftworksPopularity/"+currentPop);
+            String popResponse = "";
+            try{
+                popResponse= restService.getURLResponse("https://xivapi.com/MJICraftworksPopularity/"+currentPop);
+            }
+            catch(RestClientException e)
+            {
+                LOG.error("Couldn't connect to XIV API to get popularity info. Abandoning ship", e);
+                return null;
+            }
 
             PopularityJson popJson = null;
             try {
                 popJson = objectMapper.readValue(popResponse, new TypeReference<>() {});
             } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
+                LOG.error("Couldn't read pop json from XIV API", e);
+                return null;
             }
             var peaks = peakRepository.findPeaksByDay(week, Math.min(day,3));
 

@@ -18,6 +18,7 @@ import org.slf4j.helpers.MessageFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,6 +42,9 @@ public class GetPeaksTask implements ScheduledTask
     private String peaksChannel;
     @Value("${tcUrl}")
     private String tcURL;
+
+    @Value("${mienna}")
+    private String miennaID;
 
     @Value("${discord.c1HelperRole}")
     String c1PeakRole;
@@ -132,11 +136,9 @@ public class GetPeaksTask implements ScheduledTask
             else
             {
                 LOG.info("Nothing found in DB, getting info from TC");
-
-                response = restService.getURLResponse(tcURL);
-
                 try
                 {
+                    response = restService.getURLResponse(tcURL);
                     //Parse data from JSON
                     if(response != null)
                         tcDays = objectMapper.readValue(response, new TypeReference<>(){});
@@ -183,7 +185,15 @@ public class GetPeaksTask implements ScheduledTask
                     pop.setPopularity(tcDays.get(0).getPopularity());
                     pop.setNextPopularity(tcDays.get(0).getPredictedPopularity());
                     popularityRepository.save(pop);
-                    LOG.info("Sending popularity to island.ws: "+restService.postPopularity(week,tcDays.get(0).getPopularity(),  tcDays.get(0).getPredictedPopularity()));
+                    try{
+                        LOG.info("Sending popularity to island.ws: "+restService.postPopularity(week,tcDays.get(0).getPopularity(),  tcDays.get(0).getPredictedPopularity()));
+                    }
+                    catch(RestClientException e)
+                    {
+                        LOG.error("Failed to send popularity to peak DB", e);
+                        peakChannel.createMessage("<@"+miennaID+"> Couldn't connect to peak database to send popularity").subscribe();
+                    }
+
                 }
 
                 for(var singlePeak : peaksByDay)
@@ -191,7 +201,14 @@ public class GetPeaksTask implements ScheduledTask
                     peakRepository.save(singlePeak);
                 }
 
-                LOG.info("Sending peaks to island.ws: "+restService.postPeaks(week, recDay, peaksByDay));
+                try {
+                    LOG.info("Sending peaks to island.ws: " + restService.postPeaks(week, recDay, peaksByDay));
+                }
+                catch(RestClientException e)
+                {
+                    LOG.error("Failed to send peaks to peak DB", e);
+                    peakChannel.createMessage("<@"+miennaID+"> Couldn't connect to peak database to send peaks").subscribe();
+                }
 
             }
             else if (!alreadyHavePeaks)
@@ -209,19 +226,25 @@ public class GetPeaksTask implements ScheduledTask
             peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
             var list = solver.getDailyRecommendations(week, recDay, false);
-            for(var recs : list)
+            if(list == null)
+                peakChannel.createMessage("<@"+miennaID+"> No recs returned").subscribe();
+            else
             {
-                var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole));
-                if(recs.isTentative())
-                    message.subscribe();
-                else
-                  message.flatMap(Message::publish).subscribe();
+                for(var recs : list)
+                {
+                    var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole));
+                    if(recs.isTentative())
+                        message.subscribe();
+                    else
+                        message.flatMap(Message::publish).subscribe();
+                }
+
+                if(recDay == 3)
+                {
+                    channel.createMessage(OCUtils.generateCrimeTimeEmbed(week, solver.getCrimeTimeRecs())).flatMap(Message::publish).subscribe();
+                }
             }
 
-            if(recDay == 3)
-            {
-                channel.createMessage(OCUtils.generateCrimeTimeEmbed(week, solver.getCrimeTimeRecs())).flatMap(Message::publish).subscribe();
-            }
         }
     }
 

@@ -21,6 +21,9 @@ public abstract class MessageListener {
     @Value("${discord.c1HelperRole}")
     String c1PeakRole;
 
+    @Value("${mienna}")
+    private String miennaID;
+
     @Autowired
     Solver solver;
 
@@ -89,6 +92,15 @@ public abstract class MessageListener {
                         if(solver.allTentativeD2Set())
                         {
                             var recs = solver.redoDay2Recs();
+
+                            if(recs== null || recs.size() == 0)
+                            {
+                                return Mono.just(eventMessage)
+                                        .flatMap(Message::getChannel)
+                                        .flatMap(channel -> channel.createMessage("<@"+miennaID+"> No recs returned"))
+                                        .then();
+                            }
+
 
                             return Mono.just(eventMessage)
                                     .flatMap(Message::getChannel)
