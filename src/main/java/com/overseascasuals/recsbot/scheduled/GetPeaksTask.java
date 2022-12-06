@@ -98,6 +98,7 @@ public class GetPeaksTask implements ScheduledTask
 
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+
         if(startDay == -1)
         {
             startDay = day;
@@ -105,7 +106,7 @@ public class GetPeaksTask implements ScheduledTask
         }
         if(weekOverride!=-1)
             week = weekOverride;
-
+        LOG.info("Getting info on day {} with start day {}, end day {}, and week {}", day, startDay, endDay, week);
         for(day=startDay; day<=endDay; day++)
         {
             boolean validTCPeaks = false;
@@ -122,6 +123,8 @@ public class GetPeaksTask implements ScheduledTask
             }
             else
             {
+                LOG.info("Nothing found in DB, getting info from TC");
+
                 response = restService.getURLResponse(tcURL);
 
                 try
@@ -129,7 +132,7 @@ public class GetPeaksTask implements ScheduledTask
                     //Parse data from JSON
                     if(response != null)
                         tcDays = objectMapper.readValue(response, new TypeReference<>(){});
-                    validTCPeaks = tcDays != null && tcDays.size() > day && tcDays.get(0).getObjects() != null && tcDays.get(0).getObjects().size() > 0;
+                    validTCPeaks = tcDays != null && tcDays.size() > day && tcDays.get(day).getObjects() != null && tcDays.get(day).getObjects().size() > 0;
                 }
                 catch(Exception e)
                 {
@@ -143,6 +146,23 @@ public class GetPeaksTask implements ScheduledTask
                 List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
                 validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, day);
             }
+            else if (!alreadyHavePeaks)
+            {
+                LOG.error("Invalid info gotten from TC: {}", response);
+                if(tcDays!=null)
+                {
+
+                    LOG.error("TC days size: {}", tcDays.size());
+                    if(tcDays.size() > day)
+                        LOG.error("Current TC data for day {}: {}", day, tcDays.get(day));
+                    else
+                        LOG.error("TC doesn't have enough data for day {}", day);
+                }
+                else
+                    LOG.error("TC days is null");
+
+            }
+
 
             if(validTCPeaks)
             {
@@ -203,6 +223,8 @@ public class GetPeaksTask implements ScheduledTask
     {
         day = Math.min(day, 3);
         boolean valid;
+
+        LOG.info("Validating TC peaks from day {}", day+1);
 
         int num2Weak = 0;
         int num2Strong = 0;

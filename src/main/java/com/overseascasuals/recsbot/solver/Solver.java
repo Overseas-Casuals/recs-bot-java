@@ -912,7 +912,7 @@ public class Solver
     private Map.Entry<WorkshopSchedule, WorkshopValue> getBestSchedule(int day, int groove, Map<Item,Integer> limitedUse)
     {
         var bestSchedule = getBestBruteForceSchedules(day, groove, limitedUse, day, 1).get(0);
-        LOG.info("Best schedule for day {} with {} groove and {} limited items: {}", day, groove, limitedUse==null?0:limitedUse.size(), Arrays.toString(bestSchedule.getKey().getItems().toArray()));
+        LOG.info("Best schedule for day {} with {} groove and {} limited items: {} ({})", day, groove, limitedUse==null?0:limitedUse.size(), Arrays.toString(bestSchedule.getKey().getItems().toArray()), bestSchedule.getValue().getWeighted());
         return bestSchedule;
     }
 
