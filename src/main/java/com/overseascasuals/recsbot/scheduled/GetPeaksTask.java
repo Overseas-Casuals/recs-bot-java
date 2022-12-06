@@ -46,13 +46,16 @@ public class GetPeaksTask implements ScheduledTask
     String c1PeakRole;
 
     @Value("${testing.startDay}")
-    int startDay;
+    int startDayOverride;
 
     @Value("${testing.endDay}")
-    int endDay;
+    int endDayOverride;
 
     @Value("${testing.week}")
     int weekOverride;
+
+    @Value("${spring.profiles.active}")
+    private String activeProfile;
 
     @Autowired
     PeakRepository peakRepository;
@@ -97,28 +100,33 @@ public class GetPeaksTask implements ScheduledTask
         var d2 = new Date();
 
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
-        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+        int actualDay = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+        int startDay = actualDay;
+        int endDay = actualDay;
 
-        if(startDay == -1)
+        if("local".equals(activeProfile))
         {
-            startDay = day;
-            endDay = day;
+            if(startDayOverride != -1)
+                startDay = startDayOverride;
+            if(endDayOverride != -1)
+                endDay = endDayOverride;
+            if(weekOverride != -1)
+                week = weekOverride;
         }
-        if(weekOverride!=-1)
-            week = weekOverride;
-        LOG.info("Getting info on day {} with start day {}, end day {}, and week {}", day, startDay, endDay, week);
-        for(day=startDay; day<=endDay; day++)
+
+        LOG.info("Getting info on day {} with start day {}, end day {}, and week {}\nOverrides: start {} end {} week {}", actualDay, startDay, endDay, week, startDayOverride, endDayOverride, weekOverride);
+        for(int recDay= startDay; recDay<= endDay; recDay++)
         {
             boolean validTCPeaks = false;
             List<TCDay> tcDays = null;
             boolean alreadyHavePeaks = false;
             String response = null;
 
-            int peakday = Math.min(day, 3);
+            int peakday = Math.min(recDay, 3);
             var peaksByDay = peakRepository.findPeaksByDay(week, peakday);
             if(peaksByDay != null && peaksByDay.size() > 0)
             {
-                LOG.info("Peaks for day {} already found. Skipping grabbing from TC.", day+1);
+                LOG.info("Peaks for day {} already found. Skipping grabbing from TC.", peakday+1);
                 alreadyHavePeaks = true;
             }
             else
@@ -132,7 +140,7 @@ public class GetPeaksTask implements ScheduledTask
                     //Parse data from JSON
                     if(response != null)
                         tcDays = objectMapper.readValue(response, new TypeReference<>(){});
-                    validTCPeaks = tcDays != null && tcDays.size() > day && tcDays.get(day).getObjects() != null && tcDays.get(day).getObjects().size() > 0;
+                    validTCPeaks = tcDays != null && tcDays.size() > recDay && tcDays.get(recDay).getObjects() != null && tcDays.get(recDay).getObjects().size() > 0;
                 }
                 catch(Exception e)
                 {
@@ -144,7 +152,7 @@ public class GetPeaksTask implements ScheduledTask
             {
                 peaksByDay = new ArrayList<>();
                 List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
-                validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, day);
+                validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay);
             }
             else if (!alreadyHavePeaks)
             {
@@ -153,10 +161,10 @@ public class GetPeaksTask implements ScheduledTask
                 {
 
                     LOG.error("TC days size: {}", tcDays.size());
-                    if(tcDays.size() > day)
-                        LOG.error("Current TC data for day {}: {}", day, tcDays.get(day));
+                    if(tcDays.size() > recDay)
+                        LOG.error("Current TC data for day {}: {}", recDay, tcDays.get(recDay));
                     else
-                        LOG.error("TC doesn't have enough data for day {}", day);
+                        LOG.error("TC doesn't have enough data for day {}", recDay);
                 }
                 else
                     LOG.error("TC days is null");
@@ -167,7 +175,7 @@ public class GetPeaksTask implements ScheduledTask
             if(validTCPeaks)
             {
                 //Send to DB
-                if(day==0)
+                if(recDay==0)
                 {
                     //write popularity data
                     Popularity pop = new Popularity();
@@ -183,7 +191,7 @@ public class GetPeaksTask implements ScheduledTask
                     peakRepository.save(singlePeak);
                 }
 
-                LOG.info("Sending peaks to island.ws: "+restService.postPeaks(week, day, peaksByDay));
+                LOG.info("Sending peaks to island.ws: "+restService.postPeaks(week, recDay, peaksByDay));
 
             }
             else if (!alreadyHavePeaks)
@@ -200,7 +208,7 @@ public class GetPeaksTask implements ScheduledTask
             var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).toArray();
             peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
-            var list = solver.getDailyRecommendations(week, day, false);
+            var list = solver.getDailyRecommendations(week, recDay, false);
             for(var recs : list)
             {
                 var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole));
@@ -210,7 +218,7 @@ public class GetPeaksTask implements ScheduledTask
                   message.flatMap(Message::publish).subscribe();
             }
 
-            if(day == 3)
+            if(recDay == 3)
             {
                 channel.createMessage(OCUtils.generateCrimeTimeEmbed(week, solver.getCrimeTimeRecs())).flatMap(Message::publish).subscribe();
             }
