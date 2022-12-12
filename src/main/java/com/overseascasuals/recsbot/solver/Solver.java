@@ -137,9 +137,6 @@ public class Solver
     private Map<Item, ReservedHelper> reservedHelpers = new HashMap<>();
     private Map<Item, Boolean> d2Troublemakers;
 
-    private List<Item> c2Crafts;
-    private List<Item> c3Crafts;
-
     private int week = 0;
     public int getWeek() {return week;}
     private int day = 0;
@@ -211,28 +208,22 @@ public class Solver
                 }
                 else
                 {
-                    if(i==1)
-                        c2Crafts = new ArrayList<>();
-                    else if(i==2)
-                        c3Crafts = new ArrayList<>();
-                    for(int c=0; c<crafts.getCrafts().length; c++)
+                    List<ItemInfo> todaysItems = new ArrayList<>();
+                    var craftsAsItems = crafts.getCrafts();
+                    for(int c=0; c<craftsAsItems.size(); c++)
                     {
-                        String name = crafts.getCrafts()[c];
-                        if(name.isEmpty())
-                            break;
-                        groove+=NUM_WORKSHOPS;
-                        int numToAdd = NUM_WORKSHOPS * 2;
-                        if(c==0)
+                        Item item = craftsAsItems.get(c);
+                        ItemInfo itemInfo = items[item.ordinal()];
+                        todaysItems.add(itemInfo);
+                        int numToAdd = NUM_WORKSHOPS;
+                        if(c>0 && itemInfo.getsEfficiencyBonus(todaysItems.get(c-1)))
                         {
-                            numToAdd = NUM_WORKSHOPS;
-                            groove -= NUM_WORKSHOPS;
+                            numToAdd = NUM_WORKSHOPS * 2;
+                            groove+=NUM_WORKSHOPS;
                         }
-                        Item item = Item.valueOf(name);
-                        items[item.ordinal()].setCrafted(numToAdd, i);
-                        if(i==1)
-                            c2Crafts.add(item);
-                        else if(i==2)
-                            c3Crafts.add(item);
+
+                        itemInfo.setCrafted(numToAdd, i);
+
                     }
                     groove = Math.min(groove, GROOVE_MAX);
                 }
@@ -259,39 +250,34 @@ public class Solver
 
         List<DailyRecommendation> listOfRecs = new ArrayList<>();
 
+        if((day == 1 || day == 2 || day == 3) && rested != day) //The only days when pre-peaks are unknown
+        {
+            List<Item> currentCrafts = craftRepository.findCraftsByDay(week, day).getCrafts();
+            int grooveMadeToday = getGrooveMadeWithSchedule(currentCrafts);
+
+            LOG.info("Rechecking day {}'s recs starting at {} groove", day+1, groove - grooveMadeToday);
+
+
+            WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, groove-grooveMadeToday, rested>=0, reservedHelpers);
+            var newBest = getBestBruteForceSchedules(day, groove-grooveMadeToday,
+                    null, day, 1, currentCrafts.get(0));
+
+            LOG.info("Old value for day {}: {}, new value {}", day+1, oldValue.getWeighted(), newBest.get(0).getValue().getWeighted());
+
+            if(newBest.get(0).getValue().getWeighted() > oldValue.getWeighted())
+            {
+                LOG.info("Schedule updated detected for day {}! Now crafting {}", day+1,
+                        Arrays.toString(newBest.get(0).getKey().getItems().toArray()));
+
+                CycleSchedule newSched = new CycleSchedule(day, groove-grooveMadeToday);
+                newSched.setForAllWorkshops(newBest.get(0).getKey().getItems());
+                listOfRecs.add(new DailyRecommendation(day, newBest, newSched));
+                addCraftedFromCycle(day, newSched);
+            }
+        }
+
         if(day < 3)
         {
-            if((day == 1 || day == 2) && rested != day) //The only days when pre-peaks are unknown
-            {
-                List<Item> currentCrafts;
-                if(day == 1)
-                    currentCrafts = c2Crafts;
-                else
-                    currentCrafts = c3Crafts;
-
-                int grooveMadeToday = (currentCrafts.size() - 1) * NUM_WORKSHOPS;
-
-                LOG.info("Rechecking day {}'s recs starting at {} groove", day+1, groove - grooveMadeToday);
-
-
-                WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, groove-grooveMadeToday, rested>=0, reservedHelpers);
-                var newBest = getBestBruteForceSchedules(day, groove-grooveMadeToday,
-                        null, day, 1, currentCrafts.get(0));
-
-                LOG.info("Old value for day {}: {}, new value {}", day+1, oldValue.getWeighted(), newBest.get(0).getValue().getWeighted());
-
-                if(newBest.get(0).getValue().getWeighted() > oldValue.getWeighted())
-                {
-                    LOG.info("Schedule updated detected for day {}! Now crafting {}", day+1,
-                            Arrays.toString(newBest.get(0).getKey().getItems().toArray()));
-
-                    CycleSchedule newSched = new CycleSchedule(day, groove-grooveMadeToday);
-                    newSched.setForAllWorkshops(newBest.get(0).getKey().getItems());
-                    listOfRecs.add(new DailyRecommendation(day, newBest, newSched));
-                    addCraftedFromCycle(day, newSched);
-                }
-            }
-
             DailyRecommendation rec;
             int dayToSolve = day+1;
             if(rested == dayToSolve)
@@ -333,10 +319,6 @@ public class Solver
             else
             {
                 rec = new DailyRecommendation(dayToSolve, todayRecs, schedule);
-                if(dayToSolve == 1)
-                    c2Crafts = schedule.getItems();
-                else if(dayToSolve == 2)
-                    c3Crafts = schedule.getItems();
             }
 
             listOfRecs.add(rec);
@@ -375,6 +357,20 @@ public class Solver
         addCraftedFromCycle(3, crime3, false);
 
         return getLateDays();
+    }
+    public void setScheduleCommand(int day, List<Item> newItems)
+    {
+        int grooveSoFar = 0;
+        for(int i=1;i<day; i++)
+        {
+            grooveSoFar+= getGrooveMadeWithSchedule(craftRepository.findCraftsByDay(week, i).getCrafts());
+        }
+
+        LOG.info("Setting schedule for day {} to {} with starting groove {}", day+1, newItems, grooveSoFar);
+
+        CycleSchedule newSched = new CycleSchedule(day, grooveSoFar);
+        newSched.setForAllWorkshops(newItems);
+        addCraftedFromCycle(day, newSched);
     }
 
     private void addCraftedFromCycle(int day, CycleSchedule schedule)
@@ -497,6 +493,18 @@ public class Solver
         }
     }
 
+    private int getGrooveMadeWithSchedule(List<Item> previous)
+    {
+        int effCrafts = 0;
+        for(int i=1;i<previous.size();i++)
+        {
+            if(items[previous.get(i).ordinal()].getsEfficiencyBonus(items[previous.get(i-1).ordinal()]))
+                effCrafts++;
+        }
+
+        return effCrafts * NUM_WORKSHOPS;
+    }
+
     private void addDailyRecToList(List<Entry<WorkshopSchedule, WorkshopValue>> recs, int day, int groove, List<DailyRecommendation> recommendations)
     {
         CycleSchedule bestSchedule = new CycleSchedule(day, groove);
@@ -615,7 +623,7 @@ public class Solver
                 cycle5Sched = getBestBruteForceSchedules(4, startingGroove, reserved7Set, 4, alternatives);
 
                 int total65 = 0;
-                int grooveFrom5 = (cycle5Sched.get(0).getKey().getItems().size() - 1) * NUM_WORKSHOPS;
+                int grooveFrom5 = getGrooveMadeWithSchedule(cycle5Sched.get(0).getKey().getItems());
                 cycle6Sched = getBestBruteForceSchedules(5, startingGroove + grooveFrom5, reserved7Set, 6, alternatives);
                 //try deriving 5 from 6
                 Map<Item,Integer> reserved67Items = cycle6Sched.get(0).getKey().getLimitedUses(reserved7Set);
