@@ -5,6 +5,7 @@ import com.overseascasuals.recsbot.data.Item;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -76,8 +77,19 @@ public class CycleCraft
     public void setCraft6(String craft6) {
         this.craft6 = craft6;
     }
-
-    public String[] getCrafts() { return new String[]{craft1,craft2,craft3,craft4,craft5,craft6}; }
+    public List<Item> getCrafts()
+    {
+        List<Item> items = new ArrayList<>();
+        var array = new String[]{craft1,craft2,craft3,craft4,craft5,craft6};
+        for(int c=0; c<array.length; c++) {
+            String name = array[c];
+            if (name.isEmpty())
+                break;
+            Item item = Item.valueOf(name);
+            items.add(item);
+        }
+        return items;
+    }
     public void setCrafts(List<Item> crafts)
     {
         if(crafts.size()>0)

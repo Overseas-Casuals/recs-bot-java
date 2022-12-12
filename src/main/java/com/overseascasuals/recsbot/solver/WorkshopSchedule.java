@@ -5,14 +5,10 @@ import java.util.Map.Entry;
 import com.overseascasuals.recsbot.data.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import static com.overseascasuals.recsbot.solver.Solver.NUM_WORKSHOPS;
 
 
-@Component
 public class WorkshopSchedule
 {
     Logger LOG = LoggerFactory.getLogger(WorkshopSchedule.class);
