@@ -21,7 +21,7 @@ public class CSVImporter
     public CSVImporter() throws IOException
     {
         allEfficientChains = new ArrayList<>();
-        InputStream resource = new ClassPathResource("AllEfficientChains.csv").getInputStream();
+        InputStream resource = new ClassPathResource("miennaChains.csv").getInputStream();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(resource)))
         {
             String line;

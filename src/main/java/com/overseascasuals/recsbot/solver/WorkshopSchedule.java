@@ -112,37 +112,44 @@ public class WorkshopSchedule
         return cost;
     }
     
-    public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested, Map<Item,ReservedHelper> reservedHelpers)
-    {
+    public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested, Map<Item,ReservedHelper> reservedHelpers) {
         boolean verboseLogging = false;
         /*if(items.size() == 5 && items.get(0) == Item.BakedPumpkin && items.get(1) == Item.BoiledEgg && items.get(2) == Item.Horn
                         && items.get(3) == Item.Brush && items.get(4) == Item.Horn)
             verboseLogging = true;*/
 
-        int craftsAbove4 = getNumCrafts() - 4;
+        int expectedGroove = 3;
+        int effCrafts = 0;
+        for (int i = 1; i < crafts.size(); i++)
+        {
+            if(crafts.get(i-1).getsEfficiencyBonus(crafts.get(i)))
+                effCrafts++;
+        }
+
+        int deltaGroove = effCrafts - expectedGroove;
         int daysToGroove = 6 - day;
         if (!rested)
             daysToGroove--;
 
         if (verboseLogging)
-            LOG.info("Calculating workshop value for day {} and crafts {}  ({} above 4) Rested? {}. Crafting days after this: {}", day + 1, Arrays.toString(items.toArray()), craftsAbove4, rested, daysToGroove);
+            LOG.info("Calculating workshop value for day {} and crafts {}  ({} above 4) Rested? {}. Crafting days after this: {}", day + 1, Arrays.toString(items.toArray()), deltaGroove, rested, daysToGroove);
 
         //How many days will it take to hit max normally
-        int estimatedGroovePerDay = 3 * NUM_WORKSHOPS;
+        int estimatedGroovePerDay = expectedGroove * NUM_WORKSHOPS;
         int expectedStartingGroove = startingGroove + estimatedGroovePerDay;
 
         boolean groovePenalty = false;
 
-        if (craftsAbove4 < 0)
+        if (deltaGroove < 0)
         {
             groovePenalty = true;
-            expectedStartingGroove += NUM_WORKSHOPS * craftsAbove4;
+            expectedStartingGroove += NUM_WORKSHOPS * deltaGroove;
 
-            craftsAbove4 *= -1;
+            deltaGroove *= -1;
         }
 
         float grooveBonus = 0;
-        for (int i = 0; i < craftsAbove4; i++)
+        for (int i = 0; i < deltaGroove; i++)
         {
             int craftingDaysLeft = daysToGroove;
             int fullDays = 0;

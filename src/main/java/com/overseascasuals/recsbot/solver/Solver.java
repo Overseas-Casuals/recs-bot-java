@@ -427,16 +427,16 @@ public class Solver
     private void populateReservedItems()
     {
         Map<Item, Integer> itemValues = new HashMap<Item, Integer>();
-        for(ItemInfo item : items)
+        for (ItemInfo item : items)
         {
-            if(item.time == 4)
+            if (item.time == 4)
                 continue;
             int value = item.getValueWithSupply(Supply.Sufficient);
-            if(valuePerHour)
+            if (valuePerHour)
                 value = value * 8 / item.time;
             itemValues.put(item.item, value);
         }
-        LinkedHashMap<Item,Integer> bestItems = itemValues
+        LinkedHashMap<Item, Integer> bestItems = itemValues
                 .entrySet().stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
@@ -445,65 +445,56 @@ public class Solver
         Iterator<Entry<Item, Integer>> itemIterator = bestItemsEntries.iterator();
 
         List<Item> itemsThatGetReservations = new ArrayList<>();
-        for(int i=0;i<itemsToReserve && itemIterator.hasNext(); i++)
+        for (int i = 0; i < itemsToReserve && itemIterator.hasNext(); i++)
         {
             Item next = itemIterator.next().getKey();
             LOG.info("Reserving item {}", next);
             reservedItems.add(next);
-            if(i<10)
+            if (i < 10)
                 itemsThatGetReservations.add(next);
         }
 
         reservedHelpers.clear();
-        for(int i=0;i<itemsThatGetReservations.size();i++)
+        for (int i = 0; i < itemsThatGetReservations.size(); i++)
         {
             Item itemEnum = itemsThatGetReservations.get(i);
             ItemInfo mainItem = items[itemEnum.ordinal()];
-            if(mainItem.time != 8)
+            if (mainItem.time != 8)
                 continue;
             int bestValue = 0;
             Item bestHelper = Macuahuitl; //This is the most useless thing I can think of
             int secondBest = 0;
             Item secondHelper = Macuahuitl;
-            for(ItemInfo helper : items)
+            for (ItemInfo helper : items)
             {
-                if(helper.time != 4 || !helper.getsEfficiencyBonus(mainItem))
+                if (helper.time != 4 || !helper.getsEfficiencyBonus(mainItem))
                     continue;
 
                 int value = helper.getValueWithSupply(Supply.Sufficient);
-                if(value > bestValue)
+                if (value > bestValue)
                 {
                     secondBest = bestValue;
                     secondHelper = bestHelper;
                     bestValue = value;
                     bestHelper = helper.item;
                 }
-                else if(value > secondBest)
+                else if (value > secondBest)
                 {
                     secondBest = value;
                     secondHelper = helper.item;
                 }
             }
             int swap = bestValue - secondBest;
-            int stepDown = bestValue - (int)(bestValue  * .6);
-            if(swap > 0)
+            int stepDown = bestValue - (int) (bestValue * .6);
+            if (swap > 0)
             {
                 int penalty = Math.min(swap, stepDown);
-                int finalPenalty = penalty/Math.max(i, 1)  + 1;
-                LOG.info("Reserving helper "+bestHelper+" to go with main item "+itemEnum+" (#"+(i+1)+"), difference between "+bestHelper+" and "+secondHelper+"? "+ swap+" cost of stepping down? "+stepDown+" Penalty: "+finalPenalty);
+                int finalPenalty = penalty / Math.max(i, 1) + 1;
+                LOG.info("Reserving helper " + bestHelper + " to go with main item " + itemEnum + " (#" + (i + 1) + "), difference between " + bestHelper + " and " + secondHelper + "? " + swap + " cost of stepping down? " + stepDown + " Penalty: " + finalPenalty);
 
                 reservedHelpers.put(itemEnum, new ReservedHelper(bestHelper, finalPenalty));
             }
         }
-    }
-
-
-    private void printRestDayInfo(List<Item> rec, int day)
-    {
-        CycleSchedule restedDay = new CycleSchedule(day, 0);
-        restedDay.setForAllWorkshops(rec);
-        LOG.info("Rest day " + (day + 1)+". Think we'll make more than "
-                + restedDay.getValue() + " grooveless with " + rec + ". ");
     }
 
     private void addDailyRecToList(List<Entry<WorkshopSchedule, WorkshopValue>> recs, int day, int groove, List<DailyRecommendation> recommendations)
@@ -597,7 +588,6 @@ public class Solver
                     addDailyRecToList(only7Sched,6,groove, recommendations);
                 }
             }
-
         }
         else if (bestDay == 6) // Day 7 is best
         {
