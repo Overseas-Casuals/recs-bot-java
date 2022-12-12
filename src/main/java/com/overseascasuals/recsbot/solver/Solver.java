@@ -136,6 +136,11 @@ public class Solver
     private Set<Item> reservedItems = new HashSet<>();
     private Map<Item, ReservedHelper> reservedHelpers = new HashMap<>();
     private Map<Item, Boolean> d2Troublemakers;
+    private int confirmedD2Strong = 0;
+    private int confirmedD2Weak = 0;
+    private Set<Item> d2Bystanders;
+
+    private boolean autocompletePeaks = false;
 
     private int week = 0;
     public int getWeek() {return week;}
@@ -165,6 +170,7 @@ public class Solver
         LOG.info("Getting recommendations for week {} day {}, hardrefresh? {}. helper penalty {}", week, day, hardRefresh, helperPenalty);
         if(hardRefresh || this.week != week)
         {
+            autocompletePeaks = false;
             rested = -1;
             groove = 0;
             reservedItems.clear();
@@ -323,8 +329,8 @@ public class Solver
 
             listOfRecs.add(rec);
 
-            if(dayToSolve==1)
-                rec.setTroublemakers(getTentativeD2Items(bestSchedule.getValue().getWeighted(), shouldRest));
+            if(dayToSolve==1 && !autocompletePeaks)
+                rec.setTroublemakers(getTentativeD2Items(bestSchedule.getValue().getWeighted(), shouldRest), d2Bystanders);
 
 
             LOG.info("{}", rec);
@@ -405,19 +411,97 @@ public class Solver
 
     public boolean updatePeak(Item item, PeakCycle peak)
     {
-        if(d2Troublemakers.containsKey(item))
-        {
+        autocompletePeaks = false;
+        boolean changed = false;
+        if(d2Troublemakers.containsKey(item)) {
             groove = 0;
             d2Troublemakers.put(item, true);
+            changed = true;
+        }
+        else if(d2Bystanders.contains(item))
+        {
+            changed = true;
+        }
+
+        if(changed)
+        {
+            List<CraftPeaks> peaksToSave = new ArrayList<>();
             items[item.ordinal()].peak = peak;
+
+            int strong = confirmedD2Strong;
+            int weak = confirmedD2Weak;
+            for(var kvp : d2Troublemakers.entrySet())
+            {
+                if(kvp.getValue())
+                {
+                    PeakCycle setPeak = items[kvp.getKey().ordinal()].peak;
+                    if(setPeak == Cycle2Strong)
+                        strong++;
+                    else if(setPeak == Cycle2Weak)
+                        weak++;
+                }
+            }
+
+            for(var bystander : d2Bystanders)
+            {
+                PeakCycle setPeak = items[bystander.ordinal()].peak;
+                if(setPeak == Cycle2Strong)
+                    strong++;
+                else if(setPeak == Cycle2Weak)
+                    weak++;
+            }
+
+            if(strong == 4)
+            {
+                setAllTentativePeaks(Cycle2Weak, peaksToSave);
+            }
+            else if(weak == 4)
+            {
+                setAllTentativePeaks(Cycle2Strong, peaksToSave);
+            }
+
             CraftPeaks singlePeak = new CraftPeaks();
             singlePeak.setPeakFromEnum(peak);
             singlePeak.setPeakID(new PeakID(week, day, item.ordinal()+1));
+            peaksToSave.add(singlePeak);
             if("live".equals(activeProfile))
-                peakRepository.save(singlePeak);
-            return true;
+                peakRepository.saveAll(peaksToSave);
         }
-        return false;
+
+        return changed;
+    }
+
+    private void setAllTentativePeaks(PeakCycle peak, List<CraftPeaks> peaksToSave)
+    {
+        LOG.info("Found 4 C2 peaks of a strength, setting the rest to "+peak);
+        for(var kvp : d2Troublemakers.entrySet())
+        {
+            if(!kvp.getValue())
+            {
+                LOG.info("Defaulting troublemaker {} to {} ", kvp.getKey(), peak);
+                items[kvp.getKey().ordinal()].peak = peak;
+                CraftPeaks singlePeak = new CraftPeaks();
+                singlePeak.setPeakFromEnum(peak);
+                singlePeak.setPeakID(new PeakID(week, day, kvp.getKey().ordinal()+1));
+                peaksToSave.add(singlePeak);
+            }
+
+        }
+
+        for(var bystander : d2Bystanders)
+        {
+            if(items[bystander.ordinal()].peak == Cycle2Unknown)
+            {
+                LOG.info("Defaulting bystander {} to {} ", bystander, peak);
+                items[bystander.ordinal()].peak = peak;
+                CraftPeaks singlePeak = new CraftPeaks();
+                singlePeak.setPeakFromEnum(peak);
+                singlePeak.setPeakID(new PeakID(week, day, bystander.ordinal()+1));
+                peaksToSave.add(singlePeak);
+            }
+        }
+
+        autocompletePeaks = true;
     }
 
     private void populateReservedItems()
@@ -845,13 +929,13 @@ public class Solver
 
     public boolean hasTentativeD2()
     {
-        LOG.info("Day {} troublemakers: {}", day, d2Troublemakers==null?"null":String.valueOf(d2Troublemakers.size()));
+        //LOG.info("Day {} troublemakers: {}", day, d2Troublemakers==null?"null":String.valueOf(d2Troublemakers.size()));
         return day==0 && d2Troublemakers != null && d2Troublemakers.size() > 0;
     }
 
     public boolean allTentativeD2Set()
     {
-        if(!hasTentativeD2())
+        if(!hasTentativeD2() || autocompletePeaks)
             return true;
 
         for(var value : d2Troublemakers.values())
@@ -866,11 +950,22 @@ public class Solver
         if(d2Troublemakers != null)
             return d2Troublemakers;
 
+        d2Bystanders = new HashSet<>();
         Map<Item, Integer> troubleValues = new HashMap<>();
         List<ItemInfo> c2Unknowns = new ArrayList<>();
+        confirmedD2Strong = 0;
+        confirmedD2Weak = 0;
         for (ItemInfo item : items)
+        {
             if (item.peak == Cycle2Unknown)
                 c2Unknowns.add(item);
+            else if(item.peak == Cycle2Strong)
+                confirmedD2Strong++;
+            else if(item.peak == Cycle2Weak)
+                confirmedD2Weak++;
+        }
+
+        autocompletePeaks = false;
 
         LOG.info("Checking {} unknown D2 peaks.", c2Unknowns.size());
 
@@ -890,11 +985,17 @@ public class Solver
                     if(!shouldStillRest) //We only care if it changes the rec from rest
                         troubleValues.put(c2Unknowns.get(i).item, value);
                     else
+                    {
+                        d2Bystanders.add(c2Unknowns.get(i).item);
                         LOG.info("We were resting and now we still want to rest so who cares");
+                    }
+
                 }
                 else
                     troubleValues.put(c2Unknowns.get(i).item, value);
             }
+            else
+                d2Bystanders.add(c2Unknowns.get(i).item);
 
             c2Unknowns.get(i).peak = Cycle2Unknown;
         }
@@ -904,7 +1005,7 @@ public class Solver
             items[troublemaker.getKey().ordinal()].peak = Cycle2Strong;
             for (int i = 0; i < c2Unknowns.size(); i++)
             {
-                if(troubleValues.containsKey(c2Unknowns.get(i).item)) //If we already know it's a problem, skip it
+                if(troubleValues.containsKey(c2Unknowns.get(i).item) || d2Troublemakers.containsKey(c2Unknowns.get(i).item)) //If we already know it's a problem, skip it
                     continue;
                 c2Unknowns.get(i).peak = Cycle2Strong;
                 LOG.info("Setting {} to strong peak to complement {}", c2Unknowns.get(i).item.getDisplayName(), troublemaker.getKey().getDisplayName());
@@ -914,6 +1015,7 @@ public class Solver
                 {
                     LOG.info("{} could help {} get to even greater heights!", c2Unknowns.get(i).item.getDisplayName(), troublemaker.getKey().getDisplayName());
                     d2Troublemakers.put(c2Unknowns.get(i).item, false);
+                    d2Bystanders.remove(c2Unknowns.get(i).item);
                 }
                 c2Unknowns.get(i).peak = Cycle2Unknown;
             }

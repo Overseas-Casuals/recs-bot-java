@@ -109,6 +109,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                 .flatMap(ApplicationCommandInteractionOption::getValue)
                 .map(ApplicationCommandInteractionOptionValue::asString)
                 .get();
+
         if(peakType.equals("strong"))
         {
             valid = solver.updatePeak(item, PeakCycle.Cycle2Strong);
@@ -120,9 +121,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
         if(valid)
         {
-            LOG.info("command is valid, telling the Solver");
+            LOG.info("command is valid");
             if(solver.allTentativeD2Set())
             {
+                LOG.info("All troublemakers set. Running solver again");
                 var recs = solver.redoDay2Recs();
 
                 if(recs== null || recs.size() == 0)

@@ -37,10 +37,11 @@ public class OCUtils
                         .addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
             }
             builder.addField("\u200B", "\u200B", false)
-                    .addField("Required Info", String.join(", ", rec.getTroublemakers().stream().map(Item::getDisplayName).collect(Collectors.toList())), true);
+                    .addField("Required Info", String.join(", ", rec.getTroublemakers().stream().map(Item::getDisplayName).collect(Collectors.toList())), true)
+                    .addField("Optional Info", String.join(", ", rec.getBystanders().stream().map(Item::getDisplayName).collect(Collectors.toList())), true);
 
-            var timeToComplete = Instant.now().truncatedTo(ChronoUnit.HOURS).plus(9, ChronoUnit.HOURS);
-            builder.addField("Estimated Completion", "<t:"+timeToComplete.getEpochSecond()+":R>", true);
+            /*var timeToComplete = Instant.now().truncatedTo(ChronoUnit.HOURS).plus(9, ChronoUnit.HOURS);
+            builder.addField("Estimated Completion", "<t:"+timeToComplete.getEpochSecond()+":R>", true);*/
         }
         else
         {

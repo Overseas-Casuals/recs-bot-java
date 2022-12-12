@@ -13,6 +13,7 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
     int groovelessValue;
     boolean tentative;
     Set<Item> troublemakers;
+    Set<Item> bystanders;
     int day;
 
 
@@ -64,13 +65,18 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         return troublemakers;
     }
 
-    public void setTroublemakers(Map<Item, Boolean> troublemakers) {
+    public Set<Item> getBystanders() {
+        return bystanders;
+    }
+
+    public void setTroublemakers(Map<Item, Boolean> troublemakers, Set<Item> bystanders) {
         if(troublemakers == null || troublemakers.size() == 0)
             return;
         for(var value : troublemakers.values())
             if(!value)
                 tentative = true;
         this.troublemakers = troublemakers.keySet();
+        this.bystanders = bystanders;
     }
 
     public int getDay() {
