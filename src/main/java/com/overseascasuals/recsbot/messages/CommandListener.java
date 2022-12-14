@@ -14,6 +14,7 @@ import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.entity.channel.NewsChannel;
+import discord4j.core.spec.InteractionCallbackSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +26,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-@Service
+
 public class CommandListener implements EventListener<ChatInputInteractionEvent>
 {
     Logger LOG = LoggerFactory.getLogger(CommandListener.class);
@@ -48,12 +49,17 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
     @Override
     public Mono<Void> execute(ChatInputInteractionEvent event) {
-        switch(event.getCommandName())
-        {
-            case "set_peak":
-                return processSetPeakCommand(event);
-            case "set_schedule":
-                return processSetScheduleCommand(event);
+        String command = event.getCommandName();
+        LOG.info("Processsing {} command", command);
+        switch (command) {
+            case "set_peak" -> {
+                processSetPeakCommand(event).subscribe();
+                return deferredPeakResponse(event);
+            }
+            case "set_schedule" -> {
+                processSetScheduleCommand(event).subscribe();
+                return deferredScheduleResponse(event);
+            }
         }
         return event.reply()
                 .withEphemeral(true)
@@ -72,6 +78,11 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                 LOG.info(opt.getName()+": absent");
         }
 
+        return event.deferReply(/*InteractionCallbackSpec.builder().ephemeral(true).build()*/);
+    }
+
+    private Mono<Void> deferredPeakResponse(ChatInputInteractionEvent event)
+    {
         String itemName = event.getOption("item")
                 .flatMap(ApplicationCommandInteractionOption::getValue)
                 .map(ApplicationCommandInteractionOptionValue::asString)
@@ -83,9 +94,8 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         }
         catch(IllegalArgumentException e)
         {
-            return event.reply().withContent(itemName+" is not a valid item").withEphemeral(true);
+            return event.editReply(itemName+" is not a valid item").then();
         }
-
         boolean valid = false;
         if(!solver.hasTentativeD2())//Might be uninitialized
         {
@@ -103,7 +113,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
         if(!solver.hasTentativeD2()) //Really just doesn't have anything
         {
-            return event.reply().withContent("Current cycle doesn't need confirmation of any peaks.").withEphemeral(true);
+            return event.editReply("Current cycle doesn't need confirmation of any peaks.").then();
         }
         String peakType = event.getOption("peak_type")
                 .flatMap(ApplicationCommandInteractionOption::getValue)
@@ -137,23 +147,28 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                 event.getClient().getChannelById(Snowflake.of(recsChannelID))
                         .cast(NewsChannel.class)
                         .flatMap(channel -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), recs.get(0), c1PeakRole))
-                        .flatMap(Message::publish)).subscribe();
+                                .flatMap(Message::publish)).subscribe();
 
-                return event.reply().withContent("Item "+item.getDisplayName()+" set to "+peakType+" peak. Generating recs.");
+                return event.createFollowup("Item "+item.getDisplayName()+" set to "+peakType+" peak. Generating recs.").then();
             }
             else
             {
-                return event.reply().withContent("Item "+item.getDisplayName()+" set to "+peakType+" peak. Still waiting on more required info.");
+                return event.createFollowup("Item "+item.getDisplayName()+" set to "+peakType+" peak. Still waiting on more required info.").then();
             }
         }
         else
         {
             LOG.info("command is for item we don't need");
-            return event.reply().withContent("No peak info needed for "+item.getDisplayName()).withEphemeral(true);
+            return event.editReply("No peak info needed for "+item.getDisplayName()).then();
         }
     }
 
     private Mono<Void> processSetScheduleCommand(ChatInputInteractionEvent event)
+    {
+        return event.deferReply(/*InteractionCallbackSpec.builder().ephemeral(true).build()*/);
+    }
+
+    private Mono<Void> deferredScheduleResponse(ChatInputInteractionEvent event)
     {
         List<Item> items = new ArrayList<>();
         for(int i=1; i<=6; i++)
@@ -169,7 +184,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                 }
                 catch(IllegalArgumentException e)
                 {
-                    return event.reply().withContent(itemName+" is not a valid item").withEphemeral(true);
+                    return event.editReply(itemName+" is not a valid item").then();
                 }
             }
             else
@@ -184,6 +199,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                 .get().intValue();
         solver.setScheduleCommand(day, items);
 
-        return event.reply().withContent("Created schedule of "+items+" for cycle "+(day+1)).withEphemeral(true);
+        return event.editReply("Created schedule of "+items+" for cycle "+(day+1)).then();
     }
 }

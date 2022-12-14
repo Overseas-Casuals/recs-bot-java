@@ -4,6 +4,7 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+@Service
 public class MessageCreateListener extends MessageListener implements EventListener<MessageCreateEvent> {
 
     @Override

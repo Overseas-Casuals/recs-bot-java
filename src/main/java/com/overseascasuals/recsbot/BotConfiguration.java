@@ -2,10 +2,7 @@ package com.overseascasuals.recsbot;
 
 import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.messages.EventListener;
-import com.overseascasuals.recsbot.mysql.CraftPeaks;
-import com.overseascasuals.recsbot.mysql.PeakRepository;
-import com.overseascasuals.recsbot.mysql.Popularity;
-import com.overseascasuals.recsbot.mysql.PopularityRepository;
+import com.overseascasuals.recsbot.mysql.*;
 import com.overseascasuals.recsbot.scheduled.ScheduledTask;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
@@ -21,8 +18,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
@@ -33,9 +32,13 @@ import java.util.List;
 
 @EnableScheduling
 @Configuration
-public class BotConfiguration
+@Profile("!test")
+public class BotConfiguration implements CommandLineRunner
 {
     private static Logger LOG = LoggerFactory.getLogger(BotConfiguration.class);
+
+    @Autowired
+    CraftRepository craftRepository;
     @Value("${discord.token}")
     private String token;
 
@@ -47,6 +50,8 @@ public class BotConfiguration
 
     @Autowired
     private ThreadPoolTaskScheduler taskScheduler;
+
+    public List<ScheduledTask> taskList;
 
     @Bean
     public <T extends Event> GatewayDiscordClient gatewayDiscordClient(List<EventListener<T>> eventListeners, List<ScheduledTask> taskList)
@@ -71,12 +76,13 @@ public class BotConfiguration
         }
         LOG.info("Listening to "+eventListeners.size()+" event(s)");
 
+        this.taskList = taskList;
+
         for(var task : taskList)
         {
             task.initialize(client);
             taskScheduler.schedule(task, new CronTrigger(task.getCron(), ZoneId.of("UTC")));
-            if("local".equals(activeProfile))
-                task.run();
+
         }
         LOG.info("Scheduled "+taskList.size()+" task(s)");
         LOG.info("{}", testStr);
@@ -192,5 +198,21 @@ public class BotConfiguration
                 .doOnNext(cmd -> LOG.info("Successfully registered Global Command " + cmd.name()))
                 .doOnError(e -> LOG.error("Failed to register global commands", e))
                 .subscribe();
+    }
+
+    @Override
+    public void run(String... args) throws Exception
+    {
+        //Connect to DB, just to be safe
+        LOG.info("Getting crafts from day 2 of week 15");
+        var response = craftRepository.findCraftsByDay(15,1);
+        LOG.info("Found "+response.getCraft1());
+        if(!("local".equals(activeProfile))) return;
+
+        LOG.info("Running Bot config with taskList {}", taskList);
+        for(var task : taskList)
+        {
+            task.run();
+        }
     }
 }
