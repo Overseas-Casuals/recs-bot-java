@@ -6,16 +6,36 @@ import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.MessageCreateSpec;
 import discord4j.rest.util.Color;
 
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class OCUtils
 {
+
+    private static String getDateStr(int season)
+    {
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM d");
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date(1661241600000L));
+        calendar.add(Calendar.DAY_OF_YEAR, (season-1)*7);
+        var month = calendar.get(Calendar.MONTH);
+        String dateStr = sdf.format(calendar.getTime());
+
+        calendar.add(Calendar.DAY_OF_YEAR, 6);
+        if(calendar.get(Calendar.MONTH) == month)
+            sdf = new SimpleDateFormat("d");
+
+        dateStr += " - " + sdf.format(calendar.getTime());
+        return dateStr;
+    }
     public static MessageCreateSpec generateRecEmbedMessage(int season, DailyRecommendation rec, String c1PeakRole)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+", Cycle "+(rec.getDay()+1)+" Recommendations");
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations");
         builder.timestamp(Instant.now());
         var messageSpec = MessageCreateSpec.builder();
 
@@ -97,7 +117,7 @@ public class OCUtils
 
     public static MessageCreateSpec generateCrimeTimeEmbed(int season, List<DailyRecommendation> recs)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+", Crime Time Recommendations");
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Crime Time Recommendations");
         builder.timestamp(Instant.now());
         var messageSpec = MessageCreateSpec.builder();
 
@@ -108,10 +128,29 @@ public class OCUtils
             if(i>0)
                 builder.addField("\u200B", "\u200B", false);
             var rec = recs.get(i);
-            builder.addField("Cycle "+(i+5), String.join(" - ",rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList())), false)
+            builder.addField("Cycle "+(i+5), rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")), false)
                     .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
                     .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", String.valueOf(rec.getDailyValue()), true);
         }
+
+        messageSpec.addEmbed(builder.build());
+        return messageSpec.build();
+    }
+
+    public static MessageCreateSpec generateNextWeekEmbed(int season, List<List<Item>> recs)
+    {
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Vacation Recommendations");
+        builder.timestamp(Instant.now());
+        var messageSpec = MessageCreateSpec.builder();
+
+        builder.color(Color.SUMMER_SKY);
+        builder.addField("__Cycles 2, 4, and 6__", "**Workshop 1:** "+ recs.get(0).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")) + "\n"
+                + "**Workshop 2:** "+ recs.get(1).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")) + "\n"+
+                "**Workshop 3:** "+ recs.get(2).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")), false);
+        builder.addField("\u200B", "\u200B", false);
+        builder.addField("__Cycles 3 and 5__", "**Workshop 1:** "+ recs.get(3).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")) + "\n"
+                +"**Workshop 2:** "+  recs.get(4).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")) + "\n"+
+                "**Workshop 3:** "+ recs.get(5).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")), false);
 
         messageSpec.addEmbed(builder.build());
         return messageSpec.build();

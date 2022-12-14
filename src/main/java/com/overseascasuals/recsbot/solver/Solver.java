@@ -139,6 +139,7 @@ public class Solver
     private int confirmedD2Strong = 0;
     private int confirmedD2Weak = 0;
     private Set<Item> d2Bystanders;
+    private List<List<Item>> vacationRecs = null;
 
     private boolean autocompletePeaks = false;
 
@@ -175,7 +176,13 @@ public class Solver
             groove = 0;
             reservedItems.clear();
             d2Troublemakers = null;
-            int currentPop = popularityRepository.findByWeek(week).getPopularity();
+            d2Bystanders = null;
+            confirmedD2Weak = 0;
+            confirmedD2Strong = 0;
+            vacationRecs = null;
+
+            int currentPop = generateVacationRecs(week);
+
             String popResponse = "";
             try{
                 popResponse= restService.getURLResponse("https://xivapi.com/MJICraftworksPopularity/"+currentPop);
@@ -197,7 +204,8 @@ public class Solver
 
             for(int i=0;i<items.length;i++)
             {
-                items[i].setInitialData(popJson.getPopularities()[i].getRatio(), peaks.get(i).getPeakEnum());
+                items[i].popularityRatio = popJson.getPopularities()[i].getRatio();
+                items[i].peak = peaks.get(i).getPeakEnum();
             }
 
             //Load previous crafts from db
@@ -235,8 +243,6 @@ public class Solver
                 }
                 LOG.info("groove after day {}: {}", i+1, groove);
             }
-
-            //sum total gross and total net
 
             this.day = day;
             this.week = week;
@@ -925,6 +931,53 @@ public class Solver
         }
 
         return solution;
+    }
+
+    private int generateVacationRecs(int currentWeek)
+    {
+        LOG.info("Generating vacation recs");
+
+        //generate vacation recs
+        var popData = popularityRepository.findByWeek(currentWeek);
+        int nextPop = popData.getNextPopularity();
+        String popResponse;
+        try{
+            popResponse = restService.getURLResponse("https://xivapi.com/MJICraftworksPopularity/"+nextPop);
+        }
+        catch(RestClientException e)
+        {
+            LOG.error("Couldn't connect to XIV API to get popularity info. Abandoning ship", e);
+            return popData.getPopularity();
+        }
+
+        PopularityJson popJson;
+        try {
+            popJson = objectMapper.readValue(popResponse, new TypeReference<>() {});
+        } catch (JsonProcessingException e) {
+            LOG.error("Couldn't read pop json from XIV API", e);
+            return popData.getPopularity();
+        }
+
+        for(int i=0;i<items.length;i++)
+        {
+            items[i].setInitialData(popJson.getPopularities()[i].getRatio(), Unknown);
+        }
+
+        Map<Item,Integer> reservedSet = new HashMap<>();
+        vacationRecs = new ArrayList<>();
+
+        for (int d = 0; d < 6; d++)
+        {
+            WorkshopSchedule solution = getBestSchedule(3, GROOVE_MAX/2, reservedSet).getKey();
+            vacationRecs.add(solution.getItems());
+            reservedSet = solution.getLimitedUses(reservedSet);
+        }
+        return popData.getPopularity();
+    }
+
+    public List<List<Item>> getVacationRecs()
+    {
+        return vacationRecs;
     }
 
     public boolean hasTentativeD2()

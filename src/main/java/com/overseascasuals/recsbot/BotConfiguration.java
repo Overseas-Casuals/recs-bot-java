@@ -10,10 +10,8 @@ import discord4j.core.event.domain.Event;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
 import discord4j.core.object.command.ApplicationCommandOption;
 import discord4j.core.object.entity.User;
-import discord4j.discordjson.json.ApplicationCommandOptionChoiceData;
-import discord4j.discordjson.json.ApplicationCommandOptionData;
-import discord4j.discordjson.json.ApplicationCommandRequest;
-import discord4j.discordjson.json.ImmutableApplicationCommandOptionData;
+import discord4j.discordjson.Id;
+import discord4j.discordjson.json.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,6 +86,7 @@ public class BotConfiguration implements CommandLineRunner
         LOG.info("{}", testStr);
 
         //registerCommands(client);
+        //deregisterCommands(client);
 
         return client;
     }
@@ -198,6 +197,26 @@ public class BotConfiguration implements CommandLineRunner
                 .doOnNext(cmd -> LOG.info("Successfully registered Global Command " + cmd.name()))
                 .doOnError(e -> LOG.error("Failed to register global commands", e))
                 .subscribe();
+    }
+
+    private void deregisterCommands(GatewayDiscordClient client)
+    {
+        Long applicationId = client.getRestClient().getApplicationId().block();
+
+
+        var commandIDs = client.getRestClient()
+                .getApplicationService()
+                .getGlobalApplicationCommands(applicationId).map(ApplicationCommandData::id)
+                .map(Id::asLong).collectList()
+                .block();
+
+        for(var id : commandIDs)
+            client.getRestClient().getApplicationService()
+                    .deleteGlobalApplicationCommand(applicationId, id)
+                    .subscribe();
+
+// Delete it
+
     }
 
     @Override

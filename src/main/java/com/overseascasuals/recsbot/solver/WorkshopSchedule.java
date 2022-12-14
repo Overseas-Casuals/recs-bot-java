@@ -110,8 +110,8 @@ public class WorkshopSchedule
     
     public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested, Map<Item,ReservedHelper> reservedHelpers) {
         boolean verboseLogging = false;
-        /*if(items.size() == 5 && items.get(0) == Item.BakedPumpkin && items.get(1) == Item.BoiledEgg && items.get(2) == Item.Horn
-                        && items.get(3) == Item.Brush && items.get(4) == Item.Horn)
+        /*if(items.size() == 5 && items.get(0) == Item.CulinaryKnife && items.get(1) == Item.Butter && items.get(2) == Item.Jam
+                && items.get(3) == Item.Butter && items.get(4) == Item.Jam)
             verboseLogging = true;*/
 
         int expectedGroove = 3;
@@ -220,33 +220,36 @@ public class WorkshopSchedule
 
         //Figure out if a penalty should apply for using a future item
         int helperPenalty = 0;
-        for(var kvp : reservedHelpers.entrySet())
+        if(reservedHelpers != null)
         {
-            if(verboseLogging)
-                LOG.info("Checking helper {} for main item {}", kvp.getValue(), kvp.getKey());
-            ItemInfo mainItem = Solver.items[kvp.getKey().ordinal()];
-            if(items.contains(kvp.getKey())) //We're using the main item so it's fine
-                continue;
-            if(verboseLogging)
-                LOG.info("We're not using main item {}", kvp.getKey());
-            if(mainItem.peaksOnOrBeforeDay(day, null)) //Item has peaked already so it's fine
-                continue;
-            if(verboseLogging)
-                LOG.info("Main item {} hasn't peaked yet", kvp.getKey());
-            if(!items.contains(kvp.getValue().item)) //We aren't using the helper so it's fine
-                continue;
-            if(verboseLogging)
-                LOG.info("We're using helper {}", kvp.getValue());
-
-            //None of the above conditions are true so it's not fine.
-            //apply a penalty for x usages (2x if efficient)
-            for(int i=0; i<items.size(); i++)
+            for(var kvp : reservedHelpers.entrySet())
             {
-                if(items.get(i) == kvp.getValue().item)
+                if(verboseLogging)
+                    LOG.info("Checking helper {} for main item {}", kvp.getValue(), kvp.getKey());
+                ItemInfo mainItem = Solver.items[kvp.getKey().ordinal()];
+                if(items.contains(kvp.getKey())) //We're using the main item so it's fine
+                    continue;
+                if(verboseLogging)
+                    LOG.info("We're not using main item {}", kvp.getKey());
+                if(mainItem.peaksOnOrBeforeDay(day, null)) //Item has peaked already so it's fine
+                    continue;
+                if(verboseLogging)
+                    LOG.info("Main item {} hasn't peaked yet", kvp.getKey());
+                if(!items.contains(kvp.getValue().item)) //We aren't using the helper so it's fine
+                    continue;
+                if(verboseLogging)
+                    LOG.info("We're using helper {}", kvp.getValue());
+
+                //None of the above conditions are true so it's not fine.
+                //apply a penalty for x usages (2x if efficient)
+                for(int i=0; i<items.size(); i++)
                 {
-                    if(verboseLogging)
-                        LOG.info("We're using helper {} in position {}, so that's {}x the penalty of {}", kvp.getValue(), i, i==0?1:2, kvp.getValue().penalty);
-                    helperPenalty+=kvp.getValue().penalty*(i==0?1:2);
+                    if(items.get(i) == kvp.getValue().item)
+                    {
+                        if(verboseLogging)
+                            LOG.info("We're using helper {} in position {}, so that's {}x the penalty of {}", kvp.getValue(), i, i==0?1:2, kvp.getValue().penalty);
+                        helperPenalty+=kvp.getValue().penalty*(i==0?1:2);
+                    }
                 }
             }
         }
@@ -257,9 +260,17 @@ public class WorkshopSchedule
             if(crafts.get(i).couldPrePeak(day))
                 prepeakBonus+= Solver.helperPenalty*(i==0?1:2);
         }
-                
+
+
         //Allow for the accounting for materials if desired
-        return new WorkshopValue( workshopValue, grooveValue, getMaterialCost(), helperPenalty, prepeakBonus);
+
+        var value = new WorkshopValue( workshopValue, grooveValue, getMaterialCost(), helperPenalty, prepeakBonus);
+
+        if(verboseLogging)
+            LOG.info("Schedule {} has workshop value {}, grooveValue {}, helperPenalty {}, and prepeak bonus {}. Weighted: {}", items, workshopValue, grooveValue, helperPenalty, prepeakBonus, value.getWeighted());
+
+
+        return value;
     }
     
     public boolean usesTooMany(Map<Item,Integer> limitedUse)
@@ -268,21 +279,32 @@ public class WorkshopSchedule
             return false;
        
         Map<Item, Integer> used = new HashMap<>();
-            
-            
+        boolean verboseLogging = false;
+
+        /*if(limitedUse.size() == 9 && items.size() == 5 && items.get(0) == Item.CulinaryKnife && items.get(1) == Item.Butter && items.get(2) == Item.Jam
+                && items.get(3) == Item.Butter && items.get(4) == Item.Jam)
+            verboseLogging = true;*/
+
         for(int i=0; i<items.size(); i++)
         {
+            boolean isEfficient = false;
+            if(i > 0)
+                isEfficient = Solver.items[items.get(i-1).ordinal()].getsEfficiencyBonus(Solver.items[items.get(i).ordinal()]);
+
             if(!used.containsKey(items.get(i)))
-                used.put(items.get(i), 3+(i>0?3:0));
+                used.put(items.get(i), 3+(isEfficient?3:0));
             else
-                used.put(items.get(i), used.get(items.get(i)) + 3+(i>0?3:0));
+                used.put(items.get(i), used.get(items.get(i)) + 3+(isEfficient?3:0));
         }
         for(Item key : used.keySet())
         {
+            if(verboseLogging)
+                LOG.info("Comparing used {}: {} to limit: {}", key, used.get(key), limitedUse.get(key));
+
             if(limitedUse.containsKey(key) && limitedUse.get(key) < used.get(key))
             {
-//                if(Solver.verboseSolverLogging)
-//                    System.out.println("Using too many "+key+" in schedule "+items+". Can only use "+limitedUse.get(key)+" but using "+used.get(key));
+                if(verboseLogging)
+                    LOG.info("Using too many "+key+" in schedule "+items+". Can only use "+limitedUse.get(key)+" but using "+used.get(key));
                 return true;
             }
         }
@@ -306,8 +328,12 @@ public class WorkshopSchedule
         {
             if(!limitedUses.containsKey(items.get(i)))
                 limitedUses.put(items.get(i), 12);
+
+            boolean isEfficient = false;
+            if(i > 0)
+                isEfficient = Solver.items[items.get(i-1).ordinal()].getsEfficiencyBonus(Solver.items[items.get(i).ordinal()]);
             
-            limitedUses.put(items.get(i), limitedUses.get(items.get(i))-3 - (i>0?3:0));
+            limitedUses.put(items.get(i), limitedUses.get(items.get(i))-3 - (isEfficient?3:0));
         }
         
         return limitedUses;

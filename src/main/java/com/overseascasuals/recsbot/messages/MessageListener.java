@@ -32,12 +32,16 @@ public abstract class MessageListener {
         if(eventMessage.getAuthor().map(user -> !user.isBot()).orElse(false) && eventMessage.getContent().startsWith("!setpeak"))
             return processSetPeakCommand(eventMessage);
 
-        return Mono.just(eventMessage)
+        if(eventMessage.getAuthor().map(user -> !user.isBot()).orElse(false) && eventMessage.getContent().equalsIgnoreCase("!nextweek"))
+            return processNextWeekCommand(eventMessage);
+
+        return Mono.empty();
+        /*return Mono.just(eventMessage)
                 .filter(message -> message.getAuthor().map(user -> !user.isBot()).orElse(false))
                 .filter(message -> message.getContent().equalsIgnoreCase("!todo"))
                 .flatMap(Message::getChannel)
                 .flatMap(channel -> channel.createMessage("Things to do today:\n - write a bot\n - eat lunch\n - play a game"))
-                .then();
+                .then();*/
     }
 
     private Mono<Void> processSetPeakCommand(Message eventMessage)
@@ -65,7 +69,7 @@ public abstract class MessageListener {
                         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
                         if(day==0)
                         {
-                            solver.getDailyRecommendations(week, day, true);
+                            solver.getDailyRecommendations(week, 0, true);
                         }
                     }
 
@@ -146,4 +150,21 @@ public abstract class MessageListener {
                 .flatMap(channel -> channel.createMessage(text))
                 .then();
     }
+
+    private Mono<Void> processNextWeekCommand(Message eventMessage)
+    {
+        var recs = solver.getVacationRecs();
+        if(recs == null)
+            return Mono.just(eventMessage)
+                    .flatMap(Message::getChannel)
+                    .flatMap(channel -> channel.createMessage("<@"+miennaID+"> No vacation recs returned"))
+                    .then();
+
+        return Mono.just(eventMessage)
+                .flatMap(Message::getChannel)
+                .flatMap(channel -> channel.createMessage(OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs)))
+                .then();
+    }
+
+
 }
