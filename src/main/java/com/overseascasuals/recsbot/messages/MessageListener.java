@@ -155,14 +155,27 @@ public abstract class MessageListener {
     {
         var recs = solver.getVacationRecs();
         if(recs == null)
+        {
+            LOG.info("Has no next week info. Maybe we needed to reboot the server and now it lost it.");
+            var d1 = new Date(1661241600000L);
+            var d2 = new Date();
+
+            int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
+            int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+            solver.getDailyRecommendations(week, day, true);
+            recs = solver.getVacationRecs();
+        }
+
+        if(recs == null)
             return Mono.just(eventMessage)
                     .flatMap(Message::getChannel)
                     .flatMap(channel -> channel.createMessage("<@"+miennaID+"> No vacation recs returned"))
                     .then();
 
+        var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs);
         return Mono.just(eventMessage)
                 .flatMap(Message::getChannel)
-                .flatMap(channel -> channel.createMessage(OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs)))
+                .flatMap(channel -> channel.createMessage(embed))
                 .then();
     }
 
