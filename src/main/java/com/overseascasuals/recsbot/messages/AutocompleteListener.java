@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+@Service
 public class AutocompleteListener implements EventListener<ChatInputAutoCompleteEvent>
 {
     Logger LOG = LoggerFactory.getLogger(AutocompleteListener.class);
@@ -34,7 +35,7 @@ public class AutocompleteListener implements EventListener<ChatInputAutoComplete
         int i=0;
         List<ApplicationCommandOptionChoiceData> suggestions = new ArrayList<>();
 
-        //List<Item> suggestionItems = new ArrayList<>();
+        List<Item> suggestionItems = new ArrayList<>();
 
         for(Item item : Item.values())
         {
@@ -42,28 +43,30 @@ public class AutocompleteListener implements EventListener<ChatInputAutoComplete
                 break;
             if(item.name().toLowerCase().startsWith(typing))
             {
-                //suggestionItems.add(item);
-                suggestions.add(ApplicationCommandOptionChoiceData.builder().name(item.getDisplayName()).value(item.name()).build());
+                suggestionItems.add(item);
+                //suggestions.add(ApplicationCommandOptionChoiceData.builder().name(item.getDisplayName()).value(item.name()).build());
                 i++;
             }
         }
 
-        LOG.info("Returning {} results in {}ms", i, System.currentTimeMillis()-time);
-        /*for(Item item : Item.values())
+
+        for(Item item : Item.values())
         {
+            String lower = item.name().toLowerCase();
             if(i >= 25)
                 break;
-            if(item.name().toLowerCase().contains(typing) && !suggestionItems.contains(item))
+            if(lower.contains(typing) && !lower.startsWith(typing))
             {
                 suggestionItems.add(item);
                 i++;
             }
-        }*/
+        }
 
-        /*for(Item item : suggestionItems)
+        for(Item item : suggestionItems)
         {
             suggestions.add(ApplicationCommandOptionChoiceData.builder().name(item.getDisplayName()).value(item.name()).build());
-        }*/
+        }
+        LOG.info("Returning {} results in {}ms", i, System.currentTimeMillis()-time);
 
         return event.respondWithSuggestions(suggestions);
     }

@@ -4,6 +4,7 @@ import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.messages.EventListener;
 import com.overseascasuals.recsbot.mysql.*;
 import com.overseascasuals.recsbot.scheduled.ScheduledTask;
+import discord4j.common.ReactorResources;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.Event;
@@ -12,6 +13,9 @@ import discord4j.core.object.command.ApplicationCommandOption;
 import discord4j.core.object.entity.User;
 import discord4j.discordjson.Id;
 import discord4j.discordjson.json.*;
+import discord4j.rest.request.RouteMatcher;
+import discord4j.rest.response.ResponseFunction;
+import io.netty.channel.unix.Errors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +27,11 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
+import reactor.retry.Retry;
 
+import java.time.Duration;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +63,20 @@ public class BotConfiguration implements CommandLineRunner
     public <T extends Event> GatewayDiscordClient gatewayDiscordClient(List<EventListener<T>> eventListeners, List<ScheduledTask> taskList)
     {
         var client = DiscordClientBuilder.create(token)
+                .onClientResponse(
+                        ResponseFunction.retryWhen(
+                                RouteMatcher.any(),
+                                Retry.anyOf(Errors.NativeIoException.class)))
+                .setReactorResources(ReactorResources.builder()
+                        .httpClient(HttpClient.create()
+                                .compress(true)
+                                .keepAlive(false)
+                                .followRedirect(true).secure()).build())
+                /*.setReactorResources(ReactorResources.builder()
+                        .httpClient(ReactorResources.newHttpClient(ConnectionProvider.builder("custom")
+                                .maxIdleTime(Duration.ofMinutes(10))
+                                .build()))
+                        .build())*/
                 .build()
                 .login()
                 .block();
@@ -189,6 +211,12 @@ public class BotConfiguration implements CommandLineRunner
                 .dmPermission(false)
                 .build();
         commands.add(setCraftsRequest);
+
+        ApplicationCommandRequest nextWeekRequest = ApplicationCommandRequest.builder()
+                .name("next_week")
+                .description("Gets a non-optimized schedule to make next week if you're going to be away")
+                        .build();
+        commands.add(nextWeekRequest);
 
 
         /* Bulk overwrite commands.

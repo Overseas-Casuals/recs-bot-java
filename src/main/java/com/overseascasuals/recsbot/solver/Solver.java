@@ -853,16 +853,16 @@ public class Solver
         boolean bestD5IsWorst = true;
         int bestD5 = 0;
         int weightedValue = rec.getValue().getWeighted();
-        LOG.debug("Comparing d" + (day + 1) + " (" + weightedValue + ") to worst-case future days");
+        LOG.info("Comparing d" + (day + 1) + " (" + weightedValue + ") to worst-case future days");
         
-        Map<Item,Integer> reservedSet = rec.getKey().getLimitedUses();
+        Map<Item,Integer> reservedSet = new HashMap<>();
         for (int d = day + 1; d < 7; d++)
         {
             Entry<WorkshopSchedule, WorkshopValue> solution;
             if (day == 3 && d == 4) // We have a lot of info about this specific pair so
                                     // we might as well use it
             {
-                solution = getD5EV();   
+                solution = getD5EV();
                 bestD5 = solution.getValue().getWeighted();
             }
             else
@@ -1083,7 +1083,7 @@ public class Solver
     private Map.Entry<WorkshopSchedule, WorkshopValue> getBestSchedule(int day, int groove, Map<Item,Integer> limitedUse)
     {
         var bestSchedule = getBestBruteForceSchedules(day, groove, limitedUse, day, 1).get(0);
-        LOG.info("Best schedule for day {} with {} groove and {} limited items: {} ({})", day, groove, limitedUse==null?0:limitedUse.size(), Arrays.toString(bestSchedule.getKey().getItems().toArray()), bestSchedule.getValue().getWeighted());
+        LOG.info("Best schedule for day {} with {} groove and {} limited items: {} ({})", day+1, groove, limitedUse==null?0:limitedUse.size(), Arrays.toString(bestSchedule.getKey().getItems().toArray()), bestSchedule.getValue().getWeighted());
         return bestSchedule;
     }
 

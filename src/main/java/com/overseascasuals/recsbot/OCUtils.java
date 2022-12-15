@@ -137,11 +137,11 @@ public class OCUtils
         return messageSpec.build();
     }
 
-    public static MessageCreateSpec generateNextWeekEmbed(int season, List<List<Item>> recs)
+    public static EmbedCreateSpec generateNextWeekEmbed(int season, List<List<Item>> recs)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Vacation Recommendations");
         builder.timestamp(Instant.now());
-        var messageSpec = MessageCreateSpec.builder();
+        //var messageSpec = MessageCreateSpec.builder();
 
         builder.color(Color.SUMMER_SKY);
         builder.addField("__Cycles 1 and 7__", "Rest",false);
@@ -152,7 +152,7 @@ public class OCUtils
                 +"**Workshop 2:** "+  recs.get(4).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")) + "\n"+
                 "**Workshop 3:** "+ recs.get(5).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")), false);
 
-        messageSpec.addEmbed(builder.build());
-        return messageSpec.build();
+        //messageSpec.addEmbed(builder.build());
+        return builder.build();
     }
 }

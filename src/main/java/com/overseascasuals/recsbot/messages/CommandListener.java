@@ -5,16 +5,11 @@ import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.data.PeakCycle;
 import com.overseascasuals.recsbot.solver.Solver;
 import discord4j.common.util.Snowflake;
-import discord4j.core.GatewayDiscordClient;
-import discord4j.core.event.domain.Event;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
-import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.object.entity.channel.NewsChannel;
-import discord4j.core.spec.InteractionCallbackSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +22,7 @@ import java.util.Date;
 import java.util.List;
 
 
+@Service
 public class CommandListener implements EventListener<ChatInputInteractionEvent>
 {
     Logger LOG = LoggerFactory.getLogger(CommandListener.class);
@@ -53,12 +49,16 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         LOG.info("Processsing {} command", command);
         switch (command) {
             case "set_peak" -> {
-                processSetPeakCommand(event).subscribe();
+                processSetPeakCommand(event).block();
                 return deferredPeakResponse(event);
             }
             case "set_schedule" -> {
-                processSetScheduleCommand(event).subscribe();
+                event.deferReply().withEphemeral(true).block();
                 return deferredScheduleResponse(event);
+            }
+            case "next_week" -> {
+                event.deferReply().block();
+                return deferredNextWeekCommand(event);
             }
         }
         return event.reply()
@@ -139,9 +139,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
                 if(recs== null || recs.size() == 0)
                 {
-                    event.getClient().getChannelById(Snowflake.of(recsChannelID))
-                            .cast(MessageChannel.class)
-                            .flatMap(channel -> channel.createMessage("<@"+miennaID+"> No recs returned")).subscribe();
+                    return event.editReply("Set peak for item "+item.getDisplayName()+", but no recs returned. <@"+miennaID+">").then();
                 }
 
                 event.getClient().getChannelById(Snowflake.of(recsChannelID))
@@ -149,11 +147,11 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                         .flatMap(channel -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), recs.get(0), c1PeakRole))
                                 .flatMap(Message::publish)).subscribe();
 
-                return event.createFollowup("Item "+item.getDisplayName()+" set to "+peakType+" peak. Generating recs.").then();
+                return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Generating recs.").then();
             }
             else
             {
-                return event.createFollowup("Item "+item.getDisplayName()+" set to "+peakType+" peak. Still waiting on more required info.").then();
+                return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Still waiting on more required info.").then();
             }
         }
         else
@@ -161,11 +159,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
             LOG.info("command is for item we don't need");
             return event.editReply("No peak info needed for "+item.getDisplayName()).then();
         }
-    }
-
-    private Mono<Void> processSetScheduleCommand(ChatInputInteractionEvent event)
-    {
-        return event.deferReply(/*InteractionCallbackSpec.builder().ephemeral(true).build()*/);
     }
 
     private Mono<Void> deferredScheduleResponse(ChatInputInteractionEvent event)
@@ -200,5 +193,28 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         solver.setScheduleCommand(day, items);
 
         return event.editReply("Created schedule of "+items+" for cycle "+(day+1)).then();
+    }
+
+    private Mono<Void> deferredNextWeekCommand(ChatInputInteractionEvent event)
+    {
+        var recs = solver.getVacationRecs();
+        if(recs == null)
+        {
+            LOG.info("Has no next week info. Maybe we needed to reboot the server and now it lost it.");
+            var d1 = new Date(1661241600000L);
+            var d2 = new Date();
+
+            int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
+            int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+            solver.getDailyRecommendations(week, day, true);
+            recs = solver.getVacationRecs();
+        }
+
+        if(recs == null)
+            return event.editReply("No vacation recs returned. <@"+miennaID+">").then();
+
+        var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs);
+
+        return event.editReply().withEmbeds(embed).then();
     }
 }
