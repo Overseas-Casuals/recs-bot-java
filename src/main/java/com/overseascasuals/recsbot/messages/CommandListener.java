@@ -60,6 +60,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                 event.deferReply().block();
                 return deferredNextWeekCommand(event);
             }
+            case "this_week" -> {
+                event.deferReply().block();
+                return deferredThisWeekCommand(event);
+            }
         }
         return event.reply()
                 .withEphemeral(true)
@@ -214,6 +218,33 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
             return event.editReply("No vacation recs returned. <@"+miennaID+">").then();
 
         var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs);
+
+        return event.editReply().withEmbeds(embed).then();
+    }
+
+    private Mono<Void> deferredThisWeekCommand(ChatInputInteractionEvent event)
+    {
+        var recs = solver.getRestOfWeek();
+        var d1 = new Date(1661241600000L);
+        var d2 = new Date();
+
+        int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
+        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+        if(day >= 3)
+            return event.editReply("Rest of week already known. See <#"+recsChannelID+">").then();
+
+        if(recs == null)
+        {
+            LOG.info("Has no rest of week info. Maybe we needed to reboot the server and now it lost it.");
+
+            solver.getDailyRecommendations(week, day, true);
+            recs = solver.getRestOfWeek();
+        }
+
+        if(recs == null)
+            return event.editReply("No rest of week recs returned. <@"+miennaID+">").then();
+
+        var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs);
 
         return event.editReply().withEmbeds(embed).then();
     }

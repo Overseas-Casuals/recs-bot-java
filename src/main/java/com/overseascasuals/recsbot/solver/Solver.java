@@ -141,6 +141,10 @@ public class Solver
     private Set<Item> d2Bystanders;
     private List<List<Item>> vacationRecs = null;
 
+    private List<List<Item>> restOfWeek = null;
+
+    public List<List<Item>> getRestOfWeek(){return restOfWeek;}
+
     private boolean autocompletePeaks = false;
 
     private int week = 0;
@@ -341,6 +345,8 @@ public class Solver
 
             LOG.info("{}", rec);
             addCraftedFromCycle(rec.getDay(), rec.getBestRec());
+
+            generateRestOfWeekRecs();
         }
         else
         {
@@ -931,6 +937,47 @@ public class Solver
         }
 
         return solution;
+    }
+
+    private void generateRestOfWeekRecs()
+    {
+        Map<Item,Integer> reservedSet = new HashMap<>();
+        restOfWeek = new ArrayList<>();
+
+        int worstIndex = -1;
+        int worstValue = 99999;
+        int estGroove = (groove + GROOVE_MAX) / 2;
+
+        for (int d = day + 2; d < 7; d++)
+        {
+            var solution = getBestSchedule(d, estGroove, reservedSet);
+            if(solution.getValue().getWeighted() < worstValue)
+            {
+                worstValue = solution.getValue().getWeighted();
+                worstIndex = restOfWeek.size();
+            }
+
+            restOfWeek.add(solution.getKey().getItems());
+            reservedSet = solution.getKey().getLimitedUses(reservedSet);
+        }
+
+        if(rested == -1)
+        {
+            //If we haven't rested, rest the worst day
+            restOfWeek.remove(worstIndex);
+            restOfWeek.add(worstIndex, new ArrayList<>());
+        }
+        if(restOfWeek.size() == 5) //If we're at day 1, we have no real idea, so put our best guess at C6, the second-best day to craft
+        {
+            var best = restOfWeek.set(0, restOfWeek.get(3));
+            restOfWeek.set(3, best);
+        }
+
+        for(var list : restOfWeek)
+        {
+            LOG.info("rest of week: {}", list);
+        }
+
     }
 
     private int generateVacationRecs(int currentWeek)

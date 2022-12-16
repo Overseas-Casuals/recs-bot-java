@@ -214,9 +214,15 @@ public class BotConfiguration implements CommandLineRunner
 
         ApplicationCommandRequest nextWeekRequest = ApplicationCommandRequest.builder()
                 .name("next_week")
-                .description("Gets a non-optimized schedule to make next week if you're going to be away")
-                        .build();
+                .description("Gets a non-optimized schedule for next week if you're going to be away")
+                .build();
         commands.add(nextWeekRequest);
+
+        ApplicationCommandRequest thisWeekRequest = ApplicationCommandRequest.builder()
+                .name("this_week")
+                .description("Gets a non-optimized schedule for the rest of the week if you're going to be away")
+                .build();
+        commands.add(thisWeekRequest);
 
 
         /* Bulk overwrite commands.

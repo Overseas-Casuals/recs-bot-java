@@ -155,4 +155,25 @@ public class OCUtils
         //messageSpec.addEmbed(builder.build());
         return builder.build();
     }
+
+    public static EmbedCreateSpec generateThisWeekEmbed(int season, List<List<Item>> recs)
+    {
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Vacation Recommendations");
+        builder.timestamp(Instant.now());
+
+        builder.color(Color.SUMMER_SKY);
+        int startDay = 8-recs.size();
+
+        for(int i=0; i<recs.size(); i++)
+        {
+            String recString;
+            if(recs.get(i).size() > 0)
+                recString = recs.get(i).stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
+            else
+                recString = "Rest";
+            builder.addField("Cycle "+(startDay+i), recString, false);
+        }
+
+        return builder.build();
+    }
 }
