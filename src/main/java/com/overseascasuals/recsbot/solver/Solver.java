@@ -1013,7 +1013,7 @@ public class Solver
         Map<Item,Integer> reservedSet = new HashMap<>();
         vacationRecs = new ArrayList<>();
 
-        for (int d = 0; d < 6; d++)
+        for (int d = 0; d < 5; d++)
         {
             WorkshopSchedule solution = getBestSchedule(3, GROOVE_MAX/2, reservedSet).getKey();
             vacationRecs.add(solution.getItems());

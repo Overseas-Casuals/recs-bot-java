@@ -144,13 +144,12 @@ public class OCUtils
         //var messageSpec = MessageCreateSpec.builder();
 
         builder.color(Color.SUMMER_SKY);
-        builder.addField("__Cycles 1 and 7__", "Rest",false);
-        builder.addField("__Cycles 2, 4, and 6__", "**Workshop 1:** "+ recs.get(0).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")) + "\n"
-                + "**Workshop 2:** "+ recs.get(1).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")) + "\n"+
-                "**Workshop 3:** "+ recs.get(2).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")), false);
-        builder.addField("__Cycles 3 and 5__", "**Workshop 1:** "+ recs.get(3).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")) + "\n"
-                +"**Workshop 2:** "+  recs.get(4).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")) + "\n"+
-                "**Workshop 3:** "+ recs.get(5).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")), false);
+        builder.addField("Cycle 2", recs.get(1).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")),false)
+                .addField("Cycle 3", recs.get(4).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")),false)
+                .addField("Cycle 4", recs.get(2).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")),false)
+                .addField("Cycle 5", recs.get(3).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")),false)
+                .addField("Cycle 6", recs.get(0).stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")),false)
+                .addField("Cycle 7", "Rest",false);
 
         //messageSpec.addEmbed(builder.build());
         return builder.build();
