@@ -90,6 +90,11 @@ public class ItemInfo
         craftedPerDay[day]=num;
     }
 
+    public int getCraftedOnDay(int day)
+    {
+        return craftedPerDay[day];
+    }
+
     public void clearCrafted(int day)
     {
         craftedPerDay[day]=0;

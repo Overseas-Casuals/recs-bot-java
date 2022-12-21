@@ -240,7 +240,7 @@ public class Solver
                             groove+=NUM_WORKSHOPS;
                         }
 
-                        itemInfo.setCrafted(numToAdd, i);
+                        itemInfo.setCrafted(numToAdd + itemInfo.getCraftedOnDay(i), i);
 
                     }
                     groove = Math.min(groove, GROOVE_MAX);
