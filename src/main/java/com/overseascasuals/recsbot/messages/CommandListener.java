@@ -18,8 +18,10 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -63,6 +65,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
             case "this_week" -> {
                 event.deferReply().block();
                 return deferredThisWeekCommand(event);
+            }
+            case "today" -> {
+                event.deferReply().block();
+                return deferredTodayCommand(event);
             }
         }
         return event.reply()
@@ -247,5 +253,37 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs);
 
         return event.editReply().withEmbeds(embed).then();
+    }
+
+    private Mono<Void> deferredTodayCommand(ChatInputInteractionEvent event)
+    {
+        var calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        var hour = calendar.get(Calendar.HOUR_OF_DAY);
+        if(hour < 8)
+            hour += 24;
+        hour = (hour - 8) % 24;
+        int hoursLeft = 24 - (((hour / 2) + 1) * 2);
+
+
+        //If we don't have this, it's because we haven't run recs at all
+        //So run recs to get things all set up
+        if(solver.getVacationRecs() == null)
+        {
+            var d1 = new Date(1661241600000L);
+            var d2 = new Date();
+
+            int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
+            int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+
+            solver.getDailyRecommendations(week, day, true);
+        }
+
+        var recs = solver.getRestOfDayRecs(hoursLeft);
+
+        if(recs.size() == 0)
+            return  event.editReply("No matching schedules found with "+hoursLeft+" hours left.").then();
+        else
+            return event.editReply("Best schedule with "+hoursLeft+" hours left:\n"+ recs.stream().map(Item::getDisplayName).collect(Collectors.joining(" - "))).then();
     }
 }

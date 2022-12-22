@@ -143,6 +143,9 @@ public class Solver
 
     private List<List<Item>> restOfWeek = null;
 
+    private List<Item> restOfDay = null;
+    private int hoursLeftInDay = 0;
+
     public List<List<Item>> getRestOfWeek(){return restOfWeek;}
 
     private boolean autocompletePeaks = false;
@@ -173,6 +176,10 @@ public class Solver
     public List<DailyRecommendation> getDailyRecommendations(int week, int day, boolean hardRefresh)
     {
         LOG.info("Getting recommendations for week {} day {}, hardrefresh? {}. helper penalty {}", week, day, hardRefresh, helperPenalty);
+
+        restOfDay = null;
+        hoursLeftInDay = 0;
+
         if(hardRefresh || this.week != week)
         {
             autocompletePeaks = false;
@@ -276,7 +283,7 @@ public class Solver
 
             WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, groove-grooveMadeToday, rested>=0, reservedHelpers);
             var newBest = getBestBruteForceSchedules(day, groove-grooveMadeToday,
-                    null, day, 1, currentCrafts.get(0));
+                    null, day, 1, currentCrafts.get(0), 24);
 
             LOG.info("Old value for day {}: {}, new value {}", day+1, oldValue.getWeighted(), newBest.get(0).getValue().getWeighted());
 
@@ -399,9 +406,10 @@ public class Solver
     {
         if(schedule!=null)
         {
-            LOG.info("Setting info for cycle schedule {} (real? {})", schedule, real);
             if(schedule.numCrafted == null)
                 schedule.getValue();
+
+            LOG.info("Setting info for cycle schedule {} (real? {})", schedule, real);
             Arrays.stream(items).forEach(item -> item.setCrafted(schedule.numCrafted.getOrDefault(item.item, 0), schedule.day));
 
             groove = schedule.endingGroove;
@@ -939,6 +947,34 @@ public class Solver
         return solution;
     }
 
+    public List<Item> getRestOfDayRecs(int hoursLeft)
+    {
+        if(hoursLeftInDay == hoursLeft)
+            return restOfDay;
+
+        restOfDay = new ArrayList<>();
+
+        List<Item> currentCrafts = craftRepository.findCraftsByDay(week, day).getCrafts();
+        int grooveMadeToday = getGrooveMadeWithSchedule(currentCrafts);
+
+        Map<Item, Integer> limitedItems = null;
+        if(day>=3 && day < 6) //We have future recs and don't want to mess with them
+        {
+            for(int i=day+1; i<7; i++)
+            {
+                List<Item> futureCrafts = craftRepository.findCraftsByDay(week, i).getCrafts();
+                limitedItems = new WorkshopSchedule(futureCrafts).getLimitedUses(limitedItems);
+            }
+        }
+
+        var schedules = getBestBruteForceSchedules(day, Math.max(groove-grooveMadeToday,0), limitedItems, day, 1, null, hoursLeft);
+        if(schedules.size() > 0)
+            restOfDay = schedules.get(0).getKey().getItems();
+
+        hoursLeftInDay = hoursLeft;
+        return restOfDay;
+    }
+
     private void generateRestOfWeekRecs()
     {
         Map<Item,Integer> reservedSet = new HashMap<>();
@@ -1137,11 +1173,11 @@ public class Solver
     private List<Map.Entry<WorkshopSchedule, WorkshopValue>> getBestBruteForceSchedules(int day, int groove,
                                             Map<Item,Integer> limitedUse, int allowUpToDay, int numToReturn)
     {
-        return getBestBruteForceSchedules(day, groove, limitedUse, allowUpToDay, numToReturn, null);
+        return getBestBruteForceSchedules(day, groove, limitedUse, allowUpToDay, numToReturn, null, 24);
     }
 
     private List<Map.Entry<WorkshopSchedule, WorkshopValue>> getBestBruteForceSchedules(int day, int groove,
-            Map<Item,Integer> limitedUse, int allowUpToDay, int numToReturn, Item startingItem)
+            Map<Item,Integer> limitedUse, int allowUpToDay, int numToReturn, Item startingItem, int hoursLeft)
     {
 
         HashMap<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
@@ -1160,6 +1196,16 @@ public class Solver
                     .allMatch(item -> item == startingItem)).collect(Collectors.toList());
 
 
+        if(hoursLeft < 24)
+        {
+            for (List<Item> schedule : filteredItemLists)
+            {
+                while (getHoursUsed(schedule) > hoursLeft && schedule.size() > 0)
+                {
+                    schedule.remove(schedule.size() - 1);
+                }
+            }
+        }
 
         for (List<Item> list : filteredItemLists)
         {
@@ -1197,7 +1243,10 @@ public class Solver
         }
 
         return sortedSchedules.stream().limit(numToReturn).collect(Collectors.toList());
-
+    }
+    private static int getHoursUsed(List<Item> schedule)
+    {
+        return schedule.stream().mapToInt(item -> items[item.ordinal()].time).sum();
     }
     private void addToScheduleMap(List<Item> list, int day, int groove, Map<Item,Integer> limitedUse,
             HashMap<WorkshopSchedule, WorkshopValue> safeSchedules)
