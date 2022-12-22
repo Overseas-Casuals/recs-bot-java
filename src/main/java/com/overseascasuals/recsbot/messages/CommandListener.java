@@ -265,25 +265,25 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         hour = (hour - 8) % 24;
         int hoursLeft = 24 - (((hour / 2) + 1) * 2);
 
+        var d1 = new Date(1661241600000L);
+        var d2 = new Date();
+
+        int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
+        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
 
         //If we don't have this, it's because we haven't run recs at all
         //So run recs to get things all set up
         if(solver.getVacationRecs() == null)
         {
-            var d1 = new Date(1661241600000L);
-            var d2 = new Date();
 
-            int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
-            int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
 
             solver.getDailyRecommendations(week, day, true);
         }
 
         var recs = solver.getRestOfDayRecs(hoursLeft);
 
-        if(recs.size() == 0)
-            return  event.editReply("No matching schedules found with "+hoursLeft+" hours left.").then();
-        else
-            return event.editReply("Best schedule with "+hoursLeft+" hours left:\n"+ recs.stream().map(Item::getDisplayName).collect(Collectors.joining(" - "))).then();
+        var embed = OCUtils.generateTodayEmbed(week, day, hoursLeft, recs);
+
+        return event.editReply().withEmbeds(embed).then();
     }
 }

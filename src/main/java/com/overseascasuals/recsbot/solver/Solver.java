@@ -143,7 +143,7 @@ public class Solver
 
     private List<List<Item>> restOfWeek = null;
 
-    private List<Item> restOfDay = null;
+    private List<Entry<WorkshopSchedule, WorkshopValue>> restOfDay = null;
     private int hoursLeftInDay = 0;
 
     public List<List<Item>> getRestOfWeek(){return restOfWeek;}
@@ -268,8 +268,7 @@ public class Solver
             this.day = day;
         }
 
-        if(reservedItems.size() == 0)
-            populateReservedItems();
+        populateReservedItems(day);
 
         List<DailyRecommendation> listOfRecs = new ArrayList<>();
 
@@ -524,12 +523,13 @@ public class Solver
         autocompletePeaks = true;
     }
 
-    private void populateReservedItems()
+    private void populateReservedItems(int day)
     {
-        Map<Item, Integer> itemValues = new HashMap<Item, Integer>();
+        reservedItems.clear();
+        Map<Item, Integer> itemValues = new HashMap<>();
         for (ItemInfo item : items)
         {
-            if (item.time == 4)
+            if (item.peaksOnOrBeforeDay(day, null))
                 continue;
             int value = item.getValueWithSupply(Supply.Sufficient);
             if (valuePerHour)
@@ -545,12 +545,12 @@ public class Solver
         Iterator<Entry<Item, Integer>> itemIterator = bestItemsEntries.iterator();
 
         List<Item> itemsThatGetReservations = new ArrayList<>();
-        for (int i = 0; i < itemsToReserve && itemIterator.hasNext(); i++)
+        for (int i = 0; i < itemsToReserve-(2*day) && itemIterator.hasNext(); i++)
         {
             Item next = itemIterator.next().getKey();
             LOG.info("Reserving item {}", next);
             reservedItems.add(next);
-            if (i < 10)
+            if (i < (5-day)*2)
                 itemsThatGetReservations.add(next);
         }
 
@@ -947,7 +947,7 @@ public class Solver
         return solution;
     }
 
-    public List<Item> getRestOfDayRecs(int hoursLeft)
+    public List<Entry<WorkshopSchedule, WorkshopValue>> getRestOfDayRecs(int hoursLeft)
     {
         if(hoursLeftInDay == hoursLeft)
             return restOfDay;
@@ -970,9 +970,13 @@ public class Solver
         }
 
 
-        var schedules = getBestBruteForceSchedules(day, Math.max(groove-grooveMadeToday,0), limitedItems, lastDaySet, 1, null, hoursLeft);
-        if(schedules.size() > 0)
-            restOfDay = schedules.get(0).getKey().getItems();
+        var schedules = getBestBruteForceSchedules(day, Math.max(groove-grooveMadeToday,0), limitedItems, lastDaySet, 5, null, hoursLeft);
+
+        for(var schedule : schedules)
+            LOG.info("Rest of day rec: {} ({})", schedule.getKey().getItems(), schedule.getValue().getWeighted());
+
+        if(schedules.size() > 0 && schedules.get(0).getKey().getItems().size() > 0)
+            restOfDay = schedules;
 
         hoursLeftInDay = hoursLeft;
         return restOfDay;

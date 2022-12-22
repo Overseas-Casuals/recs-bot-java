@@ -2,6 +2,8 @@ package com.overseascasuals.recsbot;
 
 import com.overseascasuals.recsbot.data.DailyRecommendation;
 import com.overseascasuals.recsbot.data.Item;
+import com.overseascasuals.recsbot.data.WorkshopValue;
+import com.overseascasuals.recsbot.solver.WorkshopSchedule;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.MessageCreateSpec;
 import discord4j.rest.util.Color;
@@ -12,6 +14,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class OCUtils
@@ -117,7 +120,7 @@ public class OCUtils
 
     public static MessageCreateSpec generateCrimeTimeEmbed(int season, List<DailyRecommendation> recs)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Crime Time Recommendations");
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Crime Time Recommendations");
         builder.timestamp(Instant.now());
         var messageSpec = MessageCreateSpec.builder();
 
@@ -139,7 +142,7 @@ public class OCUtils
 
     public static EmbedCreateSpec generateNextWeekEmbed(int season, List<List<Item>> recs)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Vacation Recommendations");
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations");
         builder.timestamp(Instant.now());
         //var messageSpec = MessageCreateSpec.builder();
 
@@ -157,7 +160,7 @@ public class OCUtils
 
     public static EmbedCreateSpec generateThisWeekEmbed(int season, List<List<Item>> recs)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Vacation Recommendations");
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations");
         builder.timestamp(Instant.now());
 
         builder.color(Color.SUMMER_SKY);
@@ -172,6 +175,41 @@ public class OCUtils
                 recString = "Rest";
             builder.addField("Cycle "+(startDay+i), recString, false);
         }
+
+        return builder.build();
+    }
+    public static EmbedCreateSpec generateTodayEmbed(int season, int cycle, int hours, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs)
+    {
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(cycle+1)+" Partial Schedule");
+        builder.timestamp(Instant.now());
+        builder.description(hours+" hours remaining");
+
+        builder.color(Color.DEEP_LILAC);
+
+
+        if(recs.size() > 0 && recs.get(0).getKey().getItems().size() > 0)
+        {
+            StringBuilder altSb = new StringBuilder();
+            StringBuilder grossSb = new StringBuilder();
+            for(var alt : recs)
+            {
+                if(alt.getKey().getItems().size() > 0)
+                {
+                    String altText = alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
+                    altSb.append(altText).append('\n');
+                    grossSb.append(alt.getValue().getWeighted()).append('\n');
+                }
+            }
+            altSb.setLength(altSb.length()-1);
+            grossSb.setLength(grossSb.length()-1);
+
+            builder.addField("Schedules", altSb.toString(), true)
+                    .addField("Weighted Value", grossSb.toString(), true);
+        }
+        else
+            builder.addField("Schedules", "None available", false);
+
+
 
         return builder.build();
     }
