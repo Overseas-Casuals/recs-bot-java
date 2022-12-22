@@ -958,16 +958,19 @@ public class Solver
         int grooveMadeToday = getGrooveMadeWithSchedule(currentCrafts);
 
         Map<Item, Integer> limitedItems = null;
-        if(day>=3 && day < 6) //We have future recs and don't want to mess with them
+        int lastDaySet = day+1;
+        if(day >= 3)
+            lastDaySet = 6;
+
+
+        for(int i=day+1; i<=lastDaySet; i++)
         {
-            for(int i=day+1; i<7; i++)
-            {
-                List<Item> futureCrafts = craftRepository.findCraftsByDay(week, i).getCrafts();
-                limitedItems = new WorkshopSchedule(futureCrafts).getLimitedUses(limitedItems);
-            }
+            List<Item> futureCrafts = craftRepository.findCraftsByDay(week, i).getCrafts();
+            limitedItems = new WorkshopSchedule(futureCrafts).getLimitedUses(limitedItems);
         }
 
-        var schedules = getBestBruteForceSchedules(day, Math.max(groove-grooveMadeToday,0), limitedItems, day, 1, null, hoursLeft);
+
+        var schedules = getBestBruteForceSchedules(day, Math.max(groove-grooveMadeToday,0), limitedItems, lastDaySet, 1, null, hoursLeft);
         if(schedules.size() > 0)
             restOfDay = schedules.get(0).getKey().getItems();
 
