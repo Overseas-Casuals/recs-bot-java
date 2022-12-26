@@ -947,28 +947,49 @@ public class Solver
         return solution;
     }
 
-    public List<Entry<WorkshopSchedule, WorkshopValue>> getRestOfDayRecs(int hoursLeft)
+    public List<Entry<WorkshopSchedule, WorkshopValue>> getRestOfDayRecs(int day, int hoursLeft)
     {
+        LOG.info("Last day (hours) calculated: {} ({}). Searching for {} ({})", this.day, hoursLeftInDay, day, hoursLeft);
+        if(day != this.day)
+        {
+            this.day=day;
+            hoursLeftInDay = -1;
+        }
+
+
         if(hoursLeftInDay == hoursLeft)
             return restOfDay;
 
+        LOG.info("Recalculating today's recs");
+
         restOfDay = new ArrayList<>();
 
-        List<Item> currentCrafts = craftRepository.findCraftsByDay(week, day).getCrafts();
-        int grooveMadeToday = getGrooveMadeWithSchedule(currentCrafts);
+        var fromDb = craftRepository.findCraftsByDay(week, day);
+        int grooveMadeToday = 0;
+        if(fromDb!=null)
+        {
+            List<Item> currentCrafts = fromDb.getCrafts();
+            grooveMadeToday = getGrooveMadeWithSchedule(currentCrafts);
+            LOG.info("Found crafts for today, groove calculated: {}", grooveMadeToday);
+        }
 
         Map<Item, Integer> limitedItems = null;
         int lastDaySet = day+1;
         if(day >= 3)
             lastDaySet = 6;
 
+        LOG.info("Reserving future crafts made through day {}", lastDaySet+1);
+
 
         for(int i=day+1; i<=lastDaySet; i++)
         {
-            List<Item> futureCrafts = craftRepository.findCraftsByDay(week, i).getCrafts();
-            limitedItems = new WorkshopSchedule(futureCrafts).getLimitedUses(limitedItems);
+            var futureCrafts = craftRepository.findCraftsByDay(week, i);
+            if(futureCrafts == null)
+                break;
+            var crafts = futureCrafts.getCrafts();
+            LOG.info("Reserving future crafts for day {}: {}", i+1, crafts);
+            limitedItems = new WorkshopSchedule(crafts).getLimitedUses(limitedItems);
         }
-
 
         var schedules = getBestBruteForceSchedules(day, Math.max(groove-grooveMadeToday,0), limitedItems, lastDaySet, 5, null, hoursLeft);
 

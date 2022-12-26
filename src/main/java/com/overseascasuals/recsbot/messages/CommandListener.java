@@ -275,12 +275,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         //So run recs to get things all set up
         if(solver.getVacationRecs() == null)
         {
-
-
             solver.getDailyRecommendations(week, day, true);
         }
 
-        var recs = solver.getRestOfDayRecs(hoursLeft);
+        var recs = solver.getRestOfDayRecs(day, hoursLeft);
 
         var embed = OCUtils.generateTodayEmbed(week, day, hoursLeft, recs);
 
