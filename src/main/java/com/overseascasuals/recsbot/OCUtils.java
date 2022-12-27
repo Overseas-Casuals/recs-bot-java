@@ -120,6 +120,10 @@ public class OCUtils
 
     public static MessageCreateSpec generateCrimeTimeEmbed(int season, List<DailyRecommendation> recs)
     {
+        if(recs == null || recs.size() == 0)
+        {
+            return MessageCreateSpec.builder().content("No recs returned").build();
+        }
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Crime Time Recommendations");
         builder.timestamp(Instant.now());
         var messageSpec = MessageCreateSpec.builder();

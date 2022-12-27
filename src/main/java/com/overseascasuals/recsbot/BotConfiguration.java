@@ -230,6 +230,12 @@ public class BotConfiguration implements CommandLineRunner
                 .build();
         commands.add(todayRequest);
 
+        ApplicationCommandRequest rerunRequest = ApplicationCommandRequest.builder()
+                .name("rerun")
+                .description("Re-run recs and post them to the right channel")
+                .build();
+        commands.add(rerunRequest);
+
 
         /* Bulk overwrite commands.
         */

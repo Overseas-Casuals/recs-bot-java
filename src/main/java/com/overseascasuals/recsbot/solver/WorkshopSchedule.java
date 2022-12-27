@@ -287,14 +287,11 @@ public class WorkshopSchedule
 
         for(int i=0; i<items.size(); i++)
         {
-            boolean isEfficient = false;
-            if(i > 0)
-                isEfficient = Solver.items[items.get(i-1).ordinal()].getsEfficiencyBonus(Solver.items[items.get(i).ordinal()]);
+            int amountMade = NUM_WORKSHOPS;
+            if(i > 0 && Solver.items[items.get(i-1).ordinal()].getsEfficiencyBonus(Solver.items[items.get(i).ordinal()]))
+                amountMade += NUM_WORKSHOPS;
 
-            if(!used.containsKey(items.get(i)))
-                used.put(items.get(i), 3+(isEfficient?3:0));
-            else
-                used.put(items.get(i), used.get(items.get(i)) + 3+(isEfficient?3:0));
+            used.put(items.get(i), used.getOrDefault(items.get(i), 0) + amountMade);
         }
         for(Item key : used.keySet())
         {

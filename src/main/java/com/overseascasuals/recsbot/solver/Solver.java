@@ -64,7 +64,6 @@ public class Solver
     private static int alternatives;
     @Autowired
     private void setNumAlternatives(@Value("${solver.alternatives}")int numAlts) {alternatives = numAlts;}
-    private static boolean valuePerHour = true;
     private static int itemsToReserve;
     @Autowired
     private void setItemsToReserve(@Value("${solver.itemsToReserve}")int items) {itemsToReserve = items;}
@@ -133,8 +132,8 @@ public class Solver
     private final static ObjectMapper objectMapper = new ObjectMapper();
     public int rested = -1;
     private boolean guaranteeRestD5 = false;
-    private Set<Item> reservedItems = new HashSet<>();
-    private Map<Item, ReservedHelper> reservedHelpers = new HashMap<>();
+    private final Set<Item> reservedItems = new HashSet<>();
+    private final Map<Item, ReservedHelper> reservedHelpers = new HashMap<>();
     private Map<Item, Boolean> d2Troublemakers;
     private int confirmedD2Strong = 0;
     private int confirmedD2Weak = 0;
@@ -185,7 +184,9 @@ public class Solver
             autocompletePeaks = false;
             rested = -1;
             groove = 0;
+            guaranteeRestD5 = false;
             reservedItems.clear();
+            reservedHelpers.clear();
             d2Troublemakers = null;
             d2Bystanders = null;
             confirmedD2Weak = 0;
@@ -194,7 +195,7 @@ public class Solver
 
             int currentPop = generateVacationRecs(week);
 
-            String popResponse = "";
+            String popResponse;
             try{
                 popResponse= restService.getURLResponse("https://xivapi.com/MJICraftworksPopularity/"+currentPop);
             }
@@ -204,7 +205,7 @@ public class Solver
                 return null;
             }
 
-            PopularityJson popJson = null;
+            PopularityJson popJson;
             try {
                 popJson = objectMapper.readValue(popResponse, new TypeReference<>() {});
             } catch (JsonProcessingException e) {
@@ -284,10 +285,15 @@ public class Solver
             var newBest = getBestBruteForceSchedules(day, groove-grooveMadeToday,
                     null, day, 1, currentCrafts.get(0), 24);
 
-            LOG.info("Old value for day {}: {}, new value {}", day+1, oldValue.getWeighted(), newBest.get(0).getValue().getWeighted());
+            int newValue = -1;
+            if(newBest != null && newBest.size() > 0)
+                newValue = newBest.get(0).getValue().getWeighted();
 
-            if(newBest.get(0).getValue().getWeighted() > oldValue.getWeighted())
+            LOG.info("Old value for day {}: {}, new value {}", day+1, oldValue.getWeighted(), newValue);
+
+            if(newValue > oldValue.getWeighted())
             {
+                assert newBest != null;
                 LOG.info("Schedule updated detected for day {}! Now crafting {}", day+1,
                         Arrays.toString(newBest.get(0).getKey().getItems().toArray()));
 
@@ -307,6 +313,8 @@ public class Solver
             LOG.info("Solving recs for day {}",(dayToSolve+1));
             var todayRecs =  getBestBruteForceSchedules(dayToSolve, groove,
                     null, dayToSolve, alternatives);
+            if(todayRecs == null || todayRecs.size() == 0)
+                return null;
             var bestSchedule = todayRecs.get(0);
             boolean shouldRest = false;
             CycleSchedule schedule = new CycleSchedule(dayToSolve, groove);
@@ -532,8 +540,7 @@ public class Solver
             if (item.peaksOnOrBeforeDay(day, null))
                 continue;
             int value = item.getValueWithSupply(Supply.Sufficient);
-            if (valuePerHour)
-                value = value * 8 / item.time;
+            value = value * 8 / item.time;
             itemValues.put(item.item, value);
         }
         LinkedHashMap<Item, Integer> bestItems = itemValues
@@ -632,6 +639,9 @@ public class Solver
         var cycle5Sched = getBestBruteForceSchedules(4, startingGroove, null, 6, alternatives);
         var cycle6Sched = getBestBruteForceSchedules(5, startingGroove, null, 6, alternatives);
         var cycle7Sched = getBestBruteForceSchedules(6, startingGroove, null, 6, alternatives);
+
+        if(cycle5Sched == null || cycle5Sched.size() == 0 || cycle6Sched == null || cycle6Sched.size() == 0 || cycle7Sched == null || cycle7Sched.size() == 0)
+            return null;
 
         // I'm just hardcoding this, This could almost certainly be improved
 
@@ -877,10 +887,22 @@ public class Solver
                                     // we might as well use it
             {
                 solution = getD5EV();
+                if(solution == null)
+                {
+                    LOG.error("Failed to get D5 EV. Abandoning rest checks.");
+                    return false;
+                }
+
                 bestD5 = solution.getValue().getWeighted();
             }
             else
                 solution = getBestSchedule(d, groove, reservedSet);
+            if(solution == null)
+            {
+                LOG.error("Failed to get rest comparison for day {}. Abandoning rest checks.", d+1);
+                return false;
+            }
+
             LOG.debug("Day " + (d + 1) + ", crafts: "
                         + Arrays.toString(solution.getKey().getItems().toArray())
                         + " value: " + solution.getValue());
@@ -906,6 +928,9 @@ public class Solver
     public Entry<WorkshopSchedule, WorkshopValue> getD5EV()
     {
         var solution = getBestSchedule(4, groove,null );
+        if(solution == null)
+            return null;
+
         LOG.trace("Testing against D5 solution " + solution.getKey().getItems());
         List<ItemInfo> c5Peaks = new ArrayList<>();
         for (Item item : solution.getKey().getItems())
@@ -993,6 +1018,9 @@ public class Solver
 
         var schedules = getBestBruteForceSchedules(day, Math.max(groove-grooveMadeToday,0), limitedItems, lastDaySet, 5, null, hoursLeft);
 
+        if(schedules == null || schedules.size() == 0)
+            return null;
+
         for(var schedule : schedules)
             LOG.info("Rest of day rec: {} ({})", schedule.getKey().getItems(), schedule.getValue().getWeighted());
 
@@ -1015,9 +1043,17 @@ public class Solver
         for (int d = day + 2; d < 7; d++)
         {
             var solution = getBestSchedule(d, estGroove, reservedSet);
-            if(solution.getValue().getWeighted() < worstValue)
+            if(solution==null)
             {
-                worstValue = solution.getValue().getWeighted();
+                LOG.error("Failed to generate rest of week recs for day {}", d+1);
+                break;
+            }
+
+            int value = solution.getValue().getWeighted();
+
+            if(value < worstValue)
+            {
+                worstValue = value;
                 worstIndex = restOfWeek.size();
             }
 
@@ -1025,7 +1061,7 @@ public class Solver
             reservedSet = solution.getKey().getLimitedUses(reservedSet);
         }
 
-        if(rested == -1)
+        if(rested == -1 && worstIndex>=0)
         {
             //If we haven't rested, rest the worst day
             restOfWeek.remove(worstIndex);
@@ -1050,6 +1086,7 @@ public class Solver
 
         //generate vacation recs
         var popData = popularityRepository.findByWeek(currentWeek);
+        LOG.info("Getting popularity data for next week: {}", popData.getNextPopularity());
         int nextPop = popData.getNextPopularity();
         String popResponse;
         try{
@@ -1071,15 +1108,23 @@ public class Solver
 
         for(int i=0;i<items.length;i++)
         {
-            items[i].setInitialData(popJson.getPopularities()[i].getRatio(), Unknown);
+            int ratio = popJson.getPopularities()[i].getRatio();
+            LOG.info("Setting {} to initial data of {} and {}", items[i].item, ratio, Unknown);
+            items[i].setInitialData(ratio, Unknown);
         }
 
-        Map<Item,Integer> reservedSet = new HashMap<>();
+        Map<Item,Integer> reservedSet = null;
         vacationRecs = new ArrayList<>();
 
         for (int d = 0; d < 5; d++)
         {
-            WorkshopSchedule solution = getBestSchedule(3, GROOVE_MAX/2, reservedSet).getKey();
+            var schedule = getBestSchedule(3, GROOVE_MAX/2, reservedSet);
+            if(schedule == null)
+            {
+                LOG.error("Failed to get vacation schedule {} with day {}, groove {}, and reserved {}", d, 3, GROOVE_MAX/2, reservedSet);
+                break;
+            }
+            WorkshopSchedule solution = schedule.getKey();
             vacationRecs.add(solution.getItems());
             reservedSet = solution.getLimitedUses(reservedSet);
         }
@@ -1091,15 +1136,15 @@ public class Solver
         return vacationRecs;
     }
 
-    public boolean hasTentativeD2()
+    public boolean isSolvedD2()
     {
         //LOG.info("Day {} troublemakers: {}", day, d2Troublemakers==null?"null":String.valueOf(d2Troublemakers.size()));
-        return day==0 && d2Troublemakers != null && d2Troublemakers.size() > 0;
+        return day != 0 || d2Troublemakers == null || d2Troublemakers.size() == 0;
     }
 
     public boolean allTentativeD2Set()
     {
-        if(!hasTentativeD2() || autocompletePeaks)
+        if(isSolvedD2() || autocompletePeaks)
             return true;
 
         for(var value : d2Troublemakers.values())
@@ -1134,54 +1179,51 @@ public class Solver
         LOG.info("Checking {} unknown D2 peaks.", c2Unknowns.size());
 
         d2Troublemakers = new HashMap<>();
-        for (int i = 0; i < c2Unknowns.size(); i++) {
-            c2Unknowns.get(i).peak = Cycle2Strong;
-            LOG.info("Setting {} to strong peak", c2Unknowns.get(i).item);
+        for (ItemInfo c2Unknown : c2Unknowns) {
+            c2Unknown.peak = Cycle2Strong;
+            LOG.info("Setting {} to strong peak", c2Unknown.item);
             var schedule = getBestSchedule(1, 0, null);
-            int value = schedule.getValue().getWeighted();
-            if (value > valueToCompare)
-            {
-                LOG.info("{} could star in a higher value schedule", c2Unknowns.get(i).item.getDisplayName());
+            int value = 0;
+            if (schedule != null)
+                value = schedule.getValue().getWeighted();
+            if (value > valueToCompare) {
+                LOG.info("{} could star in a higher value schedule", c2Unknown.item.getDisplayName());
 
-                if(shouldRest)
-                {
+                if (shouldRest) {
                     boolean shouldStillRest = isWorseThanAllFollowing(schedule, 1);
-                    if(!shouldStillRest) //We only care if it changes the rec from rest
-                        troubleValues.put(c2Unknowns.get(i).item, value);
-                    else
-                    {
-                        d2Bystanders.add(c2Unknowns.get(i).item);
+                    if (!shouldStillRest) //We only care if it changes the rec from rest
+                        troubleValues.put(c2Unknown.item, value);
+                    else {
+                        d2Bystanders.add(c2Unknown.item);
                         LOG.info("We were resting and now we still want to rest so who cares");
                     }
 
-                }
-                else
-                    troubleValues.put(c2Unknowns.get(i).item, value);
-            }
-            else
-                d2Bystanders.add(c2Unknowns.get(i).item);
+                } else
+                    troubleValues.put(c2Unknown.item, value);
+            } else
+                d2Bystanders.add(c2Unknown.item);
 
-            c2Unknowns.get(i).peak = Cycle2Unknown;
+            c2Unknown.peak = Cycle2Unknown;
         }
 
         for(var troublemaker : troubleValues.entrySet())
         {
             items[troublemaker.getKey().ordinal()].peak = Cycle2Strong;
-            for (int i = 0; i < c2Unknowns.size(); i++)
-            {
-                if(troubleValues.containsKey(c2Unknowns.get(i).item) || d2Troublemakers.containsKey(c2Unknowns.get(i).item)) //If we already know it's a problem, skip it
+            for (ItemInfo c2Unknown : c2Unknowns) {
+                if (troubleValues.containsKey(c2Unknown.item) || d2Troublemakers.containsKey(c2Unknown.item)) //If we already know it's a problem, skip it
                     continue;
-                c2Unknowns.get(i).peak = Cycle2Strong;
-                LOG.info("Setting {} to strong peak to complement {}", c2Unknowns.get(i).item.getDisplayName(), troublemaker.getKey().getDisplayName());
-                var schedule = getBestSchedule(1,0,null);
-                int value = schedule.getValue().getWeighted();
-                if(value>troublemaker.getValue())
-                {
-                    LOG.info("{} could help {} get to even greater heights!", c2Unknowns.get(i).item.getDisplayName(), troublemaker.getKey().getDisplayName());
-                    d2Troublemakers.put(c2Unknowns.get(i).item, false);
-                    d2Bystanders.remove(c2Unknowns.get(i).item);
+                c2Unknown.peak = Cycle2Strong;
+                LOG.info("Setting {} to strong peak to complement {}", c2Unknown.item.getDisplayName(), troublemaker.getKey().getDisplayName());
+                var schedule = getBestSchedule(1, 0, null);
+                int value = 0;
+                if (schedule != null)
+                    value = schedule.getValue().getWeighted();
+                if (value > troublemaker.getValue()) {
+                    LOG.info("{} could help {} get to even greater heights!", c2Unknown.item.getDisplayName(), troublemaker.getKey().getDisplayName());
+                    d2Troublemakers.put(c2Unknown.item, false);
+                    d2Bystanders.remove(c2Unknown.item);
                 }
-                c2Unknowns.get(i).peak = Cycle2Unknown;
+                c2Unknown.peak = Cycle2Unknown;
             }
             items[troublemaker.getKey().ordinal()].peak = Cycle2Unknown;
         }
@@ -1193,7 +1235,13 @@ public class Solver
 
     private Map.Entry<WorkshopSchedule, WorkshopValue> getBestSchedule(int day, int groove, Map<Item,Integer> limitedUse)
     {
-        var bestSchedule = getBestBruteForceSchedules(day, groove, limitedUse, day, 1).get(0);
+        var schedules = getBestBruteForceSchedules(day, groove, limitedUse, day, 1);
+        if(schedules == null || schedules.size() == 0)
+        {
+            LOG.info("Best schedule for day {} with {} groove and {} limited items: null", day+1, groove, limitedUse==null?0:limitedUse.size());
+            return null;
+        }
+        var bestSchedule = schedules.get(0);
         LOG.info("Best schedule for day {} with {} groove and {} limited items: {} ({})", day+1, groove, limitedUse==null?0:limitedUse.size(), Arrays.toString(bestSchedule.getKey().getItems().toArray()), bestSchedule.getValue().getWeighted());
         return bestSchedule;
     }
@@ -1211,6 +1259,24 @@ public class Solver
         HashMap<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
         List<List<Item>> filteredItemLists;
 
+        if(csvImporter.allEfficientChains == null || csvImporter.allEfficientChains.size() == 0)
+        {
+            LOG.error("No efficient chains found in CSV importer. Reimporting");
+            try{
+                csvImporter = new CSVImporter();
+            }
+            catch(IOException e)
+            {
+                LOG.error("Failed to re-import efficient chain CSV");
+            }
+        }
+
+        if(csvImporter.allEfficientChains == null || csvImporter.allEfficientChains.size() == 0)
+        {
+            LOG.error("Still no efficient chains found in CSV importer");
+            return null;
+        }
+
 
         filteredItemLists = csvImporter.allEfficientChains.stream()
                 .filter(list -> list.stream().allMatch(
@@ -1219,9 +1285,21 @@ public class Solver
                         item -> items[item.ordinal()].peaksOnOrBeforeDay(allowUpToDay, reservedItems)))
                 .collect(Collectors.toList());
 
+        if(filteredItemLists.size() == 0)
+        {
+            LOG.error("No valid schedules found after filtering by rank {} and peak day {}", islandRank, allowUpToDay+1);
+            return null;
+        }
+
         if(startingItem != null)
             filteredItemLists = filteredItemLists.stream().filter (list -> list.stream().limit(1)
                     .allMatch(item -> item == startingItem)).collect(Collectors.toList());
+
+        if(filteredItemLists.size() == 0)
+        {
+            LOG.error("No valid schedules found after filtering by starting item {}",startingItem);
+            return null;
+        }
 
 
         if(hoursLeft < 24)
@@ -1238,6 +1316,12 @@ public class Solver
         for (List<Item> list : filteredItemLists)
         {
             addToScheduleMap(list, day, groove, limitedUse, safeSchedules);
+        }
+
+        if(safeSchedules.size() == 0)
+        {
+            LOG.error("No valid schedules found after checking limitedUse {}", limitedUse);
+            return null;
         }
 
         var sortedSchedules = safeSchedules
@@ -1270,6 +1354,12 @@ public class Solver
             sortedSchedules.remove(i);
         }
 
+        if(sortedSchedules.size() == 0)
+        {
+            LOG.error("No valid schedules found after reducing {} redundant schedules", redundantIndices.size());
+            return null;
+        }
+
         return sortedSchedules.stream().limit(numToReturn).collect(Collectors.toList());
     }
     private static int getHoursUsed(List<Item> schedule)
@@ -1299,42 +1389,6 @@ public class Solver
                                             // updating the value, so we delete the key
                                             // first
             safeSchedules.put(workshop, value);
-        } else
-        {
-//            if (verboseSolverLogging)
-//                System.out.println("Not replacing schedule with mats "
-//                        + workshop.rareMaterialsRequired + " with " + list + " because "
-//                        + value + " is lower than " + oldValue);
-
         }
-    }
-
-
-
-    public static Supply getSupplyBucket(int supply)
-    {
-        if (supply < -8)
-            return Supply.Nonexistent;
-        if (supply < 0)
-            return Supply.Insufficient;
-        if (supply < 8)
-            return Supply.Sufficient;
-        if (supply < 16)
-            return Supply.Surplus;
-        return Supply.Overflowing;
-    }
-
-    public static DemandShift getDemandShift(int prevSupply, int newSupply)
-    {
-        int diff = newSupply - prevSupply;
-        if (diff < -5)
-            return DemandShift.Skyrocketing;
-        if (diff < -1)
-            return DemandShift.Increasing;
-        if (diff < 2)
-            return DemandShift.None;
-        if (diff < 6)
-            return DemandShift.Decreasing;
-        return DemandShift.Plummeting;
     }
 }

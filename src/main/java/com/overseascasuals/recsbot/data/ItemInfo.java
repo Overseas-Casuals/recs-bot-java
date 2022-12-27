@@ -160,9 +160,9 @@ public class ItemInfo
             return day > 4;
         if(peak == Cycle7Weak || peak == Cycle7Strong)
             return day > 5;
-            
-        //If we don't have a confirmed peak day, then it definitely hasn't passed
-        return false;
+
+        LOG.warn("No peak data found? Peak {} Returning true", peak);
+        return true;
     }
 
     public boolean couldPrePeak(int day)

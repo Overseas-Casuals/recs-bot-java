@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 
 @Service
@@ -70,6 +69,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                 event.deferReply().block();
                 return deferredTodayCommand(event);
             }
+            case "rerun" -> {
+                event.deferReply().withEphemeral(true).block();
+                return deferredRerunCommand(event);
+            }
         }
         return event.reply()
                 .withEphemeral(true)
@@ -107,7 +110,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
             return event.editReply(itemName+" is not a valid item").then();
         }
         boolean valid = false;
-        if(!solver.hasTentativeD2())//Might be uninitialized
+        if(solver.isSolvedD2())//Might be uninitialized
         {
             LOG.info("Has no D2 info. Maaaaaaybe we needed to reboot the server and now it lost it.");
             var d1 = new Date(1661241600000L);
@@ -121,7 +124,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
             }
         }
 
-        if(!solver.hasTentativeD2()) //Really just doesn't have anything
+        if(solver.isSolvedD2()) //Really just doesn't have anything
         {
             return event.editReply("Current cycle doesn't need confirmation of any peaks.").then();
         }
@@ -220,7 +223,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
             recs = solver.getVacationRecs();
         }
 
-        if(recs == null)
+        if(recs == null || recs.size() < 5)
             return event.editReply("No vacation recs returned. <@"+miennaID+">").then();
 
         var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs);
@@ -247,7 +250,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
             recs = solver.getRestOfWeek();
         }
 
-        if(recs == null)
+        if(recs == null || recs.size() == 0)
             return event.editReply("No rest of week recs returned. <@"+miennaID+">").then();
 
         var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs);
@@ -280,8 +283,41 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
         var recs = solver.getRestOfDayRecs(day, hoursLeft);
 
+        if(recs == null || recs.size() == 0)
+            return event.editReply("No rest of day recs returned. <@"+miennaID+">").then();
+
         var embed = OCUtils.generateTodayEmbed(week, day, hoursLeft, recs);
 
         return event.editReply().withEmbeds(embed).then();
+    }
+
+    private Mono<Void> deferredRerunCommand(ChatInputInteractionEvent event)
+    {
+        var d1 = new Date(1661241600000L);
+        var d2 = new Date();
+
+        int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
+        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+
+        LOG.info("Reruning recs for today");
+        var recs = solver.getDailyRecommendations(week, day, true);
+
+        if(recs== null || recs.size() == 0)
+        {
+            return event.editReply("No recs returned. <@"+miennaID+">").then();
+        }
+        NewsChannel channel = event.getClient().getChannelById(Snowflake.of(recsChannelID))
+                .cast(NewsChannel.class).block();
+
+
+        recs.forEach(
+                rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole))
+                        .flatMap(Message::publish).subscribe()
+        );
+
+
+
+
+        return event.editReply("Re-ran recs successfully. Check <#"+recsChannelID+">").then();
     }
 }

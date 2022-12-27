@@ -59,7 +59,7 @@ public abstract class MessageListener {
                     Item item = Item.valueOf(commandParts[1]);
                     boolean valid = false;
                     boolean strong = false;
-                    if(!solver.hasTentativeD2())//Might be uninitialized
+                    if(solver.isSolvedD2())//Might be uninitialized
                     {
                         LOG.info("Has no D2 info. Maaaaaaybe we needed to reboot the server and now it lost it.");
                         var d1 = new Date(1661241600000l);
@@ -73,7 +73,7 @@ public abstract class MessageListener {
                         }
                     }
 
-                    if(!solver.hasTentativeD2()) //Really just doesn't have anything
+                    if(solver.isSolvedD2()) //Really just doesn't have anything
                     {
                         return Mono.just(eventMessage)
                                 .flatMap(Message::getChannel)
