@@ -283,7 +283,7 @@ public class BotConfiguration implements CommandLineRunner
         {
             task.run();
         }
-        solver.getRestOfDayRecs(1, 8);
+        solver.getRestOfDayRecs(1, 12);
 
     }
 }

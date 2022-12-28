@@ -142,6 +142,8 @@ public class Solver
 
     private List<List<Item>> restOfWeek = null;
 
+    private final Map<Integer, Integer> startingGroovePerDay = new HashMap<>();
+
     private List<Entry<WorkshopSchedule, WorkshopValue>> restOfDay = null;
     private int hoursLeftInDay = 0;
 
@@ -181,6 +183,9 @@ public class Solver
 
         if(hardRefresh || this.week != week)
         {
+            startingGroovePerDay.clear();
+            startingGroovePerDay.put(0,0);
+            startingGroovePerDay.put(1,0);
             autocompletePeaks = false;
             rested = -1;
             groove = 0;
@@ -254,6 +259,7 @@ public class Solver
                     groove = Math.min(groove, GROOVE_MAX);
                 }
                 LOG.info("groove after day {}: {}", i+1, groove);
+                startingGroovePerDay.put(i+1, groove);
             }
 
             this.day = day;
@@ -275,14 +281,21 @@ public class Solver
 
         if((day == 1 || day == 2 || day == 3) && rested != day) //The only days when pre-peaks are unknown
         {
+
             List<Item> currentCrafts = craftRepository.findCraftsByDay(week, day).getCrafts();
-            int grooveMadeToday = getGrooveMadeWithSchedule(currentCrafts);
 
-            LOG.info("Rechecking day {}'s recs starting at {} groove", day+1, groove - grooveMadeToday);
+            if(!startingGroovePerDay.containsKey(day))
+            {
+                startingGroovePerDay.put(day, groove - getGrooveMadeWithSchedule(currentCrafts));
+            }
 
 
-            WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, groove-grooveMadeToday, rested>=0, reservedHelpers);
-            var newBest = getBestBruteForceSchedules(day, groove-grooveMadeToday,
+
+            LOG.info("Rechecking day {}'s recs starting at {} groove", day+1, startingGroovePerDay.get(day));
+
+
+            WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, startingGroovePerDay.get(day), rested>=0, reservedHelpers);
+            var newBest = getBestBruteForceSchedules(day, startingGroovePerDay.get(day),
                     null, day, 1, currentCrafts.get(0), 24);
 
             int newValue = -1;
@@ -297,7 +310,7 @@ public class Solver
                 LOG.info("Schedule updated detected for day {}! Now crafting {}", day+1,
                         Arrays.toString(newBest.get(0).getKey().getItems().toArray()));
 
-                CycleSchedule newSched = new CycleSchedule(day, groove-grooveMadeToday);
+                CycleSchedule newSched = new CycleSchedule(day, startingGroovePerDay.get(day));
                 newSched.setForAllWorkshops(newBest.get(0).getKey().getItems());
                 listOfRecs.add(new DailyRecommendation(day, newBest, newSched));
                 addCraftedFromCycle(day, newSched);
@@ -392,11 +405,19 @@ public class Solver
     }
     public void setScheduleCommand(int day, List<Item> newItems)
     {
+
         int grooveSoFar = 0;
-        for(int i=1;i<day; i++)
+
+        if(!startingGroovePerDay.containsKey(day))
         {
-            grooveSoFar+= getGrooveMadeWithSchedule(craftRepository.findCraftsByDay(week, i).getCrafts());
+            for(int i=1;i<day; i++)
+            {
+                grooveSoFar+= getGrooveMadeWithSchedule(craftRepository.findCraftsByDay(week, i).getCrafts());
+                startingGroovePerDay.put(i+1, grooveSoFar);
+            }
         }
+        grooveSoFar = startingGroovePerDay.get(day);
+
 
         LOG.info("Setting schedule for day {} to {} with starting groove {}", day+1, newItems, grooveSoFar);
 
@@ -420,6 +441,10 @@ public class Solver
             Arrays.stream(items).forEach(item -> item.setCrafted(schedule.numCrafted.getOrDefault(item.item, 0), schedule.day));
 
             groove = schedule.endingGroove;
+            if(real)
+            {
+                startingGroovePerDay.put(day+1, groove);
+            }
         }
 
         if(real && "live".equals(activeProfile))
@@ -989,14 +1014,21 @@ public class Solver
 
         restOfDay = new ArrayList<>();
 
-        var fromDb = craftRepository.findCraftsByDay(week, day);
-        int grooveMadeToday = 0;
-        if(fromDb!=null)
+
+        int startingGroove = 0;
+        if(!startingGroovePerDay.containsKey(day))
         {
-            List<Item> currentCrafts = fromDb.getCrafts();
-            grooveMadeToday = getGrooveMadeWithSchedule(currentCrafts);
-            LOG.info("Found crafts for today, groove calculated: {}", grooveMadeToday);
+            for(int i=1;i<day; i++)
+            {
+                var crafts = craftRepository.findCraftsByDay(week, i);
+                if(crafts == null)
+                    break;
+
+                startingGroove+= getGrooveMadeWithSchedule(crafts.getCrafts());
+                startingGroovePerDay.put(i+1, startingGroove);
+            }
         }
+
 
         Map<Item, Integer> limitedItems = null;
         int lastDaySet = day+1;
@@ -1020,8 +1052,8 @@ public class Solver
         }
 
         LOG.info("Getting rest of day schedules for day {} with groove {}, limited items {} through day {}",
-                day, Math.max(groove-grooveMadeToday, 0), limitedItems, lastDaySet);
-        var schedules = getBestBruteForceSchedules(day, Math.max(groove-grooveMadeToday,0), limitedItems, lastDaySet, 5, null, hoursLeft);
+                day, startingGroove, limitedItems, lastDaySet);
+        var schedules = getBestBruteForceSchedules(day, startingGroove, limitedItems, lastDaySet, 5, null, hoursLeft);
 
         if(schedules == null || schedules.size() == 0)
             return null;
@@ -1114,7 +1146,7 @@ public class Solver
         for(int i=0;i<items.length;i++)
         {
             int ratio = popJson.getPopularities()[i].getRatio();
-            LOG.info("Setting {} to initial data of {} and {}", items[i].item, ratio, Unknown);
+            //LOG.info("Setting {} to initial data of {} and {}", items[i].item, ratio, Unknown);
             items[i].setInitialData(ratio, Unknown);
         }
 
