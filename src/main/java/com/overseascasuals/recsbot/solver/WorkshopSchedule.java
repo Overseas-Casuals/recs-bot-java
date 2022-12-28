@@ -114,6 +114,7 @@ public class WorkshopSchedule
                 && items.get(3) == Item.Butter && items.get(4) == Item.Jam)
             verboseLogging = true;*/
 
+
         int expectedGroove = 3;
         int effCrafts = 0;
         for (int i = 1; i < crafts.size(); i++)
@@ -140,6 +141,9 @@ public class WorkshopSchedule
         {
             groovePenalty = true;
             expectedStartingGroove += NUM_WORKSHOPS * deltaGroove;
+
+            if(expectedStartingGroove < 0)
+                expectedStartingGroove = 0;
 
             deltaGroove *= -1;
         }
@@ -273,13 +277,13 @@ public class WorkshopSchedule
         return value;
     }
     
-    public boolean usesTooMany(Map<Item,Integer> limitedUse)
+    public boolean usesTooMany(Map<Item,Integer> limitedUse, boolean verboseLogging)
     {
-        if(limitedUse == null)
+        if(limitedUse == null || limitedUse.size() == 0)
             return false;
        
         Map<Item, Integer> used = new HashMap<>();
-        boolean verboseLogging = false;
+
 
         /*if(limitedUse.size() == 9 && items.size() == 5 && items.get(0) == Item.CulinaryKnife && items.get(1) == Item.Butter && items.get(2) == Item.Jam
                 && items.get(3) == Item.Butter && items.get(4) == Item.Jam)

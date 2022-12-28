@@ -191,7 +191,7 @@ public class OCUtils
         builder.color(Color.DEEP_LILAC);
 
 
-        if(recs.size() > 0 && recs.get(0).getKey().getItems().size() > 0)
+        if(recs != null && recs.size() > 0 && recs.get(0).getKey().getItems().size() > 0)
         {
             StringBuilder altSb = new StringBuilder();
             StringBuilder grossSb = new StringBuilder();

@@ -283,8 +283,11 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
         var recs = solver.getRestOfDayRecs(day, hoursLeft);
 
-        if(recs == null || recs.size() == 0)
+        if((recs == null || recs.size() == 0) && hoursLeft >= 4)
+        {
             return event.editReply("No rest of day recs returned. <@"+miennaID+">").then();
+        }
+
 
         var embed = OCUtils.generateTodayEmbed(week, day, hoursLeft, recs);
 

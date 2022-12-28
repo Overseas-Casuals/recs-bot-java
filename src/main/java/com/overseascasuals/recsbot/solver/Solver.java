@@ -982,7 +982,7 @@ public class Solver
         }
 
 
-        if(hoursLeftInDay == hoursLeft)
+        if(hoursLeftInDay == hoursLeft && hoursLeftInDay != 22)
             return restOfDay;
 
         LOG.info("Recalculating today's recs");
@@ -1010,12 +1010,17 @@ public class Solver
         {
             var futureCrafts = craftRepository.findCraftsByDay(week, i);
             if(futureCrafts == null)
+            {
+                lastDaySet = i-1;
                 break;
+            }
             var crafts = futureCrafts.getCrafts();
             LOG.info("Reserving future crafts for day {}: {}", i+1, crafts);
             limitedItems = new WorkshopSchedule(crafts).getLimitedUses(limitedItems);
         }
 
+        LOG.info("Getting rest of day schedules for day {} with groove {}, limited items {} through day {}",
+                day, Math.max(groove-grooveMadeToday, 0), limitedItems, lastDaySet);
         var schedules = getBestBruteForceSchedules(day, Math.max(groove-grooveMadeToday,0), limitedItems, lastDaySet, 5, null, hoursLeft);
 
         if(schedules == null || schedules.size() == 0)
@@ -1257,7 +1262,7 @@ public class Solver
     {
 
         HashMap<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
-        List<List<Item>> filteredItemLists;
+        Collection<List<Item>> filteredItemLists;
 
         if(csvImporter.allEfficientChains == null || csvImporter.allEfficientChains.size() == 0)
         {
@@ -1304,24 +1309,42 @@ public class Solver
 
         if(hoursLeft < 24)
         {
+            Set<List<Item>> smallLists = new HashSet<>();
             for (List<Item> schedule : filteredItemLists)
             {
                 while (getHoursUsed(schedule) > hoursLeft && schedule.size() > 0)
                 {
                     schedule.remove(schedule.size() - 1);
                 }
+                if(schedule.size() > 0)
+                    smallLists.add(schedule);
             }
+
+            filteredItemLists = smallLists;
+        }
+
+        if(filteredItemLists.size() == 0)
+        {
+            LOG.warn("No valid schedules found after filtering by hours left {}", hoursLeft);
+            return null;
         }
 
         for (List<Item> list : filteredItemLists)
         {
-            addToScheduleMap(list, day, groove, limitedUse, safeSchedules);
+            addToScheduleMap(list, day, groove, limitedUse, safeSchedules, false);
         }
 
         if(safeSchedules.size() == 0)
         {
             LOG.error("No valid schedules found after checking limitedUse {}", limitedUse);
-            return null;
+
+            for (List<Item> list : filteredItemLists)
+            {
+                addToScheduleMap(list, day, groove, limitedUse, safeSchedules, true);
+            }
+
+            if(safeSchedules.size() == 0)
+                return null;
         }
 
         var sortedSchedules = safeSchedules
@@ -1367,28 +1390,42 @@ public class Solver
         return schedule.stream().mapToInt(item -> items[item.ordinal()].time).sum();
     }
     private void addToScheduleMap(List<Item> list, int day, int groove, Map<Item,Integer> limitedUse,
-            HashMap<WorkshopSchedule, WorkshopValue> safeSchedules)
+            HashMap<WorkshopSchedule, WorkshopValue> safeSchedules, boolean verboseSolverLogging)
     {
+        if(verboseSolverLogging)
+            LOG.info("Checking schedule {} against {} safe schedules", list, safeSchedules.size());
+
         WorkshopSchedule workshop = new WorkshopSchedule(list);
-        if(workshop.usesTooMany(limitedUse))
+        if(workshop.usesTooMany(limitedUse, verboseSolverLogging))
+        {
+            if(verboseSolverLogging)
+                LOG.info("Not using schedule {} because it uses too many limited use items {}", list, limitedUse);
             return;
-        
+        }
+
         WorkshopValue value = workshop.getValueWithGrooveEstimate(day, groove, rested >= 0, reservedHelpers);
+
+        if(verboseSolverLogging)
+            LOG.info("Schedule has value {}", value.getWeighted());
+
         // Only add if we don't already have one with this schedule or ours is better
-        int oldValue = -1;
+        int oldValue = -99999;
         if(safeSchedules.containsKey(workshop))
             oldValue = safeSchedules.get(workshop).getWeighted();
 
         if (oldValue < value.getWeighted())
         {
-//            if (verboseSolverLogging && oldValue > 0)
-//                System.out.println("Replacing schedule with mats "
-//                        + workshop.rareMaterialsRequired + " with " + list + " because "
-//                        + value + " is higher than " + oldValue);
+            if (verboseSolverLogging && oldValue > 0)
+                LOG.info("Replacing schedule with mats " + workshop.rareMaterialsRequired + " with " + list + " because " + value.getWeighted() + " is higher than " + oldValue);
+
             safeSchedules.remove(workshop); // It doesn't seem to update the key when
                                             // updating the value, so we delete the key
                                             // first
             safeSchedules.put(workshop, value);
+        }
+        else if(verboseSolverLogging)
+        {
+            LOG.info("Not replacing because old value {} is higher than {}", oldValue, value.getWeighted());
         }
     }
 }

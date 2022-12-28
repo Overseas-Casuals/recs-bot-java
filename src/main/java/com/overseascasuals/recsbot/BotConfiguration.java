@@ -4,6 +4,7 @@ import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.messages.EventListener;
 import com.overseascasuals.recsbot.mysql.*;
 import com.overseascasuals.recsbot.scheduled.ScheduledTask;
+import com.overseascasuals.recsbot.solver.Solver;
 import discord4j.common.ReactorResources;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
@@ -56,6 +57,9 @@ public class BotConfiguration implements CommandLineRunner
 
     @Autowired
     private ThreadPoolTaskScheduler taskScheduler;
+
+    @Autowired
+    private Solver solver;
 
     public List<ScheduledTask> taskList;
 
@@ -279,5 +283,7 @@ public class BotConfiguration implements CommandLineRunner
         {
             task.run();
         }
+        solver.getRestOfDayRecs(1, 8);
+
     }
 }
