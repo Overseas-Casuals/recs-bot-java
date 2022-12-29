@@ -205,7 +205,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                 .get().intValue();
         solver.setScheduleCommand(day, items);
 
-        return event.editReply("Created schedule of "+items+" for cycle "+(day+1)).then();
+        return event.editReply("Created schedule of "+(items.size() > 0? items : "Rest")+" for cycle "+(day+1)).then();
     }
 
     private Mono<Void> deferredNextWeekCommand(ChatInputInteractionEvent event)

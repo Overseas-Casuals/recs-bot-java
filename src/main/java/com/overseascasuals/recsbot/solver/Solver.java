@@ -145,7 +145,7 @@ public class Solver
     private final Map<Integer, Integer> startingGroovePerDay = new HashMap<>();
 
     private List<Entry<WorkshopSchedule, WorkshopValue>> restOfDay = null;
-    private int hoursLeftInDay = 0;
+    private int hoursLeftInDay = -1;
 
     public List<List<Item>> getRestOfWeek(){return restOfWeek;}
 
@@ -176,10 +176,21 @@ public class Solver
     }
     public List<DailyRecommendation> getDailyRecommendations(int week, int day, boolean hardRefresh)
     {
+        return getDailyRecommendations(week, day, hardRefresh, null);
+    }
+    public List<DailyRecommendation> getDailyRecommendations(int week, int day, boolean hardRefresh, List<CraftPeaks> peaks)
+    {
         LOG.info("Getting recommendations for week {} day {}, hardrefresh? {}. helper penalty {}", week, day, hardRefresh, helperPenalty);
 
         restOfDay = null;
-        hoursLeftInDay = 0;
+        hoursLeftInDay = -1;
+
+        if(peaks == null)
+        {
+            LOG.info("No peaks passed in, grabbing from DB");
+            peaks = peakRepository.findPeaksByDay(week, Math.min(day,3));
+        }
+
 
         if(hardRefresh || this.week != week)
         {
@@ -217,7 +228,6 @@ public class Solver
                 LOG.error("Couldn't read pop json from XIV API", e);
                 return null;
             }
-            var peaks = peakRepository.findPeaksByDay(week, Math.min(day,3));
 
             for(int i=0;i<items.length;i++)
             {
@@ -269,7 +279,6 @@ public class Solver
         }
         else if(this.day != day)
         {
-            var peaks = peakRepository.findPeaksByDay(week,Math.min(day,3));
             for(int i=0;i<items.length;i++)
             {
                 items[i].peak = peaks.get(i).getPeakEnum();
@@ -418,7 +427,6 @@ public class Solver
     }
     public void setScheduleCommand(int day, List<Item> newItems)
     {
-
         int grooveSoFar = 0;
 
         if(!startingGroovePerDay.containsKey(day))
@@ -431,12 +439,20 @@ public class Solver
         }
         grooveSoFar = startingGroovePerDay.get(day);
 
+        if(rested == day && newItems.size() > 0)
+            rested = -1;
+        else if(rested == -1 && newItems.size() == 0)
+            rested = day;
+
 
         LOG.info("Setting schedule for day {} to {} with starting groove {}", day+1, newItems, grooveSoFar);
 
         CycleSchedule newSched = new CycleSchedule(day, grooveSoFar);
         newSched.setForAllWorkshops(newItems);
         addCraftedFromCycle(day, newSched);
+
+        generateRestOfWeekRecs();
+        hoursLeftInDay = -1;
     }
 
     private void addCraftedFromCycle(int day, CycleSchedule schedule)
@@ -1305,8 +1321,8 @@ public class Solver
     private List<Map.Entry<WorkshopSchedule, WorkshopValue>> getBestBruteForceSchedules(int day, int groove,
             Map<Item,Integer> limitedUse, int allowUpToDay, int numToReturn, Item startingItem, int hoursLeft)
     {
-        LOG.info("Getting best schedule for day {}. groove {}. limitedUse {}, allowUpToDay {}, startingItem {}, hoursLeft {} and chains {}",
-                day+1, groove, limitedUse, allowUpToDay, startingItem, hoursLeft, csvImporter.allEfficientChains.size());
+        /*LOG.info("Getting best schedule for day {}. groove {}. limitedUse {}, allowUpToDay {}, startingItem {}, hoursLeft {} and chains {}",
+                day+1, groove, limitedUse, allowUpToDay, startingItem, hoursLeft, csvImporter.allEfficientChains.size());*/
         HashMap<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
         Collection<List<Item>> filteredItemLists;
 
@@ -1358,12 +1374,13 @@ public class Solver
             Set<List<Item>> smallLists = new HashSet<>();
             for (List<Item> schedule : filteredItemLists)
             {
-                while (getHoursUsed(schedule) > hoursLeft && schedule.size() > 0)
+                List<Item> newSchedule = new ArrayList<>(schedule);
+                while (getHoursUsed(newSchedule) > hoursLeft && newSchedule.size() > 0)
                 {
-                    schedule.remove(schedule.size() - 1);
+                    newSchedule.remove(newSchedule.size() - 1);
                 }
-                if(schedule.size() > 0)
-                    smallLists.add(schedule);
+                if(newSchedule.size() > 0)
+                    smallLists.add(newSchedule);
             }
 
             filteredItemLists = smallLists;

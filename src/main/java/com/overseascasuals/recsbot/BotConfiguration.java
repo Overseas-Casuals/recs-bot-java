@@ -174,21 +174,21 @@ public class BotConfiguration implements CommandLineRunner
                         .description("The first craft of the cycle")
                         .type(ApplicationCommandOption.Type.STRING.getValue())
                         .autocomplete(true)
-                        .required(true)
+                        .required(false)
                         .build())
                 .addOption(ApplicationCommandOptionData.builder()
                         .name("craft_2")
                         .description("The second craft of the cycle")
                         .type(ApplicationCommandOption.Type.STRING.getValue())
                         .autocomplete(true)
-                        .required(true)
+                        .required(false)
                         .build())
                 .addOption(ApplicationCommandOptionData.builder()
                         .name("craft_3")
                         .description("The third craft of the cycle")
                         .type(ApplicationCommandOption.Type.STRING.getValue())
                         .autocomplete(true)
-                        .required(true)
+                        .required(false)
                         .build())
                 .addOption(ApplicationCommandOptionData.builder()
                         .name("craft_4")
@@ -283,6 +283,7 @@ public class BotConfiguration implements CommandLineRunner
         {
             task.run();
         }
+        solver.getRestOfDayRecs(2, 2);
         solver.getRestOfDayRecs(2, 22);
 
     }

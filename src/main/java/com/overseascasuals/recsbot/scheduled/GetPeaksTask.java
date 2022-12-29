@@ -225,7 +225,7 @@ public class GetPeaksTask implements ScheduledTask
             var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).toArray();
             peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
-            var list = solver.getDailyRecommendations(week, recDay, false);
+            var list = solver.getDailyRecommendations(week, recDay, false, peaksByDay);
             if(list == null)
                 peakChannel.createMessage("<@"+miennaID+"> No recs returned").subscribe();
             else
