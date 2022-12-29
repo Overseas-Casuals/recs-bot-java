@@ -223,6 +223,8 @@ public class Solver
             {
                 items[i].popularityRatio = popJson.getPopularities()[i].getRatio();
                 items[i].peak = peaks.get(i).getPeakEnum();
+
+                LOG.info("Setting item {} to ratio {} and peak {}", items[i].item, items[i].popularityRatio, items[i].peak);
             }
 
             //Load previous crafts from db
@@ -267,20 +269,22 @@ public class Solver
         }
         else if(this.day != day)
         {
-            var peaks = peakRepository.findPeaksByDay(week,day);
+            var peaks = peakRepository.findPeaksByDay(week,Math.min(day,3));
             for(int i=0;i<items.length;i++)
             {
                 items[i].peak = peaks.get(i).getPeakEnum();
+                LOG.info("Setting item {} to ratio {} and peak {}", items[i].item, items[i].popularityRatio, items[i].peak);
+
             }
             this.day = day;
         }
 
-        populateReservedItems(day);
 
         List<DailyRecommendation> listOfRecs = new ArrayList<>();
 
         if((day == 1 || day == 2 || day == 3) && rested != day) //The only days when pre-peaks are unknown
         {
+            populateReservedItems(day);
 
             List<Item> currentCrafts = craftRepository.findCraftsByDay(week, day).getCrafts();
 
@@ -289,9 +293,7 @@ public class Solver
                 startingGroovePerDay.put(day, groove - getGrooveMadeWithSchedule(currentCrafts));
             }
 
-
-
-            LOG.info("Rechecking day {}'s recs starting at {} groove", day+1, startingGroovePerDay.get(day));
+            LOG.info("Rechecking day {}'s recs starting at {} groove with craft {}", day+1, startingGroovePerDay.get(day), currentCrafts.get(0));
 
 
             WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, startingGroovePerDay.get(day), rested>=0, reservedHelpers);
@@ -299,10 +301,14 @@ public class Solver
                     null, day, 1, currentCrafts.get(0), 24);
 
             int newValue = -1;
+            List<Item> newCrafts = null;
             if(newBest != null && newBest.size() > 0)
+            {
+                newCrafts = newBest.get(0).getKey().getItems();
                 newValue = newBest.get(0).getValue().getWeighted();
+            }
 
-            LOG.info("Old value for day {}: {}, new value {}", day+1, oldValue.getWeighted(), newValue);
+            LOG.info("Old value for day {}: {}: ({}), new value {}: ({})", day+1, currentCrafts, oldValue.getWeighted(), newCrafts, newValue);
 
             if(newValue > oldValue.getWeighted())
             {
@@ -311,12 +317,19 @@ public class Solver
                         Arrays.toString(newBest.get(0).getKey().getItems().toArray()));
 
                 CycleSchedule newSched = new CycleSchedule(day, startingGroovePerDay.get(day));
-                newSched.setForAllWorkshops(newBest.get(0).getKey().getItems());
+                newSched.setForAllWorkshops(newCrafts);
                 listOfRecs.add(new DailyRecommendation(day, newBest, newSched));
                 addCraftedFromCycle(day, newSched);
             }
+            else if(newValue < oldValue.getWeighted())
+            {
+                LOG.error("Somehow the best schedule for today is worse than what we generated before?? Help");
+                return null;
+            }
+
         }
 
+        populateReservedItems(day+1);
         if(day < 3)
         {
             DailyRecommendation rec;
@@ -1292,11 +1305,12 @@ public class Solver
     private List<Map.Entry<WorkshopSchedule, WorkshopValue>> getBestBruteForceSchedules(int day, int groove,
             Map<Item,Integer> limitedUse, int allowUpToDay, int numToReturn, Item startingItem, int hoursLeft)
     {
-
+        LOG.info("Getting best schedule for day {}. groove {}. limitedUse {}, allowUpToDay {}, startingItem {}, hoursLeft {} and chains {}",
+                day+1, groove, limitedUse, allowUpToDay, startingItem, hoursLeft, csvImporter.allEfficientChains.size());
         HashMap<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
         Collection<List<Item>> filteredItemLists;
 
-        if(csvImporter.allEfficientChains == null || csvImporter.allEfficientChains.size() == 0)
+        if(csvImporter.allEfficientChains.size() == 0)
         {
             LOG.error("No efficient chains found in CSV importer. Reimporting");
             try{
