@@ -51,8 +51,23 @@ public class PingIslandTask implements ScheduledTask
         }
         catch(RestClientException e)
         {
-            LOG.error("Failed to get response from peak DB", e);
-            channel.createMessage("<@"+miennaID+"> Couldn't connect to peak database").subscribe();
+            LOG.error("Failed to get response from peak DB. Sleeping.");
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+
+            LOG.info("Retrying peak DB");
+            try{
+                LOG.info("Pinging {}: {}",peakDbURL, restService.getURLResponse(peakDbURL+"?week=13"));
+            }
+            catch(RestClientException e2)
+            {
+                LOG.error("Failed to get response from peak DB again.", e2);
+
+                channel.createMessage("<@"+miennaID+"> Couldn't connect to peak database").subscribe();
+            }
         }
     }
 }
