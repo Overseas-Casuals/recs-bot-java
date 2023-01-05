@@ -1029,14 +1029,8 @@ public class Solver
     public List<Entry<WorkshopSchedule, WorkshopValue>> getRestOfDayRecs(int day, int hoursLeft)
     {
         LOG.info("Last day (hours) calculated: {} ({}). Searching for {} ({})", this.day, hoursLeftInDay, day, hoursLeft);
-        if(day != this.day)
-        {
-            this.day=day;
-            hoursLeftInDay = -1;
-        }
 
-
-        if(hoursLeftInDay == hoursLeft && hoursLeftInDay != 22)
+        if(day == this.day && hoursLeftInDay == hoursLeft)
             return restOfDay;
 
         LOG.info("Recalculating today's recs");
@@ -1093,7 +1087,9 @@ public class Solver
         if(schedules.size() > 0 && schedules.get(0).getKey().getItems().size() > 0)
             restOfDay = schedules;
 
-        hoursLeftInDay = hoursLeft;
+        if(day == this.day)
+            hoursLeftInDay = hoursLeft;
+
         return restOfDay;
     }
 
