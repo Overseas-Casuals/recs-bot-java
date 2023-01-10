@@ -125,7 +125,17 @@ public class Solver
             new ItemInfo(GardenScythe,Sundries,Metalworks,90,6,9,Map.of(Claw,3)),
             new ItemInfo(Bed,Furnishings,Textiles,120,8,9,Map.of(Fur,4)),
             new ItemInfo(ScaleFingers,Attire,CreatureCreations,120,8,9,Map.of(Carapace,4)),
-            new ItemInfo(Crook,Arms,Woodworks,120,8,9,Map.of(Fang,4))};
+            new ItemInfo(Crook,Arms,Woodworks,120,8,9,Map.of(Fang,4)),
+            new ItemInfo(CoralSword,Arms,MarineMerchandise,72,8,10,null),
+            new ItemInfo(CoconutJuice,Confections,Concoctions,36,4,10,null),
+            new ItemInfo(Honey,Confections,Ingredients,36,4,10,null),
+            new ItemInfo(SeashineOpal,UnburiedTreasures,Invalid,80,8,10,null),
+            new ItemInfo(DriedFlowers,Sundries,Furnishings,54,6,10,null),
+            new ItemInfo(PowderedPaprika,Ingredients,Concoctions,52,4,11,Map.of(Paprika,2)),
+            new ItemInfo(CawlCennin,Concoctions,CreatureCreations,90,6,11,Map.of(Leek,3,Milk,1)),
+            new ItemInfo(Isloaf,Foodstuffs,Concoctions,52,4,11,Map.of(Wheat,2)),
+            new ItemInfo(PopotoSalad,Foodstuffs,Invalid,52,4,11,Map.of(Popoto,2)),
+            new ItemInfo(Dressing,Ingredients,Invalid,52,4,11,Map.of(Onion,2))};
     
     private int groove = 0;
 
