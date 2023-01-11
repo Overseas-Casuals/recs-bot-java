@@ -24,6 +24,9 @@ public abstract class MessageListener {
     @Value("${mienna}")
     private String miennaID;
 
+    @Value("${solver.island.rank}")
+    private int maxIslandRank;
+
     @Autowired
     Solver solver;
 
@@ -153,7 +156,7 @@ public abstract class MessageListener {
 
     private Mono<Void> processNextWeekCommand(Message eventMessage)
     {
-        var recs = solver.getVacationRecs();
+        var recs = solver.getVacationRecs(maxIslandRank);
         if(recs == null)
         {
             LOG.info("Has no next week info. Maybe we needed to reboot the server and now it lost it.");
@@ -163,7 +166,7 @@ public abstract class MessageListener {
             int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
             int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
             solver.getDailyRecommendations(week, day, true);
-            recs = solver.getVacationRecs();
+            recs = solver.getVacationRecs(maxIslandRank);
         }
 
         if(recs == null)
@@ -172,7 +175,7 @@ public abstract class MessageListener {
                     .flatMap(channel -> channel.createMessage("<@"+miennaID+"> No vacation recs returned"))
                     .then();
 
-        var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs);
+        var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs, maxIslandRank);
         return Mono.just(eventMessage)
                 .flatMap(Message::getChannel)
                 .flatMap(channel -> channel.createMessage(embed))

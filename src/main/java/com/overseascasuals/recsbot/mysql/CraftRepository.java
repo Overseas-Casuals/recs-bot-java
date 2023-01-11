@@ -8,6 +8,6 @@ import java.util.List;
 
 public interface CraftRepository extends CrudRepository<CycleCraft, PeakID>
 {
-    @Query("SELECT c FROM CycleCraft c WHERE c.craftID.week = ?1 and c.craftID.day = ?2")
-    CycleCraft findCraftsByDay(int week, int day);
+    @Query("SELECT c FROM CycleCraft c WHERE c.craftID.week = ?1 and c.craftID.day = ?2 and c.craftID.rank =?3")
+    CycleCraft findCraftsByDay(int week, int day, int rank);
 }

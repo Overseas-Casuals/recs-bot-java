@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -36,6 +37,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
     @Value("${mienna}")
     private String miennaID;
+
+    @Value("${solver.island.rank}")
+    private int maxIslandRank;
+
 
     @Autowired
     Solver solver;
@@ -72,6 +77,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
             case "rerun" -> {
                 event.deferReply().withEphemeral(true).block();
                 return deferredRerunCommand(event);
+            }
+            case "alts" -> {
+                event.deferReply().block();
+                return deferredAltsCommand(event);
             }
         }
         return event.reply()
@@ -110,9 +119,8 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
             return event.editReply(itemName+" is not a valid item").then();
         }
         boolean valid = false;
-        if(solver.isSolvedD2())//Might be uninitialized
+        if(!solver.hasRunRecs)
         {
-            LOG.info("Has no D2 info. Maaaaaaybe we needed to reboot the server and now it lost it.");
             var d1 = new Date(1661241600000L);
             var d2 = new Date();
 
@@ -120,6 +128,8 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
             int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
             if(day==0)
             {
+
+                LOG.info("Haven't run recs yet. Doing so now.");
                 solver.getDailyRecommendations(week, day, true);
             }
         }
@@ -155,10 +165,13 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                     return event.editReply("Set peak for item "+item.getDisplayName()+", but no recs returned. <@"+miennaID+">").then();
                 }
 
-                event.getClient().getChannelById(Snowflake.of(recsChannelID))
-                        .cast(NewsChannel.class)
-                        .flatMap(channel -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), recs.get(0), c1PeakRole))
-                                .flatMap(Message::publish)).subscribe();
+                NewsChannel channel = event.getClient().getChannelById(Snowflake.of(recsChannelID))
+                        .cast(NewsChannel.class).block();
+
+                recs.forEach(
+                        rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole))
+                                .flatMap(Message::publish).subscribe()
+                );
 
                 return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Generating recs.").then();
             }
@@ -177,6 +190,13 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
     private Mono<Void> deferredScheduleResponse(ChatInputInteractionEvent event)
     {
         List<Item> items = new ArrayList<>();
+        int rank = maxIslandRank;
+        if(event.getOption("rank").isPresent())
+        {
+            rank = Math.toIntExact(event.getOption("rank")
+                    .flatMap(ApplicationCommandInteractionOption::getValue)
+                    .map(ApplicationCommandInteractionOptionValue::asLong).get());
+        }
         for(int i=1; i<=6; i++)
         {
             if(event.getOption("craft_"+i).isPresent())
@@ -203,37 +223,60 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         int day = event.getOption("cycle").flatMap(ApplicationCommandInteractionOption::getValue)
                 .map(ApplicationCommandInteractionOptionValue::asLong)
                 .get().intValue();
-        solver.setScheduleCommand(day, items);
+        solver.setScheduleCommand(day, rank, items);
 
         return event.editReply("Created schedule of "+(items.size() > 0? items : "Rest")+" for cycle "+(day+1)).then();
     }
 
     private Mono<Void> deferredNextWeekCommand(ChatInputInteractionEvent event)
     {
-        var recs = solver.getVacationRecs();
-        if(recs == null)
+        int rank = maxIslandRank;
+        if(event.getOption("rank").isPresent())
         {
-            LOG.info("Has no next week info. Maybe we needed to reboot the server and now it lost it.");
+            rank = Math.toIntExact(event.getOption("rank")
+                    .flatMap(ApplicationCommandInteractionOption::getValue)
+                    .map(ApplicationCommandInteractionOptionValue::asLong).get());
+        }
+        if(!solver.hasRunRecs)
+        {
             var d1 = new Date(1661241600000L);
             var d2 = new Date();
 
             int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
             int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+
+            LOG.info("Haven't run recs yet. Doing so now.");
             solver.getDailyRecommendations(week, day, true);
-            recs = solver.getVacationRecs();
         }
 
-        if(recs == null || recs.size() < 5)
-            return event.editReply("No vacation recs returned. <@"+miennaID+">").then();
+        var recs = solver.getVacationRecs(rank);
 
-        var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs);
+        if(recs == null || recs.size() < 5)
+        {
+          if(rank >=9 && rank <=11)
+              return event.editReply("No vacation recs returned. <@"+miennaID+">").then();
+          else
+              return event.editReply("No vacation recs available for rank "+rank).then();
+        }
+
+
+        var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs, rank);
 
         return event.editReply().withEmbeds(embed).then();
     }
 
     private Mono<Void> deferredThisWeekCommand(ChatInputInteractionEvent event)
     {
-        var recs = solver.getRestOfWeek();
+        int rank = maxIslandRank;
+        if(event.getOption("rank").isPresent())
+        {
+            rank = Math.toIntExact(event.getOption("rank")
+                    .flatMap(ApplicationCommandInteractionOption::getValue)
+                    .map(ApplicationCommandInteractionOptionValue::asLong).get());
+        }
+
+
+
         var d1 = new Date(1661241600000L);
         var d2 = new Date();
 
@@ -242,24 +285,33 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         if(day >= 3)
             return event.editReply("Rest of week already known. See <#"+recsChannelID+">").then();
 
-        if(recs == null)
+        if(!solver.hasRunRecs)
         {
-            LOG.info("Has no rest of week info. Maybe we needed to reboot the server and now it lost it.");
-
+            LOG.info("Haven't run recs yet. Doing so now.");
             solver.getDailyRecommendations(week, day, true);
-            recs = solver.getRestOfWeek();
         }
+
+        var recs = solver.getRestOfWeekRecs(rank);
+
 
         if(recs == null || recs.size() == 0)
             return event.editReply("No rest of week recs returned. <@"+miennaID+">").then();
 
-        var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs);
+        var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs, rank);
 
         return event.editReply().withEmbeds(embed).then();
     }
 
     private Mono<Void> deferredTodayCommand(ChatInputInteractionEvent event)
     {
+        int rank = maxIslandRank;
+        if(event.getOption("rank").isPresent())
+        {
+            rank = Math.toIntExact(event.getOption("rank")
+                    .flatMap(ApplicationCommandInteractionOption::getValue)
+                    .map(ApplicationCommandInteractionOptionValue::asLong).get());
+        }
+
         var calendar = Calendar.getInstance();
         calendar.setTime(new Date());
         var hour = calendar.get(Calendar.HOUR_OF_DAY);
@@ -276,20 +328,20 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
         //If we don't have this, it's because we haven't run recs at all
         //So run recs to get things all set up
-        if(solver.getVacationRecs() == null)
+        if(!solver.hasRunRecs)
         {
+            LOG.info("Haven't run recs yet. Doing so now.");
             solver.getDailyRecommendations(week, day, true);
         }
 
-        var recs = solver.getRestOfDayRecs(day, hoursLeft);
+        var recs = solver.getRestOfDayRecs(day, hoursLeft, rank);
 
         if((recs == null || recs.size() == 0) && hoursLeft >= 4)
         {
             return event.editReply("No rest of day recs returned. <@"+miennaID+">").then();
         }
 
-
-        var embed = OCUtils.generateTodayEmbed(week, day, hoursLeft, recs);
+        var embed = OCUtils.generateTodayEmbed(week, day, hoursLeft, recs, rank);
 
         return event.editReply().withEmbeds(embed).then();
     }
@@ -313,14 +365,95 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                 .cast(NewsChannel.class).block();
 
 
+
         recs.forEach(
                 rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole))
                         .flatMap(Message::publish).subscribe()
         );
 
-
-
-
         return event.editReply("Re-ran recs successfully. Check <#"+recsChannelID+">").then();
     }
+
+    private Mono<Void> deferredAltsCommand(ChatInputInteractionEvent event)
+    {
+        int rank = maxIslandRank;
+        if(event.getOption("rank").isPresent())
+        {
+            rank = Math.toIntExact(event.getOption("rank")
+                    .flatMap(ApplicationCommandInteractionOption::getValue)
+                    .map(ApplicationCommandInteractionOptionValue::asLong).get());
+        }
+
+        List<Item> items = new ArrayList<>();
+        for(int i=1; i<=3; i++)
+        {
+            if(event.getOption("nocraft"+i).isPresent())
+            {
+                String itemName = event.getOption("nocraft"+i).flatMap(ApplicationCommandInteractionOption::getValue)
+                        .map(ApplicationCommandInteractionOptionValue::asString)
+                        .get();
+                try
+                {
+                    items.add(Item.valueOf(itemName));
+                }
+                catch(IllegalArgumentException e)
+                {
+                    return event.editReply(itemName+" is not a valid item").then();
+                }
+            }
+            else
+            {
+                LOG.info("Craft "+i+" isn't present. Stopping converting list");
+                break;
+            }
+        }
+
+        var calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        var hour = calendar.get(Calendar.HOUR_OF_DAY);
+        if(hour < 8)
+            hour += 24;
+        hour = (hour - 8) % 24;
+
+        var d1 = new Date(1661241600000L);
+        var d2 = new Date();
+
+        int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
+        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+
+        if(day == 6)
+            return event.editReply("Rest C1").then();
+
+        if(rank == maxIslandRank && items.size() == 0)
+            return event.editReply("See <#"+recsChannelID+">").then();
+
+        //If we don't have this, it's because we haven't run recs at all
+        //So run recs to get things all set up
+        if(!solver.hasRunRecs)
+        {
+            LOG.info("Haven't run recs yet. Doing so now.");
+            solver.getDailyRecommendations(week, day, true);
+        }
+
+        String content = "";
+        if(items.size()>0)
+            content = "Not using items "+ items.stream().map(Item::getDisplayName).collect(Collectors.joining(", "));
+
+
+        var dailyRec = solver.getRecForSingleDay(day+1, rank, items);
+
+        if(dailyRec == null)
+        {
+            return event.editReply("No alt recs returned. <@"+miennaID+">").then();
+        }
+        else if(dailyRec.isTentative())
+        {
+            return event.editReply("C2 info not known. Need more peaks").then();
+        }
+
+        var embed = OCUtils.getGeneralRecEmbed(week, dailyRec);
+
+        return event.editReply(content).withEmbeds(embed).then();
+    }
+
 }

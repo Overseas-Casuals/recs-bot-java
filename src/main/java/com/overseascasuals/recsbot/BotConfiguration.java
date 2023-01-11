@@ -111,7 +111,7 @@ public class BotConfiguration implements CommandLineRunner
         LOG.info("Scheduled "+taskList.size()+" task(s)");
         LOG.info("{}", testStr);
 
-        //registerCommands(client);
+        registerCommands(client);
         //deregisterCommands(client);
 
         return client;
@@ -170,6 +170,12 @@ public class BotConfiguration implements CommandLineRunner
                         .build()
                 )
                 .addOption(ApplicationCommandOptionData.builder()
+                        .name("rank")
+                        .description("The rank we're setting the schedule of")
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
+                        .required(false)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
                         .name("craft_1")
                         .description("The first craft of the cycle")
                         .type(ApplicationCommandOption.Type.STRING.getValue())
@@ -219,20 +225,71 @@ public class BotConfiguration implements CommandLineRunner
         ApplicationCommandRequest nextWeekRequest = ApplicationCommandRequest.builder()
                 .name("next_week")
                 .description("Gets a non-optimized schedule for next season if you're going to be away")
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("rank")
+                        .description("The rank we're requesting the schedule for")
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
+                        .required(false)
+                        .build())
                 .build();
         commands.add(nextWeekRequest);
 
         ApplicationCommandRequest thisWeekRequest = ApplicationCommandRequest.builder()
                 .name("this_week")
                 .description("Gets a non-optimized schedule for the rest of the season if you're going to be away")
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("rank")
+                        .description("The rank we're requesting the schedule for")
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
+                        .required(false)
+                        .build())
                 .build();
         commands.add(thisWeekRequest);
 
         ApplicationCommandRequest todayRequest = ApplicationCommandRequest.builder()
                 .name("today")
                 .description("Gets the best schedule for the hours remaining in the current cycle")
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("rank")
+                        .description("The rank we're requesting the schedule for")
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
+                        .required(false)
+                        .build())
                 .build();
         commands.add(todayRequest);
+
+        ApplicationCommandRequest altsRequest = ApplicationCommandRequest.builder()
+                .name("alts")
+                .description("Gets recs for the next cycle with extra restrictions")
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("rank")
+                        .description("The rank we're requesting the schedule for")
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
+                        .required(false)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("nocraft1")
+                        .description("The name of a craft you can't make")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("nocraft2")
+                        .description("The name of a 2nd craft you can't make")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("nocraft3")
+                        .description("The name of a 3rd craft you can't make")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .build();
+        commands.add(altsRequest);
 
         ApplicationCommandRequest rerunRequest = ApplicationCommandRequest.builder()
                 .name("rerun")
@@ -274,7 +331,7 @@ public class BotConfiguration implements CommandLineRunner
     {
         //Connect to DB, just to be safe
         LOG.info("Getting crafts from day 2 of week 15");
-        var response = craftRepository.findCraftsByDay(15,1);
+        var response = craftRepository.findCraftsByDay(15,1, 9);
         LOG.info("Found "+response.getCraft1());
         if(!("local".equals(activeProfile))) return;
 
@@ -283,8 +340,8 @@ public class BotConfiguration implements CommandLineRunner
         {
             task.run();
         }
-        solver.getRestOfDayRecs(2, 2);
-        solver.getRestOfDayRecs(2, 22);
+        //solver.getRestOfDayRecs(2, 2, 11);
+        //solver.getRestOfDayRecs(2, 22, 11);
 
     }
 }

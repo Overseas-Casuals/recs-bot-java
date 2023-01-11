@@ -38,13 +38,14 @@ public class OCUtils
     }
     public static MessageCreateSpec generateRecEmbedMessage(int season, DailyRecommendation rec, String c1PeakRole)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations");
-        builder.timestamp(Instant.now());
+
         var messageSpec = MessageCreateSpec.builder();
 
 
         if(rec.isTentative())
         {
+            var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations for Rank "+rec.getMaxRank());
+            builder.timestamp(Instant.now());
             messageSpec.content("Tentative rec detected! <@&"+c1PeakRole+">");
 
             //builder.color(Color.RED);
@@ -65,57 +66,66 @@ public class OCUtils
 
             /*var timeToComplete = Instant.now().truncatedTo(ChronoUnit.HOURS).plus(9, ChronoUnit.HOURS);
             builder.addField("Estimated Completion", "<t:"+timeToComplete.getEpochSecond()+":R>", true);*/
+            messageSpec.addEmbed(builder.build());
         }
         else
         {
-            if(rec.isRestRecommended())
-                builder.color(Color.SUMMER_SKY).addField("Main Recommendation","Rest", false);
-            else
-            {
-
-                String title = "Main Recommendation";
-                builder.color(Color.SEA_GREEN);
-                if(rec.size() == 1)
-                {
-                    builder.title("Cycle "+(rec.getDay()+1)+" Update!").color(Color.MOON_YELLOW);
-                    title = "Updated Recommendation";
-                }
-
-
-                builder.addField(title, String.join(" - ",rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList())), false)
-                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
-                        .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", String.valueOf(rec.getDailyValue()), true);
-
-                if(rec.get(0).getValue().getGroove() > 0)
-                    builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
-            }
-
-
-            if(rec.size() > 1)
-            {
-                //Add alts also
-                builder.addField("\u200B", "\u200B", false);
-
-                StringBuilder altSb = new StringBuilder();
-                StringBuilder grossSb = new StringBuilder();
-                for(var alt : rec)
-                {
-                    String altText = String.join(" - ", alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList()));
-                    altSb.append(altText).append('\n');
-                    grossSb.append(alt.getValue().getWeighted()).append('\n');
-                }
-                altSb.setLength(altSb.length()-1);
-                grossSb.setLength(grossSb.length()-1);
-
-                builder.addField("Alternatives", altSb.toString(), true)
-                        .addField("Weighted Value", grossSb.toString(), true);
-                //.addField("Net", netSb.toString(), true);
-            }
-
+            messageSpec.addEmbed(getGeneralRecEmbed(season, rec));
         }
 
-        messageSpec.addEmbed(builder.build());
+
         return messageSpec.build();
+    }
+
+    public static EmbedCreateSpec getGeneralRecEmbed(int season, DailyRecommendation rec)
+    {
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations for Rank "+rec.getMaxRank());
+        builder.timestamp(Instant.now());
+
+        if(rec.isRestRecommended())
+            builder.color(Color.SUMMER_SKY).addField("Main Recommendation","Rest", false);
+        else
+        {
+
+            String title = "Main Recommendation";
+            builder.color(Color.SEA_GREEN);
+            if(rec.size() == 1)
+            {
+                builder.title("Cycle "+(rec.getDay()+1)+" Update!").color(Color.MOON_YELLOW);
+                title = "Updated Recommendation";
+            }
+
+
+            builder.addField(title, String.join(" - ",rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList())), false)
+                    .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
+                    .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", String.valueOf(rec.getDailyValue()), true);
+
+            if(rec.get(0).getValue().getGroove() > 0)
+                builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
+        }
+
+
+        if(rec.size() > 1)
+        {
+            //Add alts also
+            builder.addField("\u200B", "\u200B", false);
+
+            StringBuilder altSb = new StringBuilder();
+            StringBuilder grossSb = new StringBuilder();
+            for(var alt : rec)
+            {
+                String altText = String.join(" - ", alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList()));
+                altSb.append(altText).append('\n');
+                grossSb.append(alt.getValue().getWeighted()).append('\n');
+            }
+            altSb.setLength(altSb.length()-1);
+            grossSb.setLength(grossSb.length()-1);
+
+            builder.addField("Alternatives", altSb.toString(), true)
+                    .addField("Weighted Value", grossSb.toString(), true);
+            //.addField("Net", netSb.toString(), true);
+        }
+        return builder.build();
     }
 
     public static MessageCreateSpec generateCrimeTimeEmbed(int season, List<DailyRecommendation> recs)
@@ -124,11 +134,12 @@ public class OCUtils
         {
             return MessageCreateSpec.builder().content("No recs returned").build();
         }
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Crime Time Recommendations");
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Crime Time Recommendations for Rank "+recs.get(0).getMaxRank());
         builder.timestamp(Instant.now());
         var messageSpec = MessageCreateSpec.builder();
 
         builder.color(Color.SEA_GREEN);
+
 
         for(int i=0; i<recs.size(); i++)
         {
@@ -144,9 +155,9 @@ public class OCUtils
         return messageSpec.build();
     }
 
-    public static EmbedCreateSpec generateNextWeekEmbed(int season, List<List<Item>> recs)
+    public static EmbedCreateSpec generateNextWeekEmbed(int season, List<List<Item>> recs, int rank)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations");
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations for Rank "+rank);
         builder.timestamp(Instant.now());
         //var messageSpec = MessageCreateSpec.builder();
 
@@ -162,9 +173,9 @@ public class OCUtils
         return builder.build();
     }
 
-    public static EmbedCreateSpec generateThisWeekEmbed(int season, List<List<Item>> recs)
+    public static EmbedCreateSpec generateThisWeekEmbed(int season, List<List<Item>> recs, int rank)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations");
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations for Rank "+rank);
         builder.timestamp(Instant.now());
 
         builder.color(Color.SUMMER_SKY);
@@ -182,9 +193,9 @@ public class OCUtils
 
         return builder.build();
     }
-    public static EmbedCreateSpec generateTodayEmbed(int season, int cycle, int hours, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs)
+    public static EmbedCreateSpec generateTodayEmbed(int season, int cycle, int hours, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs, int rank)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(cycle+1)+" Partial Schedule");
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(cycle+1)+" Partial Schedule for Rank "+rank);
         builder.timestamp(Instant.now());
         builder.description(hours+" hours remaining");
 

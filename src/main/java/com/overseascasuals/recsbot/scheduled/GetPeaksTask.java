@@ -241,7 +241,9 @@ public class GetPeaksTask implements ScheduledTask
 
                 if(recDay == 3)
                 {
-                    channel.createMessage(OCUtils.generateCrimeTimeEmbed(week, solver.getCrimeTimeRecs())).flatMap(Message::publish).subscribe();
+                    var crimes = solver.getCrimeTimeRecs();
+                    for(var crime : crimes)
+                        channel.createMessage(OCUtils.generateCrimeTimeEmbed(week, crime)).flatMap(Message::publish).subscribe();
                 }
             }
 
@@ -314,11 +316,11 @@ public class GetPeaksTask implements ScheduledTask
             newPeaks.add(newCraft);
         }
 
-        if (num2Strong == 4)
+        if (num2Strong == 5)
             for (int i = 0; i < newPeaks.size(); i++)
                 if (newPeaks.get(i).getPeak().equals("2U"))
                     newPeaks.get(i).setPeak("2W");
-        if (num2Weak == 4)
+        if (num2Weak == 5)
             for (int i = 0; i < newPeaks.size(); i++)
                 if (newPeaks.get(i).getPeak().equals("2U"))
                     newPeaks.get(i).setPeak("2S");
@@ -370,12 +372,12 @@ public class GetPeaksTask implements ScheduledTask
             }
         }
 
-        valid = num2Strong == 4 && num2Weak == 4 && num3Strong == 4 && num3Weak == 4 && num45 == 16 && num67 == 18;
+        valid = num2Strong == 5 && num2Weak == 5 && num3Strong == 5 && num3Weak == 5 && num45 == 20 && num67 == 20;
 
         peaks = Arrays.toString(newPeaks.toArray());
         LOG.info(MessageFormatter.format("As of day 2, Peaks: {}, safe? {}", peaks, valid ).getMessage());
         if(!valid)
-            LOG.error("Invalid peaks for D2 "+", num2Strong = "+num2Strong+"/4"+", num2Weak = "+num2Weak+"/4"+", num3Strong = "+num3Strong+"/4"+", num3Weak = "+num3Weak+"/4"+", num45 = "+num45+"/16"+", num67 = "+num67+"/18");
+            LOG.error("Invalid peaks for D2 "+", num2Strong = "+num2Strong+"/5"+", num2Weak = "+num2Weak+"/5"+", num3Strong = "+num3Strong+"/5"+", num3Weak = "+num3Weak+"/5"+", num45 = "+num45+"/20"+", num67 = "+num67+"/20");
         if (day == 1)
             return valid;
 
@@ -416,13 +418,13 @@ public class GetPeaksTask implements ScheduledTask
                 }
             }
         }
-        valid = num4Weak == 4 && num4Strong == 4 && num5 == 8 && num6Weak == 4 && num67 == 14;
+        valid = num4Weak == 5 && num4Strong == 5 && num5 == 10 && num6Weak == 5 && num67 == 15;
 
         peaks = Arrays.toString(newPeaks.toArray());
         LOG.info(MessageFormatter.format("As of day 3, Peaks: {}, safe? {}", peaks, valid ).getMessage());
 
         if(!valid)
-            LOG.error("Invalid peaks for D3 "+", num4Weak = "+num4Weak+"/4"+", num4Strong = "+num4Strong+"/4"+", num5 = "+num5+"/8"+", num6Weak = "+num6Weak+"/4"+", num67 = "+num67+"/14");
+            LOG.error("Invalid peaks for D3 "+", num4Weak = "+num4Weak+"/5"+", num4Strong = "+num4Strong+"/5"+", num5 = "+num5+"/10"+", num6Weak = "+num6Weak+"/5"+", num67 = "+num67+"/15");
         if (day == 2)
             return valid;
 
@@ -467,14 +469,14 @@ public class GetPeaksTask implements ScheduledTask
                 }
             }
         }
-        valid = num5Weak == 4 && num5Strong == 4 && num6Weak == 4 && num6Strong == 4 && num7Weak == 5 && num7Strong == 5;
+        valid = num5Weak == 5 && num5Strong == 5 && num6Weak == 5 && num6Strong == 5 && num7Weak == 5 && num7Strong == 5;
 
         peaks = Arrays.toString(newPeaks.toArray());
         LOG.info(MessageFormatter.format("As of day 4, Peaks: {}, safe? {}", peaks, valid ).getMessage());
 
         if(!valid)
-            LOG.error("Invalid peaks for D4 "+", num5Weak = "+num5Weak+"/4"+", num5Strong = "+num5Strong+"/4"
-                    +", num6Weak = "+num6Weak+"/4"+", num6Strong = "+num6Strong+"/4"+", num7Weak = "+num7Weak+"/5"
+            LOG.error("Invalid peaks for D4 "+", num5Weak = "+num5Weak+"/5"+", num5Strong = "+num5Strong+"/5"
+                    +", num6Weak = "+num6Weak+"/5"+", num6Strong = "+num6Strong+"/5"+", num7Weak = "+num7Weak+"/5"
                     +", num7Strong = "+num7Strong+"/5");
         return valid;
     }

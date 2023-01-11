@@ -7,6 +7,7 @@ import java.util.*;
 
 public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, WorkshopValue>>
 {
+    int maxRank;
     boolean restRecommended;
     CycleSchedule bestRec;
     int dailyValue;
@@ -17,17 +18,19 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
     int day;
 
 
-    public DailyRecommendation(int day, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs)
+    public DailyRecommendation(int day, int rank, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs)
     {
         super(recs);
+        this.maxRank = rank;
         this.day = day;
         restRecommended = true;
         bestRec = null;
     }
 
-    public DailyRecommendation(int day, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs, CycleSchedule bestRec)
+    public DailyRecommendation(int day, int rank, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs, CycleSchedule bestRec)
     {
         super(recs);
+        this.maxRank = rank;
         this.day = day;
         restRecommended = false;
         this.bestRec = bestRec;
@@ -87,6 +90,10 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         this.day = day;
     }
 
+    public int getMaxRank() {
+        return maxRank;
+    }
+
     public String prettyPrint(Map.Entry<WorkshopSchedule, WorkshopValue> rec)
     {
         return rec.getKey() +"\tGross: "+rec.getValue().getGross()+"\tNet: "+rec.getValue().getNet()+"\tGroove bonus: "+rec.getValue().getGroove()+"\tPenalty: "+rec.getValue().getPenalty()+"\tPeak bonus: "+rec.getValue().getPeakBonus()+" Total: "+rec.getValue().getWeighted();
@@ -95,7 +102,7 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
     @Override
     public String toString()
     {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder("Rank ").append(maxRank).append("\n");
         if(tentative)
             sb.append("__**TENTATIVE**__\n");
         if(restRecommended)
