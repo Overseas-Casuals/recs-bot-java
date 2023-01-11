@@ -437,7 +437,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
         String content = "";
         if(items.size()>0)
-            content = "Not using items "+ items.stream().map(Item::getDisplayName).collect(Collectors.joining(", "));
+            content = "Not using "+ items.stream().map(Item::getDisplayName).collect(Collectors.joining(", "));
 
 
         var dailyRec = solver.getRecForSingleDay(day+1, rank, items);

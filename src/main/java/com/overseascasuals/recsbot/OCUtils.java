@@ -56,13 +56,13 @@ public class OCUtils
 
             else
             {
-                builder.addField("Tentative Recommendation", String.join(" - ",rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList())), false)
+                builder.addField("Tentative Recommendation", rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")), false)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
                         .addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
             }
             builder.addField("\u200B", "\u200B", false)
-                    .addField("Required Info", String.join(", ", rec.getTroublemakers().stream().map(Item::getDisplayName).collect(Collectors.toList())), true)
-                    .addField("Optional Info", String.join(", ", rec.getBystanders().stream().map(Item::getDisplayName).collect(Collectors.toList())), true);
+                    .addField("Required Info", rec.getTroublemakers().stream().map(Item::getDisplayName).collect(Collectors.joining(", ")), true)
+                    .addField("Optional Info", rec.getBystanders().stream().map(Item::getDisplayName).collect(Collectors.joining(", ")), true);
 
             /*var timeToComplete = Instant.now().truncatedTo(ChronoUnit.HOURS).plus(9, ChronoUnit.HOURS);
             builder.addField("Estimated Completion", "<t:"+timeToComplete.getEpochSecond()+":R>", true);*/
@@ -96,7 +96,7 @@ public class OCUtils
             }
 
 
-            builder.addField(title, String.join(" - ",rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList())), false)
+            builder.addField(title, rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")), false)
                     .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
                     .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", String.valueOf(rec.getDailyValue()), true);
 
@@ -114,7 +114,7 @@ public class OCUtils
             StringBuilder grossSb = new StringBuilder();
             for(var alt : rec)
             {
-                String altText = String.join(" - ", alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.toList()));
+                String altText = alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
                 altSb.append(altText).append('\n');
                 grossSb.append(alt.getValue().getWeighted()).append('\n');
             }

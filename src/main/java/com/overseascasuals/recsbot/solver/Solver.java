@@ -158,7 +158,7 @@ public class Solver
 
     private final Map<Integer, List<Entry<WorkshopSchedule, WorkshopValue>>> restOfDay = new HashMap<>();
     private final Map<Integer, Integer> hoursLeftInDay = new HashMap<>();
-    private final Map<Integer, DailyRecommendation> currentRecsByRank = new HashMap<>();
+    private final Map<String, DailyRecommendation> cachedAltRecs = new HashMap<>();
 
     private boolean autocompletePeaks = false;
 
@@ -198,7 +198,7 @@ public class Solver
 
         restOfDay.clear();
         hoursLeftInDay.clear();
-        currentRecsByRank.clear();
+        cachedAltRecs.clear();
 
         if(peaks == null)
         {
@@ -398,8 +398,26 @@ public class Solver
         return listOfRecs;
     }
 
+    private String getKeyForAltRequest(int dayToSolve, int rank, List<Item> items)
+    {
+        String key =  dayToSolve+"-"+rank;
+        if(items != null && items.size() > 0)
+        {
+            key+="-"+items.stream().map(Item::toString).collect(Collectors.joining("-"));
+        }
+        return key;
+    }
+
     public DailyRecommendation getRecForSingleDay(int dayToSolve, int rank, List<Item> limitedItems)
     {
+        String cacheKey = getKeyForAltRequest(dayToSolve, rank, limitedItems);
+        if(cachedAltRecs.containsKey(cacheKey))
+        {
+            LOG.info("Found key {} in cache, returning", cacheKey);
+            return cachedAltRecs.get(cacheKey);
+        }
+
+
         HashMap<Item,Integer> limitedUse = null;
         if(limitedItems !=  null && limitedItems.size() > 0)
         {
@@ -447,6 +465,12 @@ public class Solver
         {
             rec = new DailyRecommendation(dayToSolve, rank, todayRecs, schedule);
         }
+
+        if(day+1==dayToSolve)
+        {
+            cachedAltRecs.put(cacheKey, rec);
+        }
+
         return rec;
     }
 
@@ -976,6 +1000,7 @@ public class Solver
     private boolean isWorseThanAllFollowing(Entry<WorkshopSchedule, WorkshopValue> rec,
             int day, boolean checkD5, int rank, Map<Item,Integer> limitedUse)
     {
+        int groove = startingGroovePerDay.get(day);
         int worstInFuture = 99999;
         boolean bestD5IsWorst = true;
         int bestD5 = 0;
@@ -1034,6 +1059,7 @@ public class Solver
     // Specifically for comparing D4 to D5
     public Entry<WorkshopSchedule, WorkshopValue> getD5EV(int rank)
     {
+        int groove = startingGroovePerDay.get(3);
         var solution = getBestSchedule(4, groove,null, rank );
         if(solution == null)
             return null;
