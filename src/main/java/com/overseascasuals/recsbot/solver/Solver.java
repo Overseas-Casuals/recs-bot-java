@@ -402,6 +402,8 @@ public class Solver
     {
         if(rank < 5)
             rank = 1;
+        if(rank > maxIslandRank)
+            rank = maxIslandRank;
         String key =  dayToSolve+"-"+rank;
         if(items != null && items.size() > 0)
         {
