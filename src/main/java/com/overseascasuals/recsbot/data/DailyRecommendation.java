@@ -41,6 +41,12 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         dailyValue = bestRec.getValue();
     }
 
+    public DailyRecommendation withRank(int rank)
+    {
+        this.maxRank = rank;
+        return this;
+    }
+
     public boolean isRestRecommended() {
         return restRecommended;
     }

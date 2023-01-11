@@ -400,6 +400,8 @@ public class Solver
 
     private String getKeyForAltRequest(int dayToSolve, int rank, List<Item> items)
     {
+        if(rank < 5)
+            rank = 1;
         String key =  dayToSolve+"-"+rank;
         if(items != null && items.size() > 0)
         {
@@ -414,7 +416,7 @@ public class Solver
         if(cachedAltRecs.containsKey(cacheKey))
         {
             LOG.info("Found key {} in cache, returning", cacheKey);
-            return cachedAltRecs.get(cacheKey);
+            return cachedAltRecs.get(cacheKey).withRank(rank);
         }
 
 
