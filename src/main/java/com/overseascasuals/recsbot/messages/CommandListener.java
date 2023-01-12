@@ -3,6 +3,9 @@ package com.overseascasuals.recsbot.messages;
 import com.overseascasuals.recsbot.OCUtils;
 import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.data.PeakCycle;
+import com.overseascasuals.recsbot.json.RestService;
+import com.overseascasuals.recsbot.mysql.PeakRepository;
+import com.overseascasuals.recsbot.mysql.PopularityRepository;
 import com.overseascasuals.recsbot.solver.Solver;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
@@ -44,6 +47,16 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
     @Autowired
     Solver solver;
+
+    @Autowired
+    PeakRepository peakRepository;
+
+    @Autowired
+    PopularityRepository popularityRepository;
+
+    @Autowired
+    RestService restService;
+
     @Override
     public Class<ChatInputInteractionEvent> getEventType() {
         return ChatInputInteractionEvent.class;
@@ -52,7 +65,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
     @Override
     public Mono<Void> execute(ChatInputInteractionEvent event) {
         String command = event.getCommandName();
-        LOG.info("Processsing {} command", command);
+        LOG.info("Processing {} command", command);
         switch (command) {
             case "set_peak" -> {
                 processSetPeakCommand(event).block();
@@ -81,6 +94,11 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
             case "alts" -> {
                 event.deferReply().block();
                 return deferredAltsCommand(event);
+            }
+            case "push_peaks" ->
+            {
+                event.deferReply().withEphemeral(true).block();
+                return deferredPushPeaks(event);
             }
         }
         return event.reply()
@@ -454,6 +472,23 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         var embed = OCUtils.getGeneralRecEmbed(week, dailyRec);
 
         return event.editReply(content).withEmbeds(embed).then();
+    }
+
+    public Mono<Void> deferredPushPeaks(ChatInputInteractionEvent event)
+    {
+        var d1 = new Date(1661241600000L);
+        var d2 = new Date();
+
+        int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
+        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+
+        var popularity = popularityRepository.findByWeek(week);
+        String popresponse = restService.postPopularity(week, popularity.getPopularity(), popularity.getNextPopularity());
+
+        var peaks = peakRepository.findPeaksByDay(week, day);
+        String peakresponse = restService.postPeaks(week, day, peaks);
+
+        return event.editReply("Posted popularity and peaks: "+popresponse+", "+peakresponse).then();
     }
 
 }

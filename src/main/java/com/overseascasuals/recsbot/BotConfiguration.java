@@ -297,6 +297,12 @@ public class BotConfiguration implements CommandLineRunner
                 .build();
         commands.add(rerunRequest);
 
+        ApplicationCommandRequest islandRequest = ApplicationCommandRequest.builder()
+                .name("push_peaks")
+                .description("Pushes peaks to the public database")
+                .build();
+        commands.add(islandRequest);
+
 
         /* Bulk overwrite commands.
         */
