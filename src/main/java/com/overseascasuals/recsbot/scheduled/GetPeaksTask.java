@@ -20,10 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -354,11 +351,11 @@ public class GetPeaksTask implements ScheduledTask
                     num3Strong++;
                     currentPeak.setPeak("3S");
                 }
-                else if (supply.getDemand() == Increasing)
+                /*else if (supply.getDemand() == Increasing)
                 {
                     num3Weak++;
                     currentPeak.setPeak("3W");;
-                }
+                }*/
                 else
                 {
                     num67++;
@@ -372,7 +369,7 @@ public class GetPeaksTask implements ScheduledTask
             }
         }
 
-        valid = num2Strong == 5 && num2Weak == 5 && num3Strong == 5 && num3Weak == 5 && num45 == 20 && num67 == 20;
+        valid = num2Strong == 5 && num2Weak == 5 && num3Strong == 5 && num3Weak == 0 && num45 == 20 && num67 == 25;
 
         peaks = Arrays.toString(newPeaks.toArray());
         LOG.info(MessageFormatter.format("As of day 2, Peaks: {}, safe? {}", peaks, valid ).getMessage());
@@ -383,6 +380,7 @@ public class GetPeaksTask implements ScheduledTask
 
         //Day 3
         num67 = 0;
+        num3Weak = 0;
         for (int i = 0; i < newPeaks.size(); i++)
         {
             CraftPeaks currentPeak = newPeaks.get(i);
@@ -407,24 +405,29 @@ public class GetPeaksTask implements ScheduledTask
                     currentPeak.setPeak("5U");;
                 }
             }
-            else if (currentPeak.getPeak() == "67")
+            else if (Objects.equals(currentPeak.getPeak(), "67"))
             {
                 if (supply.getSupply() == Sufficient && supply.getDemand() == Decreasing) {
                     num6Weak++;
                     currentPeak.setPeak("6W");;
+                }
+                else if(supply.getSupply() == Insufficient)
+                {
+                    currentPeak.setPeak(("3W"));
+                    num3Weak++;
                 }
                 else {
                     num67++;
                 }
             }
         }
-        valid = num4Weak == 5 && num4Strong == 5 && num5 == 10 && num6Weak == 5 && num67 == 15;
+        valid = num3Weak == 5 && num4Weak == 5 && num4Strong == 5 && num5 == 10 && num6Weak == 5 && num67 == 15;
 
         peaks = Arrays.toString(newPeaks.toArray());
         LOG.info(MessageFormatter.format("As of day 3, Peaks: {}, safe? {}", peaks, valid ).getMessage());
 
         if(!valid)
-            LOG.error("Invalid peaks for D3 "+", num4Weak = "+num4Weak+"/5"+", num4Strong = "+num4Strong+"/5"+", num5 = "+num5+"/10"+", num6Weak = "+num6Weak+"/5"+", num67 = "+num67+"/15");
+            LOG.error("Invalid peaks for D3 "+", num3Weak = "+num3Weak+"/5"+", num4Weak = "+num4Weak+"/5"+", num4Strong = "+num4Strong+"/5"+", num5 = "+num5+"/10"+", num6Weak = "+num6Weak+"/5"+", num67 = "+num67+"/15");
         if (day == 2)
             return valid;
 
