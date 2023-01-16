@@ -278,6 +278,12 @@ public class GetPeaksTask implements ScheduledTask
             return false;
         }
 
+        if(tcDays.get(day).getObjects().size()<=oldPeaks.size())
+        {
+            LOG.warn("Could not find enough crafts TC data. Only found "+(tcDays.get(day).getObjects().size() -1 )+" crafts. Needed "+oldPeaks.size());
+            return false;
+        }
+
         //Day 1
         for(var lastWeekPeak : oldPeaks)
         {

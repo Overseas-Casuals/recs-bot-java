@@ -111,7 +111,7 @@ public class BotConfiguration implements CommandLineRunner
         LOG.info("Scheduled "+taskList.size()+" task(s)");
         LOG.info("{}", testStr);
 
-        registerCommands(client);
+        //registerCommands(client);
         //deregisterCommands(client);
 
         return client;
