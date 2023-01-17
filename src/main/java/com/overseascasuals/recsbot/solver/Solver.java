@@ -1120,20 +1120,7 @@ public class Solver
         List<Map.Entry<WorkshopSchedule, WorkshopValue>> restOfDayRank = new ArrayList<>();
 
 
-        int startingGroove = 0;
-        if(!startingGroovePerDay.containsKey(day))
-        {
-            for(int i=1;i<day; i++)
-            {
-                var crafts = craftRepository.findCraftsByDay(week, i, rank);
-                if(crafts == null)
-                    break;
-
-                startingGroove+= getGrooveMadeWithSchedule(crafts.getCrafts());
-                startingGroovePerDay.put(i+1, startingGroove);
-            }
-        }
-
+        int startingGroove = startingGroovePerDay.get(day);
 
         Map<Item, Integer> limitedItems = null;
         int lastDaySet = day+1;

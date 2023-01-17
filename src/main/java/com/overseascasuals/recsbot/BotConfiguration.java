@@ -67,10 +67,6 @@ public class BotConfiguration implements CommandLineRunner
     public <T extends Event> GatewayDiscordClient gatewayDiscordClient(List<EventListener<T>> eventListeners, List<ScheduledTask> taskList)
     {
         var client = DiscordClientBuilder.create(token)
-                .onClientResponse(
-                        ResponseFunction.retryWhen(
-                                RouteMatcher.any(),
-                                Retry.anyOf(Errors.NativeIoException.class)))
                 .setReactorResources(ReactorResources.builder()
                         .httpClient(HttpClient.create()
                                 .compress(true)
