@@ -1191,7 +1191,7 @@ public class Solver
 
             int value = solution.getValue().getWeighted();
 
-            if(value < worstValue)
+            if(value <= worstValue) //Equals because we want to pick the latest day with the worst value
             {
                 worstValue = value;
                 worstIndex = restOfWeekRank.size();
