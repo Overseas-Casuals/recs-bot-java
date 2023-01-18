@@ -64,7 +64,7 @@ public class BotConfiguration implements CommandLineRunner
     public List<ScheduledTask> taskList;
 
     @Bean
-    public <T extends Event> GatewayDiscordClient gatewayDiscordClient(List<EventListener<T>> eventListeners, List<ScheduledTask> taskList)
+    public <T extends Event, R> GatewayDiscordClient gatewayDiscordClient(List<EventListener<T,R>> eventListeners, List<ScheduledTask> taskList)
     {
         var client = DiscordClientBuilder.create(token)
                 .onClientResponse(
@@ -91,7 +91,7 @@ public class BotConfiguration implements CommandLineRunner
                     LOG.info(String.format("Logged in as %s#%s", self.getUsername(), self.getDiscriminator()));
                 });
 
-        for(EventListener<T> listener : eventListeners)
+        for(EventListener<T,R> listener : eventListeners)
         {
             client.on(listener.getEventType())
                     .flatMap(listener::execute)

@@ -14,7 +14,7 @@ import java.util.List;
 
 
 @Service
-public class AutocompleteListener implements EventListener<ChatInputAutoCompleteEvent>
+public class AutocompleteListener implements EventListener<ChatInputAutoCompleteEvent, Void>
 {
     Logger LOG = LoggerFactory.getLogger(AutocompleteListener.class);
     @Override

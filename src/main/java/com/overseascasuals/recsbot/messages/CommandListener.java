@@ -13,6 +13,7 @@ import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.NewsChannel;
+import discord4j.core.spec.InteractionReplyEditMono;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
 
 
 @Service
-public class CommandListener implements EventListener<ChatInputInteractionEvent>
+public class CommandListener implements EventListener<ChatInputInteractionEvent,Message>
 {
     Logger LOG = LoggerFactory.getLogger(CommandListener.class);
 
@@ -63,47 +64,37 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
     }
 
     @Override
-    public Mono<Void> execute(ChatInputInteractionEvent event) {
+    public Mono<Message> execute(ChatInputInteractionEvent event) {
         String command = event.getCommandName();
         LOG.info("Processing {} command", command);
         switch (command) {
             case "set_peak" -> {
-                processSetPeakCommand(event).block();
-                return deferredPeakResponse(event);
+                return processSetPeakCommand(event).then(Mono.defer(() -> deferredPeakResponse(event)));
             }
             case "set_schedule" -> {
-                event.deferReply().withEphemeral(true).block();
-                return deferredScheduleResponse(event);
+                return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredScheduleResponse(event)));
             }
             case "next_week" -> {
-                event.deferReply().block();
-                return deferredNextWeekCommand(event);
+                return event.deferReply().then(Mono.defer(() -> deferredNextWeekCommand(event)));
             }
             case "this_week" -> {
-                event.deferReply().block();
-                return deferredThisWeekCommand(event);
+                return event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event)));
             }
             case "today" -> {
-                event.deferReply().block();
-                return deferredTodayCommand(event);
+                return event.deferReply().then(Mono.defer(() -> deferredTodayCommand(event)));
             }
             case "rerun" -> {
-                event.deferReply().withEphemeral(true).block();
-                return deferredRerunCommand(event);
+                return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredRerunCommand(event)));
             }
             case "alts" -> {
-                event.deferReply().block();
-                return deferredAltsCommand(event);
+                return event.deferReply().then(Mono.defer(() -> deferredAltsCommand(event)));
             }
-            case "push_peaks" ->
-            {
-                event.deferReply().withEphemeral(true).block();
-                return deferredPushPeaks(event);
+            case "push_peaks" -> {
+                return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredPushPeaks(event)));
             }
         }
-        return event.reply()
-                .withEphemeral(true)
-                .withContent("Command "+event.getCommandName()+" not recognized");
+        return event.reply().withEphemeral(true)
+                .then(event.editReply("Command "+event.getCommandName()+" not recognized"));
     }
 
     private Mono<Void> processSetPeakCommand(ChatInputInteractionEvent event)
@@ -121,7 +112,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         return event.deferReply(/*InteractionCallbackSpec.builder().ephemeral(true).build()*/);
     }
 
-    private Mono<Void> deferredPeakResponse(ChatInputInteractionEvent event)
+    private InteractionReplyEditMono deferredPeakResponse(ChatInputInteractionEvent event)
     {
         String itemName = event.getOption("item")
                 .flatMap(ApplicationCommandInteractionOption::getValue)
@@ -134,7 +125,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         }
         catch(IllegalArgumentException e)
         {
-            return event.editReply(itemName+" is not a valid item").then();
+            return event.editReply(itemName+" is not a valid item");
         }
         boolean valid = false;
         if(!solver.hasRunRecs)
@@ -154,7 +145,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
         if(solver.isSolvedD2()) //Really just doesn't have anything
         {
-            return event.editReply("Current cycle doesn't need confirmation of any peaks.").then();
+            return event.editReply("Current cycle doesn't need confirmation of any peaks.");
         }
         String peakType = event.getOption("peak_type")
                 .flatMap(ApplicationCommandInteractionOption::getValue)
@@ -180,7 +171,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
                 if(recs== null || recs.size() == 0)
                 {
-                    return event.editReply("Set peak for item "+item.getDisplayName()+", but no recs returned. <@"+miennaID+">").then();
+                    return event.editReply("Set peak for item "+item.getDisplayName()+", but no recs returned. <@"+miennaID+">");
                 }
 
                 NewsChannel channel = event.getClient().getChannelById(Snowflake.of(recsChannelID))
@@ -191,21 +182,21 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                                 .flatMap(Message::publish).subscribe()
                 );
 
-                return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Generating recs.").then();
+                return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Generating recs.");
             }
             else
             {
-                return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Still waiting on more required info.").then();
+                return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Still waiting on more required info.");
             }
         }
         else
         {
             LOG.info("command is for item we don't need");
-            return event.editReply("No peak info needed for "+item.getDisplayName()).then();
+            return event.editReply("No peak info needed for "+item.getDisplayName());
         }
     }
 
-    private Mono<Void> deferredScheduleResponse(ChatInputInteractionEvent event)
+    private InteractionReplyEditMono deferredScheduleResponse(ChatInputInteractionEvent event)
     {
         List<Item> items = new ArrayList<>();
         int rank = maxIslandRank;
@@ -228,7 +219,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                 }
                 catch(IllegalArgumentException e)
                 {
-                    return event.editReply(itemName+" is not a valid item").then();
+                    return event.editReply(itemName+" is not a valid item");
                 }
             }
             else
@@ -243,10 +234,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                 .get().intValue();
         solver.setScheduleCommand(day, rank, items);
 
-        return event.editReply("Created schedule of "+(items.size() > 0? items : "Rest")+" for cycle "+(day+1)).then();
+        return event.editReply("Created schedule of "+(items.size() > 0? items : "Rest")+" for cycle "+(day+1));
     }
 
-    private Mono<Void> deferredNextWeekCommand(ChatInputInteractionEvent event)
+    private InteractionReplyEditMono deferredNextWeekCommand(ChatInputInteractionEvent event)
     {
         int rank = maxIslandRank;
         if(event.getOption("rank").isPresent())
@@ -272,18 +263,18 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         if(recs == null || recs.size() < 5)
         {
           if(rank >=9 && rank <=11)
-              return event.editReply("No vacation recs returned. <@"+miennaID+">").then();
+              return event.editReply("No vacation recs returned. <@"+miennaID+">");
           else
-              return event.editReply("No vacation recs available for rank "+rank).then();
+              return event.editReply("No vacation recs available for rank "+rank);
         }
 
 
         var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs, rank);
 
-        return event.editReply().withEmbeds(embed).then();
+        return event.editReply().withEmbeds(embed);
     }
 
-    private Mono<Void> deferredThisWeekCommand(ChatInputInteractionEvent event)
+    private InteractionReplyEditMono deferredThisWeekCommand(ChatInputInteractionEvent event)
     {
         int rank = maxIslandRank;
         if(event.getOption("rank").isPresent())
@@ -301,7 +292,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
         if(day >= 3)
-            return event.editReply("Rest of week already known. See <#"+recsChannelID+">").then();
+            return event.editReply("Rest of week already known. See <#"+recsChannelID+">");
 
         if(!solver.hasRunRecs)
         {
@@ -313,14 +304,14 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
 
         if(recs == null || recs.size() == 0)
-            return event.editReply("No rest of week recs returned. <@"+miennaID+">").then();
+            return event.editReply("No rest of week recs returned. <@"+miennaID+">");
 
         var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs, rank);
 
-        return event.editReply().withEmbeds(embed).then();
+        return event.editReply().withEmbeds(embed);
     }
 
-    private Mono<Void> deferredTodayCommand(ChatInputInteractionEvent event)
+    private InteractionReplyEditMono deferredTodayCommand(ChatInputInteractionEvent event)
     {
         int rank = maxIslandRank;
         if(event.getOption("rank").isPresent())
@@ -356,15 +347,15 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
         if((recs == null || recs.size() == 0) && hoursLeft >= 4)
         {
-            return event.editReply("No rest of day recs returned. <@"+miennaID+">").then();
+            return event.editReply("No rest of day recs returned. <@"+miennaID+">");
         }
 
         var embed = OCUtils.generateTodayEmbed(week, day, hoursLeft, recs, rank);
 
-        return event.editReply().withEmbeds(embed).then();
+        return event.editReply().withEmbeds(embed);
     }
 
-    private Mono<Void> deferredRerunCommand(ChatInputInteractionEvent event)
+    private InteractionReplyEditMono deferredRerunCommand(ChatInputInteractionEvent event)
     {
         var d1 = new Date(1661241600000L);
         var d2 = new Date();
@@ -377,7 +368,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
         if(recs== null || recs.size() == 0)
         {
-            return event.editReply("No recs returned. <@"+miennaID+">").then();
+            return event.editReply("No recs returned. <@"+miennaID+">");
         }
         NewsChannel channel = event.getClient().getChannelById(Snowflake.of(recsChannelID))
                 .cast(NewsChannel.class).block();
@@ -389,10 +380,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                         .flatMap(Message::publish).subscribe()
         );
 
-        return event.editReply("Re-ran recs successfully. Check <#"+recsChannelID+">").then();
+        return event.editReply("Re-ran recs successfully. Check <#"+recsChannelID+">");
     }
 
-    private Mono<Void> deferredAltsCommand(ChatInputInteractionEvent event)
+    private InteractionReplyEditMono deferredAltsCommand(ChatInputInteractionEvent event)
     {
         int rank = maxIslandRank;
         if(event.getOption("rank").isPresent())
@@ -416,7 +407,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
                 }
                 catch(IllegalArgumentException e)
                 {
-                    return event.editReply(itemName+" is not a valid item").then();
+                    return event.editReply(itemName+" is not a valid item");
                 }
             }
             else
@@ -440,10 +431,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
 
         if(day == 6)
-            return event.editReply("Rest C1").then();
+            return event.editReply("Rest C1");
 
         if(rank == maxIslandRank && items.size() == 0)
-            return event.editReply("See <#"+recsChannelID+">").then();
+            return event.editReply("See <#"+recsChannelID+">");
 
         //If we don't have this, it's because we haven't run recs at all
         //So run recs to get things all set up
@@ -462,19 +453,19 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
 
         if(dailyRec == null)
         {
-            return event.editReply("No alt recs returned. <@"+miennaID+">").then();
+            return event.editReply("No alt recs returned. <@"+miennaID+">");
         }
         else if(dailyRec.isTentative())
         {
-            return event.editReply("C2 info not known. Need more peaks").then();
+            return event.editReply("C2 info not known. Need more peaks");
         }
 
         var embed = OCUtils.getGeneralRecEmbed(week, dailyRec);
 
-        return event.editReply(content).withEmbeds(embed).then();
+        return event.editReply(content).withEmbeds(embed);
     }
 
-    public Mono<Void> deferredPushPeaks(ChatInputInteractionEvent event)
+    public InteractionReplyEditMono deferredPushPeaks(ChatInputInteractionEvent event)
     {
         var d1 = new Date(1661241600000L);
         var d2 = new Date();
@@ -488,7 +479,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent>
         var peaks = peakRepository.findPeaksByDay(week, day);
         String peakresponse = restService.postPeaks(week, day, peaks);
 
-        return event.editReply("Posted popularity and peaks: "+popresponse+", "+peakresponse).then();
+        return event.editReply("Posted popularity and peaks: "+popresponse+", "+peakresponse);
     }
 
 }
