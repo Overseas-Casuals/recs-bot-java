@@ -196,9 +196,7 @@ public class Solver
 
         LOG.info("Getting recommendations for week {} day {}, hardrefresh? {}. helper penalty {}", week, day, hardRefresh, helperPenalty);
 
-        restOfDay.clear();
-        hoursLeftInDay.clear();
-        cachedAltRecs.clear();
+
 
         if(peaks == null)
         {
@@ -209,7 +207,6 @@ public class Solver
 
         if(hardRefresh || this.week != week)
         {
-            restOfWeek.clear();
             startingGroovePerDay.clear();
             startingGroovePerDay.put(0,0);
             startingGroovePerDay.put(1,0);
@@ -393,6 +390,11 @@ public class Solver
                 listOfRecs = getLateDays(rank);
             }
         }
+
+        restOfDay.clear();
+        restOfWeek.clear();
+        hoursLeftInDay.clear();
+        cachedAltRecs.clear();
 
         hasRunRecs = true;
         return listOfRecs;
