@@ -202,6 +202,11 @@ public class Solver
         {
             LOG.info("No peaks passed in, grabbing from DB");
             peaks = peakRepository.findPeaksByDay(week, Math.min(day,3));
+            if(peaks.size() < items.length)
+            {
+                LOG.error("No peaks found in db for day {}.", day+1);
+                return null;
+            }
         }
 
 
