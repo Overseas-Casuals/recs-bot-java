@@ -1,6 +1,7 @@
 package com.overseascasuals.recsbot.messages;
 
 import com.overseascasuals.recsbot.OCUtils;
+import com.overseascasuals.recsbot.data.DailyRecommendation;
 import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.data.PeakCycle;
 import com.overseascasuals.recsbot.json.RestService;
@@ -13,6 +14,7 @@ import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.NewsChannel;
+import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.InteractionReplyEditMono;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,10 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -414,7 +413,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             }
             else
             {
-                LOG.info("Craft "+i+" isn't present. Stopping converting list");
                 break;
             }
         }
@@ -435,7 +433,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         if(day == 6)
             return event.editReply("Rest C1");
 
-        if(rank == maxIslandRank && items.size() == 0)
+        if(rank >= maxIslandRank && items.size() == 0)
             return event.editReply("See <#"+recsChannelID+">");
 
         //If we don't have this, it's because we haven't run recs at all
@@ -451,20 +449,44 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             content = "Not using "+ items.stream().map(Item::getDisplayName).collect(Collectors.joining(", "));
 
 
-        var dailyRec = solver.getRecForSingleDay(day+1, rank, items);
-
-        if(dailyRec == null)
+        List<DailyRecommendation> recs;
+        if(day == 3 || day == 4)
         {
-            return event.editReply("No alt recs returned. <@"+miennaID+">");
+            Map<Item,Integer> limitedUse = null;
+            if(items.size() > 0)
+            {
+                limitedUse = new HashMap<>();
+                for(Item item: items)
+                    limitedUse.put(item, 0);
+            }
+            recs = solver.getLateDays(rank, limitedUse);
+            if(day == 4)
+                recs.remove(0);
         }
-        else if(dailyRec.isTentative())
+        else
         {
-            return event.editReply("C2 info not known. Need more peaks");
+            recs = new ArrayList<>();
+            var dailyRec = solver.getRecForSingleDay(day+1, rank, items);
+            if(dailyRec == null)
+            {
+                return event.editReply("No alt recs returned. <@"+miennaID+">");
+            }
+            else if(dailyRec.isTentative())
+            {
+                return event.editReply("C2 info not known. Need more peaks");
+            }
+
+            recs.add(dailyRec);
         }
 
-        var embed = OCUtils.getGeneralRecEmbed(week, dailyRec);
+        List<EmbedCreateSpec> embeds = new ArrayList<>();
+        for(var rec : recs)
+        {
+            if(rec != null)
+                embeds.add(OCUtils.getGeneralRecEmbed(week, rec));
+        }
 
-        return event.editReply(content).withEmbeds(embed);
+        return event.editReply(content).withEmbedsOrNull(embeds);
     }
 
     public InteractionReplyEditMono deferredPushPeaks(ChatInputInteractionEvent event)

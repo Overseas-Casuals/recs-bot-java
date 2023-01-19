@@ -35,7 +35,9 @@ import reactor.retry.Retry;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @EnableScheduling
 @Configuration
@@ -348,6 +350,11 @@ public class BotConfiguration implements CommandLineRunner
         }
         //solver.getRestOfDayRecs(2, 2, 11);
         //solver.getRestOfDayRecs(2, 22, 11);
+        /*Map<Item, Integer> limited = new HashMap<>();
+        limited.put(Item.SpruceRoundShield, 0);
+        limited.put(Item.SharkOil, 0);
+        limited.put(Item.GrowthFormula, 0);
+        solver.getLateDays(8, limited);*/
 
     }
 }
