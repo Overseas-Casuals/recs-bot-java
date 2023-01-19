@@ -68,7 +68,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         String command = event.getCommandName();
         LOG.info("Processing {} command", command);
         if(solver.isRunningRecs)
-            return event.reply().withEphemeral(true).then(event.editReply("Recs bot is running recs right now. Please try again in a minute or so!"));
+            return event.deferReply().withEphemeral(true).then(event.editReply("Recs bot is running recs right now. Please try again in a minute or so!"));
         switch (command) {
             case "set_peak" -> {
                 return processSetPeakCommand(event).then(Mono.defer(() -> deferredPeakResponse(event)));
@@ -95,7 +95,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredPushPeaks(event)));
             }
         }
-        return event.reply().withEphemeral(true)
+        return event.deferReply().withEphemeral(true)
                 .then(event.editReply("Command "+event.getCommandName()+" not recognized"));
     }
 
