@@ -449,41 +449,25 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             content = "Not using "+ items.stream().map(Item::getDisplayName).collect(Collectors.joining(", "));
 
 
-        List<DailyRecommendation> recs;
-        if(day == 3 || day == 4)
+        List<DailyRecommendation> recs = solver.getRecForSingleDay(day+1, rank, items);
+        if(recs == null || recs.size() == 0)
         {
-            Map<Item,Integer> limitedUse = null;
-            if(items.size() > 0)
-            {
-                limitedUse = new HashMap<>();
-                for(Item item: items)
-                    limitedUse.put(item, 0);
-            }
-            recs = solver.getLateDays(rank, limitedUse);
-            if(day == 4)
+            return event.editReply("No alt recs returned. <@"+miennaID+">");
+        }
+        else if(day == 4)
+        {
                 recs.remove(0);
         }
-        else
+        else if(day != 3 && recs.get(0).isTentative())
         {
-            recs = new ArrayList<>();
-            var dailyRec = solver.getRecForSingleDay(day+1, rank, items);
-            if(dailyRec == null)
-            {
-                return event.editReply("No alt recs returned. <@"+miennaID+">");
-            }
-            else if(dailyRec.isTentative())
-            {
-                return event.editReply("C2 info not known. Need more peaks");
-            }
-
-            recs.add(dailyRec);
+            return event.editReply("C2 info not known. Need more peaks");
         }
 
         List<EmbedCreateSpec> embeds = new ArrayList<>();
         for(var rec : recs)
         {
             if(rec != null)
-                embeds.add(OCUtils.getGeneralRecEmbed(week, rec));
+                embeds.add(OCUtils.getGeneralRecEmbed(week, rec.withRank(rank)));
         }
 
         return event.editReply(content).withEmbedsOrNull(embeds);
