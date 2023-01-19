@@ -427,13 +427,13 @@ public class GetPeaksTask implements ScheduledTask
                 }
             }
         }
-        valid = num3Weak == 5 && num4Weak == 5 && num4Strong == 5 && num5 == 10 && num6Weak == 5 && num67 == 15;
+        valid = num3Weak == 5 && num4Weak == 5 && num4Strong == 5 && num5 == 10 && ((num6Weak == 5 && num67 == 15) || (num6Weak == 4 && num67 == 16));
 
         peaks = Arrays.toString(newPeaks.toArray());
         LOG.info(MessageFormatter.format("As of day 3, Peaks: {}, safe? {}", peaks, valid ).getMessage());
 
         if(!valid)
-            LOG.error("Invalid peaks for D3 "+", num3Weak = "+num3Weak+"/5"+", num4Weak = "+num4Weak+"/5"+", num4Strong = "+num4Strong+"/5"+", num5 = "+num5+"/10"+", num6Weak = "+num6Weak+"/5"+", num67 = "+num67+"/15");
+            LOG.error("Invalid peaks for D3 "+", num3Weak = "+num3Weak+"/5"+", num4Weak = "+num4Weak+"/5"+", num4Strong = "+num4Strong+"/5"+", num5 = "+num5+"/10"+", num6Weak = "+num6Weak+"/5?"+", num67 = "+num67+"/15?");
         if (day == 2)
             return valid;
 
