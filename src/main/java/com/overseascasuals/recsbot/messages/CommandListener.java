@@ -67,6 +67,8 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
     public Mono<Message> execute(ChatInputInteractionEvent event) {
         String command = event.getCommandName();
         LOG.info("Processing {} command", command);
+        if(solver.isRunningRecs)
+            return event.reply().withEphemeral(true).then(event.editReply("Recs bot is running recs right now. Please try again in a minute or so!"));
         switch (command) {
             case "set_peak" -> {
                 return processSetPeakCommand(event).then(Mono.defer(() -> deferredPeakResponse(event)));

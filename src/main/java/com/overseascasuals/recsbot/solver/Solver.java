@@ -169,7 +169,7 @@ public class Solver
     private CSVImporter csvImporter;
 
     public boolean hasRunRecs = false;
-
+    public boolean isRunningRecs = false;
     public Solver()
     {
         //objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -193,7 +193,7 @@ public class Solver
     }
     public List<DailyRecommendation> getDailyRecommendations(int week, int day, boolean hardRefresh, List<CraftPeaks> peaks)
     {
-
+        isRunningRecs = true;
         LOG.info("Getting recommendations for week {} day {}, hardrefresh? {}. helper penalty {}", week, day, hardRefresh, helperPenalty);
 
 
@@ -397,6 +397,7 @@ public class Solver
         cachedAltRecs.clear();
 
         hasRunRecs = true;
+        isRunningRecs = false;
         return listOfRecs;
     }
 
