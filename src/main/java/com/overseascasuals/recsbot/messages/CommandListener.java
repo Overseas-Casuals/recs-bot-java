@@ -67,7 +67,11 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         String command = event.getCommandName();
         LOG.info("Processing {} command", command);
         if(solver.isRunningRecs)
+        {
+            LOG.info("Telling them to chill for a sec");
             return event.deferReply().withEphemeral(true).then(event.editReply("Recs bot is running recs right now. Please try again in a minute or so!"));
+        }
+
         switch (command) {
             case "set_peak" -> {
                 return processSetPeakCommand(event).then(Mono.defer(() -> deferredPeakResponse(event)));
@@ -94,6 +98,8 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredPushPeaks(event)));
             }
         }
+
+        LOG.info("Unknown command???");
         return event.deferReply().withEphemeral(true)
                 .then(event.editReply("Command "+event.getCommandName()+" not recognized"));
     }
@@ -259,16 +265,17 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             solver.getDailyRecommendations(week, day, true);
         }
 
-        var recs = solver.getVacationRecs(rank);
+        var recs = solver.getVacationRecs(Math.min(maxIslandRank,rank));
 
         if(recs == null || recs.size() < 5)
         {
-          if(rank >=9 && rank <=11)
+          if(rank >=9 && rank <= maxIslandRank)
               return event.editReply("No vacation recs returned. <@"+miennaID+">");
           else
               return event.editReply("No vacation recs available for rank "+rank);
         }
 
+        LOG.info("Returning next week from cache");
 
         var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs, rank);
 

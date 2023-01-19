@@ -1146,7 +1146,11 @@ public class Solver
         LOG.info("Last day (hours) calculated: {} ({}). Searching for {} ({})", this.day, hoursLeftInDay.get(rank), day, hoursLeft);
 
         if(day == this.day && hoursLeftInDay.containsKey(rank) && hoursLeftInDay.get(rank) == hoursLeft)
+        {
+            LOG.info("Returning rest of day recs from cache");
             return restOfDay.get(rank);
+        }
+
 
         LOG.info("Recalculating today's recs");
 
@@ -1202,7 +1206,11 @@ public class Solver
     public List<List<Item>> getRestOfWeekRecs(int rank)
     {
         if(restOfWeek.containsKey(rank))
+        {
+            LOG.info("Returning rest of week from cache");
             return restOfWeek.get(rank);
+        }
+
 
         Map<Item,Integer> reservedSet = new HashMap<>();
         var restOfWeekRank = new ArrayList<List<Item>>();
