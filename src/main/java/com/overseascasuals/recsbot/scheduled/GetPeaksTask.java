@@ -478,7 +478,10 @@ public class GetPeaksTask implements ScheduledTask
                 }
             }
         }
-        valid = num5Weak == 5 && num5Strong == 5 && num6Weak == 5 && num6Strong == 5 && num7Weak == 5 && num7Strong == 5;
+        valid = num5Weak == 5 && num5Strong == 5;// && num6Weak == 5 && num6Strong == 5 && num7Weak == 5 && num7Strong == 5;
+        LOG.info("Peaks for D4 "+", num5Weak = "+num5Weak+"/5"+", num5Strong = "+num5Strong+"/5"
+                +", num6Weak = "+num6Weak+"/5?"+", num6Strong = "+num6Strong+"/5?"+", num7Weak = "+num7Weak+"/5?"
+                +", num7Strong = "+num7Strong+"/5?");
 
         peaks = Arrays.toString(newPeaks.toArray());
         LOG.info(MessageFormatter.format("As of day 4, Peaks: {}, safe? {}", peaks, valid ).getMessage());
