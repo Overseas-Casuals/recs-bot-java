@@ -313,7 +313,7 @@ public class Solver
         {
             populateReservedItems(day);
 
-            for(int rank = 10; rank < 12; rank++)
+            for(int rank = 11; rank < 12; rank++)
             {
                 List<Item> currentCrafts = craftRepository.findCraftsByDay(week, day, rank).getCrafts();
                 if(currentCrafts == null || currentCrafts.size() == 0)
@@ -363,7 +363,7 @@ public class Solver
 
         populateReservedItems(day+1);
         int dayToSolve = day+1;
-        for(int rank = 10; rank < 12; rank++)
+        for(int rank = 11; rank < 12; rank++)
         {
             groove = startingGroovePerDay.get(dayToSolve);
             if(day < 3)
@@ -523,8 +523,8 @@ public class Solver
         addCraftedFromCycle(3, crime3, maxIslandRank, false);
 
         List<List<DailyRecommendation>> crimeRecs = new ArrayList<>();
-        for(int rank = 10; rank <12; rank++)
-            crimeRecs.add(getLateDays(rank, null));
+        for(int rank = 11; rank <12; rank++)
+            crimeRecs.add(getLateDays(rank, null, 30));
         rested = oldRested;
         isRunningRecs = false;
         return crimeRecs;
@@ -798,8 +798,14 @@ public class Solver
     }
     public List<DailyRecommendation> getLateDays(int rank, Map<Item, Integer> limitedUse)
     {
+        return getLateDays(rank, limitedUse, -1);
+    }
+    public List<DailyRecommendation> getLateDays(int rank, Map<Item, Integer> limitedUse, int startingGroove)
+    {
         List<DailyRecommendation> recommendations = new ArrayList<>();
-        int startingGroove = startingGroovePerDay.get(4);
+
+        if(startingGroove == -1)
+            startingGroove = startingGroovePerDay.get(4);
         var cycle5Sched = getBestBruteForceSchedules(4, startingGroove, limitedUse, 6, alternatives, rank);
         var cycle6Sched = getBestBruteForceSchedules(5, startingGroove, limitedUse, 6, alternatives, rank);
         var cycle7Sched = getBestBruteForceSchedules(6, startingGroove, limitedUse, 6, alternatives, rank);
@@ -846,7 +852,8 @@ public class Solver
                 }
                 else
                 {
-                    addRestToList(cycle6Sched, 5, rank, recommendations);
+                    var newLimited = cycle7Sched.get(0).getKey().getLimitedUses(limitedUse);
+                    addRestToList(getBestBruteForceSchedules(5, startingGroove, newLimited, 6, alternatives, rank), 5, rank, recommendations);
                     addDailyRecToList(cycle7Sched, 6, startingGroove, rank, recommendations);
                 }
             }
@@ -888,11 +895,12 @@ public class Solver
                 if(cycle5Sched.get(0).getValue().getWeighted() > cycle6Sched.get(0).getValue().getWeighted())
                 {
                     addDailyRecToList(cycle5Sched, 4, startingGroove, rank, recommendations);
-                    addRestToList(cycle6Sched, 5, rank, recommendations);
+                    addRestToList(getBestBruteForceSchedules(5, startingGroove, reserved7Set, 6, alternatives, rank), 5, rank, recommendations);
                 }
                 else
                 {
-                    addRestToList(cycle5Sched, 4, rank, recommendations);
+                    var newLimited = cycle6Sched.get(0).getKey().getLimitedUses(reserved7Set);
+                    addRestToList(getBestBruteForceSchedules(4, startingGroove, newLimited, 6, alternatives, rank), 4, rank, recommendations);
                     addDailyRecToList(cycle6Sched, 5, startingGroove, rank, recommendations);
                 }
             }
@@ -991,17 +999,20 @@ public class Solver
                 {
                     addDailyRecToList(recalcedCycle5Sched, 4, startingGroove, rank, recommendations);
                     addDailyRecToList(getBestBruteForceSchedules(5, groove, limitedUse, 6, alternatives, rank), 5, groove, rank, recommendations);
-                    addRestToList(recalcedCycle7Sched, 6, rank, recommendations);
+                    addRestToList(getBestBruteForceSchedules(6, groove, limitedUse, 6, alternatives, rank), 6, rank, recommendations);
                 }
                 else
                 {
-                    addRestToList(recalcedCycle5Sched, 4, rank, recommendations);
                     if(bestOverall == best67Combo)
                     {
+                        var newLimited = cycle6Sched.get(0).getKey().getLimitedUses(limitedUse);
+                        addRestToList(getBestBruteForceSchedules(4, startingGroove, newLimited, 5, alternatives, rank), 4, rank, recommendations);
                         addDailyRecToList(cycle6Sched, 5, startingGroove, rank, recommendations);
                     }
                     else
                     {
+                        var newLimited = onlyCycle6Sched.get(0).getKey().getLimitedUses(limitedUse);
+                        addRestToList(getBestBruteForceSchedules(4, startingGroove, newLimited, 5, alternatives, rank), 4, rank, recommendations);
                         addDailyRecToList(onlyCycle6Sched, 5, startingGroove, rank, recommendations);
                     }
                     addDailyRecToList(getBestBruteForceSchedules(6, groove, limitedUse, 6, alternatives, rank), 6, groove, rank, recommendations);
@@ -1368,7 +1379,7 @@ public class Solver
 
         Map<Integer, Integer> rankToBest = new HashMap<>();
 
-        for(int rank = 9; rank < 12; rank++)
+        for(int rank = 11; rank < 12; rank++)
         {
             var schedule = getBestSchedule(1, 0, null, rank);
             int value = 0;
@@ -1393,7 +1404,7 @@ public class Solver
                     c2Unknowns.get(i).peak = Cycle2Weak;
             }
 
-            for(int rank = 9; rank < 12; rank++)
+            for(int rank = 11; rank < 12; rank++)
             {
                 var schedule = getBestSchedule(1, 0, null, rank);
                 int value = 0;
