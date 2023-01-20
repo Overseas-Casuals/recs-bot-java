@@ -159,6 +159,8 @@ public class Solver
     private final Map<Integer, List<Entry<WorkshopSchedule, WorkshopValue>>> restOfDay = new HashMap<>();
     private final Map<Integer, Integer> hoursLeftInDay = new HashMap<>();
     private final Map<String, List<DailyRecommendation>> cachedAltRecs = new HashMap<>();
+    public final List<List<DailyRecommendation>> crimeTimeRecs = new ArrayList<>();
+
 
     private boolean autocompletePeaks = false;
 
@@ -226,6 +228,7 @@ public class Solver
             confirmedD2Weak = 0;
             confirmedD2Strong = 0;
             vacationRecs.clear();
+            crimeTimeRecs.clear();
 
             int currentPop = generateVacationRecs(week);
 
@@ -301,7 +304,6 @@ public class Solver
             {
                 items[i].peak = peaks.get(i).getPeakEnum();
                 LOG.info("Setting item {} to ratio {} and peak {}", items[i].item, items[i].popularityRatio, items[i].peak);
-
             }
             this.day = day;
         }
@@ -394,6 +396,8 @@ public class Solver
             }
             else
             {
+                generateCrimeTimeRecs();
+                setCraftedFromHistory();
                 //Try days 5-7
                 listOfRecs = getLateDays(rank, null);
                 for(var rec : listOfRecs)
@@ -411,6 +415,35 @@ public class Solver
         hasRunRecs = true;
         isRunningRecs = false;
         return listOfRecs;
+    }
+
+    private void setCraftedFromHistory()
+    {
+        for(int i=1; i<=day; i++)
+        {
+            CycleCraft crafts = craftRepository.findCraftsByDay(week, i, maxIslandRank);
+            if(crafts == null)
+                continue;
+
+            if(crafts.getCraft1() != null && !crafts.getCraft1().isEmpty())
+            {
+                List<ItemInfo> todaysItems = new ArrayList<>();
+                var craftsAsItems = crafts.getCrafts();
+                for(int c=0; c<craftsAsItems.size(); c++)
+                {
+                    Item item = craftsAsItems.get(c);
+                    ItemInfo itemInfo = items[item.ordinal()];
+                    todaysItems.add(itemInfo);
+                    int numToAdd = NUM_WORKSHOPS;
+                    if(c>0 && itemInfo.getsEfficiencyBonus(todaysItems.get(c-1)))
+                    {
+                        numToAdd = NUM_WORKSHOPS * 2;
+                    }
+
+                    itemInfo.setCrafted(numToAdd + itemInfo.getCraftedOnDay(i), i);
+                }
+            }
+        }
     }
 
     private String getKeyForAltRequest(int dayToSolve, int rank, List<Item> items)
@@ -503,9 +536,21 @@ public class Solver
         return recs;
     }
 
-    public List<List<DailyRecommendation>> getCrimeTimeRecs()
+    private void clearLateDayUsage()
     {
-        isRunningRecs = true;
+        for(ItemInfo item : items)
+        {
+            item.clearCrafted(4);
+            item.clearCrafted(5);
+            item.clearCrafted(6);
+        }
+    }
+
+    public void generateCrimeTimeRecs()
+    {
+        List<int[]> crafted = new ArrayList<>();
+        for(var item : items)
+            crafted.add(item.craftedPerDay);
         int oldRested = rested;
         rested = 2;
         List<Item> crimeCrafts = Arrays.asList(BoiledEgg, BakedPumpkin, ParsnipSalad, GrilledClam, SquidInk, TomatoRelish);
@@ -522,12 +567,10 @@ public class Solver
         crime3.setForAllWorkshops(crimeCrafts);
         addCraftedFromCycle(3, crime3, maxIslandRank, false);
 
-        List<List<DailyRecommendation>> crimeRecs = new ArrayList<>();
+        crimeTimeRecs.clear();
         for(int rank = 11; rank <12; rank++)
-            crimeRecs.add(getLateDays(rank, null, 30));
+            crimeTimeRecs.add(getLateDays(rank, null, 30));
         rested = oldRested;
-        isRunningRecs = false;
-        return crimeRecs;
     }
     public void setScheduleCommand(int day, int rank, List<Item> newItems)
     {
@@ -802,6 +845,7 @@ public class Solver
     }
     public List<DailyRecommendation> getLateDays(int rank, Map<Item, Integer> limitedUse, int startingGroove)
     {
+        clearLateDayUsage();
         List<DailyRecommendation> recommendations = new ArrayList<>();
 
         if(startingGroove == -1)

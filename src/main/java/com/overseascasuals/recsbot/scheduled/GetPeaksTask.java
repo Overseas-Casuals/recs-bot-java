@@ -238,7 +238,7 @@ public class GetPeaksTask implements ScheduledTask
 
                 if(recDay == 3)
                 {
-                    var crimes = solver.getCrimeTimeRecs();
+                    var crimes = solver.crimeTimeRecs;
                     for(var crime : crimes)
                         channel.createMessage(OCUtils.generateCrimeTimeEmbed(week, crime)).flatMap(Message::publish).subscribe();
                 }
