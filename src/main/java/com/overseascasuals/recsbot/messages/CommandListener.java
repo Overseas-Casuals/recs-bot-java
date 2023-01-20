@@ -219,7 +219,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             {
                 String itemName = event.getOption("craft_"+i).flatMap(ApplicationCommandInteractionOption::getValue)
                         .map(ApplicationCommandInteractionOptionValue::asString)
-                        .get();
+                        .get().replace(" ","");
                 try
                 {
                     items.add(Item.valueOf(itemName));
@@ -408,7 +408,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             {
                 String itemName = event.getOption("nocraft"+i).flatMap(ApplicationCommandInteractionOption::getValue)
                         .map(ApplicationCommandInteractionOptionValue::asString)
-                        .get();
+                        .get().replace(" ","");;
                 try
                 {
                     items.add(Item.valueOf(itemName));
