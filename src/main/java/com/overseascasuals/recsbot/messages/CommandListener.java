@@ -476,6 +476,8 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             if(rec != null)
                 embeds.add(OCUtils.getGeneralRecEmbed(week, rec.withRank(rank)));
         }
+        if(embeds.size() == 0)
+            return event.editReply("Null recs returned. <@"+miennaID+">");
 
         return event.editReply(content).withEmbedsOrNull(embeds);
     }
