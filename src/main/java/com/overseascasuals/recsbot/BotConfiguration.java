@@ -96,9 +96,9 @@ public class BotConfiguration implements CommandLineRunner
         for(EventListener<T,R> listener : eventListeners)
         {
             //If we handle error actually did anything, we'd want to call it like this:
-            //client.on(listener.getEventType()).flatMap(event -> listener.execute(event).onErrorResume(listener::handleError)).subscribe();
+            client.on(listener.getEventType()).flatMap(event -> listener.execute(event).onErrorResume(listener::handleError)).subscribe();
 
-            client.on(listener.getEventType(), listener::execute).subscribe();
+            //client.on(listener.getEventType(), listener::execute).subscribe();
         }
         LOG.info("Listening to "+eventListeners.size()+" event(s)");
 
