@@ -484,9 +484,9 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         {
             return event.editReply("No alt recs returned. <@"+miennaID+">");
         }
-        else if(day == 4)
+        else if(day == 4 && recs.size() == 3)
         {
-                recs.remove(0);
+            recs.remove(0);
         }
         else if(day != 3 && recs.get(0).isTentative())
         {
