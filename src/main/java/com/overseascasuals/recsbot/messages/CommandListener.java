@@ -66,42 +66,57 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
     public Mono<Message> execute(ChatInputInteractionEvent event) {
         String command = event.getCommandName();
         LOG.info("Processing {} command", command);
-        if(solver.isRunningRecs)
+        try {
+            if (solver.isRunningRecs) {
+                LOG.info("Telling them to chill for a sec");
+                return event.deferReply().withEphemeral(true).then(event.editReply("Recs bot is running recs right now. Please try again in a minute or so!"));
+            }
+
+            switch (command) {
+                case "set_peak" -> {
+                    return processSetPeakCommand(event).then(Mono.defer(() -> deferredPeakResponse(event)));
+                }
+                case "set_schedule" -> {
+                    return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredScheduleResponse(event)));
+                }
+                case "next_week" -> {
+                    return event.deferReply().then(Mono.defer(() -> deferredNextWeekCommand(event)));
+                }
+                case "this_week" -> {
+                    return event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event)));
+                }
+                case "today" -> {
+                    return event.deferReply().then(Mono.defer(() -> deferredTodayCommand(event)));
+                }
+                case "rerun" -> {
+                    return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredRerunCommand(event)));
+                }
+                case "alts" -> {
+                    return event.deferReply().then(Mono.defer(() -> deferredAltsCommand(event)));
+                }
+                case "push_peaks" -> {
+                    return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredPushPeaks(event)));
+                }
+            }
+
+            LOG.info("Unknown command???");
+            return event.deferReply().withEphemeral(true)
+                    .then(event.editReply("Command " + event.getCommandName() + " not recognized"));
+        }
+        catch(Exception e)
         {
-            LOG.info("Telling them to chill for a sec");
-            return event.deferReply().withEphemeral(true).then(event.editReply("Recs bot is running recs right now. Please try again in a minute or so!"));
+            LOG.error("Exception handling /"+command, e);
         }
-
-        switch (command) {
-            case "set_peak" -> {
-                return processSetPeakCommand(event).then(Mono.defer(() -> deferredPeakResponse(event)));
-            }
-            case "set_schedule" -> {
-                return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredScheduleResponse(event)));
-            }
-            case "next_week" -> {
-                return event.deferReply().then(Mono.defer(() -> deferredNextWeekCommand(event)));
-            }
-            case "this_week" -> {
-                return event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event)));
-            }
-            case "today" -> {
-                return event.deferReply().then(Mono.defer(() -> deferredTodayCommand(event)));
-            }
-            case "rerun" -> {
-                return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredRerunCommand(event)));
-            }
-            case "alts" -> {
-                return event.deferReply().then(Mono.defer(() -> deferredAltsCommand(event)));
-            }
-            case "push_peaks" -> {
-                return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredPushPeaks(event)));
-            }
+        try
+        {
+            return event.editReply("Error handling event./"+command+"<@"+miennaID+">");
         }
-
-        LOG.info("Unknown command???");
-        return event.deferReply().withEphemeral(true)
-                .then(event.editReply("Command "+event.getCommandName()+" not recognized"));
+        catch(Exception ex)
+        {
+            LOG.error("Exception editing reply to /"+command, ex);
+        }
+        return event.deferReply()
+                .then(event.editReply("Error handling event./"+command+"<@"+miennaID+">"));
     }
 
     private Mono<Void> processSetPeakCommand(ChatInputInteractionEvent event)
@@ -205,7 +220,9 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
     private InteractionReplyEditMono deferredScheduleResponse(ChatInputInteractionEvent event)
     {
-        List<Item> items = new ArrayList<>();
+        return event.editReply();
+
+        /*List<Item> items = new ArrayList<>();
         int rank = maxIslandRank;
         if(event.getOption("rank").isPresent())
         {
@@ -241,7 +258,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 .get().intValue();
         solver.setScheduleCommand(day, rank, items);
 
-        return event.editReply("Created schedule of "+(items.size() > 0? items : "Rest")+" for cycle "+(day+1));
+        return event.editReply("Created schedule of "+(items.size() > 0? items : "Rest")+" for cycle "+(day+1));*/
     }
 
     private InteractionReplyEditMono deferredNextWeekCommand(ChatInputInteractionEvent event)
@@ -456,8 +473,14 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             content = "Not using "+ items.stream().map(Item::getDisplayName).collect(Collectors.joining(", "));
 
 
-        List<DailyRecommendation> recs = solver.getRecForSingleDay(day+1, rank, items);
-        if(recs == null || recs.size() == 0)
+        List<DailyRecommendation> recs = solver.getRecForSingleDay(day+1, rank, items, false);
+        if(recs == null || recs.size() == 0 || recs.stream().anyMatch(Objects::isNull))
+        {
+            LOG.warn("Null/no recs in cache? Trying again");
+            recs = solver.getRecForSingleDay(day+1, rank, items, true);
+        }
+
+        if(recs == null || recs.size() == 0 || recs.stream().anyMatch(Objects::isNull))
         {
             return event.editReply("No alt recs returned. <@"+miennaID+">");
         }
@@ -473,11 +496,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         List<EmbedCreateSpec> embeds = new ArrayList<>();
         for(var rec : recs)
         {
-            if(rec != null)
-                embeds.add(OCUtils.getGeneralRecEmbed(week, rec.withRank(rank)));
+            embeds.add(OCUtils.getGeneralRecEmbed(week, rec.withRank(rank)));
         }
         if(embeds.size() == 0)
-            return event.editReply("Null recs returned. <@"+miennaID+">");
+            return event.editReply("Null embeds returned. <@"+miennaID+">");
 
         return event.editReply(content).withEmbedsOrNull(embeds);
     }

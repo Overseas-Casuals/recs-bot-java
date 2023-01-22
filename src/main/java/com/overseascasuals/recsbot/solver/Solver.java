@@ -374,7 +374,7 @@ public class Solver
                 if(rested == dayToSolve)
                     rested = -1;
 
-                var recs = getRecForSingleDay(dayToSolve, rank, null);
+                var recs = getRecForSingleDay(dayToSolve, rank, null, true);
 
                 if(recs == null || recs.size() == 0 || recs.get(0) == null)
                 {
@@ -460,10 +460,10 @@ public class Solver
         return key;
     }
 
-    public List<DailyRecommendation> getRecForSingleDay(int dayToSolve, int rank, List<Item> limitedItems)
+    public List<DailyRecommendation> getRecForSingleDay(int dayToSolve, int rank, List<Item> limitedItems, boolean force)
     {
         String cacheKey = getKeyForAltRequest(dayToSolve, rank, limitedItems);
-        if(cachedAltRecs.containsKey(cacheKey))
+        if(!force && cachedAltRecs.containsKey(cacheKey))
         {
             LOG.info("Found key {} in cache, returning", cacheKey);
             return cachedAltRecs.get(cacheKey);
