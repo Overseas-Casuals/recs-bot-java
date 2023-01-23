@@ -313,7 +313,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
         if(day==6)
-            return event.editReply("It's cycle 7 so this week is over.");
+            return event.editReply("It's Cycle 7 so this week is over.");
         else if(day >= 3)
             return deferredAltsCommand(event);
 
