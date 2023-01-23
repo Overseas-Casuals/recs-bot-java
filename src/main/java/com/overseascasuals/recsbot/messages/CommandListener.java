@@ -220,9 +220,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
     private InteractionReplyEditMono deferredScheduleResponse(ChatInputInteractionEvent event)
     {
-        return event.editReply();
-
-        /*List<Item> items = new ArrayList<>();
+        List<Item> items = new ArrayList<>();
         int rank = maxIslandRank;
         if(event.getOption("rank").isPresent())
         {
@@ -258,7 +256,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 .get().intValue();
         solver.setScheduleCommand(day, rank, items);
 
-        return event.editReply("Created schedule of "+(items.size() > 0? items : "Rest")+" for cycle "+(day+1));*/
+        return event.editReply("Created schedule of "+(items.size() > 0? items : "Rest")+" for cycle "+(day+1));
     }
 
     private InteractionReplyEditMono deferredNextWeekCommand(ChatInputInteractionEvent event)
