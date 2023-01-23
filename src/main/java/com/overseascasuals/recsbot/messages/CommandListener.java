@@ -292,15 +292,15 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                     .map(ApplicationCommandInteractionOptionValue::asLong).get());
         }
 
-
-
         var d1 = new Date(1661241600000L);
         var d2 = new Date();
 
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
-        if(day >= 3)
-            return event.editReply("Rest of week already known. See <#"+recsChannelID+">");
+        if(day==6)
+            return event.editReply("It's cycle 7 so this week is over.");
+        else if(day >= 3)
+            return deferredAltsCommand(event);
 
         if(!solver.hasRunRecs)
         {
@@ -343,8 +343,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
 
-        //If we don't have this, it's because we haven't run recs at all
-        //So run recs to get things all set up
         if(!solver.hasRunRecs)
         {
             LOG.info("Haven't run recs yet. Doing so now.");
@@ -371,7 +369,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
 
-        LOG.info("Reruning recs for today");
+        LOG.info("Rerunning recs for today");
         var recs = solver.getDailyRecommendations(week, day, true);
 
         if(recs== null || recs.size() == 0)
@@ -438,7 +436,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
 
         if(day == 6)
-            return event.editReply("Rest C1");
+            return event.editReply("It's Cycle 7! Set Cycle 1 of next season to rest, like always.");
 
         if(rank >= maxIslandRank && items.size() == 0)
             return event.editReply("See <#"+recsChannelID+">");
