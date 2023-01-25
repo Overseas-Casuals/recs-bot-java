@@ -454,7 +454,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             return event.editReply("It's Cycle 7! Set Cycle 1 of next season to rest, like always.");
 
         if(rank >= maxIslandRank && items.size() == 0)
-            return event.editReply("See <#"+recsChannelID+">");
+            return event.editReply("You need to specify a rank below max or at least one item you can't craft! Otherwise, see <#"+recsChannelID+">");
 
         //If we don't have this, it's because we haven't run recs at all
         //So run recs to get things all set up
