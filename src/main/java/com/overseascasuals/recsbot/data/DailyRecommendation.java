@@ -16,6 +16,9 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
     Set<Item> troublemakers;
     Set<Item> bystanders;
     int day;
+    CycleSchedule oldRec;
+    WorkshopValue oldValue;
+    int oldGroovelessValue;
 
 
     public DailyRecommendation(int day, int rank, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs)
@@ -39,6 +42,25 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         groovelessValue = bestRec.getValue();
         bestRec.setStartingGroove(startingGroove);
         dailyValue = bestRec.getValue();
+    }
+
+    public DailyRecommendation(int day, int rank, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs, CycleSchedule bestRec, CycleSchedule oldRec, WorkshopValue oldValue)
+    {
+        super(recs);
+        this.maxRank = rank;
+        this.day = day;
+        restRecommended = false;
+        this.bestRec = bestRec;
+        int startingGroove = bestRec.getStartingGroove();
+        bestRec.setStartingGroove(0);
+        groovelessValue = bestRec.getValue();
+        bestRec.setStartingGroove(startingGroove);
+        dailyValue = bestRec.getValue();
+        this.oldRec = oldRec;
+        oldRec.setStartingGroove(0);
+        oldGroovelessValue = oldRec.getValue();
+        oldRec.setStartingGroove(startingGroove);
+        this.oldValue = oldValue;
     }
 
     public DailyRecommendation withRank(int rank)
@@ -103,6 +125,20 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
     public String prettyPrint(Map.Entry<WorkshopSchedule, WorkshopValue> rec)
     {
         return rec.getKey() +"\tGross: "+rec.getValue().getGross()+"\tNet: "+rec.getValue().getNet()+"\tGroove bonus: "+rec.getValue().getGroove()+"\tPenalty: "+rec.getValue().getPenalty()+"\tPeak bonus: "+rec.getValue().getPeakBonus()+" Total: "+rec.getValue().getWeighted();
+    }
+
+    public CycleSchedule getOldRec()
+    {
+        return oldRec;
+    }
+    public WorkshopValue getOldValue()
+    {
+        return oldValue;
+    }
+
+    public int getOldGrooveless()
+    {
+        return oldGroovelessValue;
     }
 
     @Override

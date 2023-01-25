@@ -351,7 +351,7 @@ public class BotConfiguration implements CommandLineRunner
         //solver.getRestOfDayRecs(2, 2, 11);
         //solver.getRestOfDayRecs(2, 22, 11);
         Map<Item, Integer> limited = new HashMap<>();
-        solver.getLateDays(8, limited);
+        //solver.getLateDays(8, limited);
 
     }
 }

@@ -350,9 +350,11 @@ public class Solver
                     LOG.info("Schedule updated detected for day {}! Now crafting {}", day+1,
                             Arrays.toString(newBest.get(0).getKey().getItems().toArray()));
 
+                    CycleSchedule oldSched = new CycleSchedule(day, startingGroove);
                     CycleSchedule newSched = new CycleSchedule(day, startingGroove);
                     newSched.setForAllWorkshops(newCrafts);
-                    listOfRecs.add(new DailyRecommendation(day, rank, newBest, newSched));
+                    oldSched.setForAllWorkshops(currentCrafts);
+                    listOfRecs.add(new DailyRecommendation(day, rank, newBest, newSched, oldSched, oldValue));
                     addCraftedFromCycle(day, newSched, rank, true);
                 }
                 else if(newValue < oldValue.getWeighted())

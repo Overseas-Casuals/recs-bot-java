@@ -89,7 +89,7 @@ public class OCUtils
 
             String title = "Main Recommendation";
             builder.color(Color.SEA_GREEN);
-            if(rec.size() == 1)
+            if(rec.getOldRec() != null)
             {
                 builder.title("Cycle "+(rec.getDay()+1)+" Update!").color(Color.MOON_YELLOW);
                 title = "Updated Recommendation";
@@ -97,15 +97,30 @@ public class OCUtils
 
 
             builder.addField(title, rec.getBestRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")), false)
-                    .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
-                    .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", String.valueOf(rec.getDailyValue()), true);
+                    .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true);
+
+            if(rec.getBestRec().getStartingGroove() != 0)
+                    builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", String.valueOf(rec.getDailyValue()), true);
 
             if(rec.get(0).getValue().getGroove() > 0)
                 builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
+
+            if(rec.getOldRec() != null)
+            {
+
+                builder.addField("Original Recommendation", rec.getOldRec().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - ")), false)
+                        .addField("Grooveless Value", String.valueOf(rec.getOldGrooveless()), true);
+
+                if(rec.getBestRec().getStartingGroove() != 0)
+                        builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", String.valueOf(rec.getOldRec().getValue()), true);
+
+                if(rec.getOldValue().getGroove() > 0)
+                    builder.addField("Estimated Bonus", String.valueOf(rec.getOldValue().getGroove() * 3), true);
+            }
         }
 
 
-        if(rec.size() > 1)
+        if(rec.size() > 1 && rec.getOldRec() == null)
         {
             //Add alts also
             builder.addField("\u200B", "\u200B", false);
