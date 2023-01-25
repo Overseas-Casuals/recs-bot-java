@@ -1200,6 +1200,8 @@ public class Solver
 
     public List<Entry<WorkshopSchedule, WorkshopValue>> getRestOfDayRecs(int day, int hoursLeft, int rank)
     {
+        if(rank > maxIslandRank)
+            rank = maxIslandRank;
         LOG.info("Last day (hours) calculated: {} ({}). Searching for {} ({})", this.day, hoursLeftInDay.get(rank), day, hoursLeft);
 
         if(day == this.day && hoursLeftInDay.containsKey(rank) && hoursLeftInDay.get(rank) == hoursLeft)
@@ -1229,8 +1231,14 @@ public class Solver
             var futureCrafts = craftRepository.findCraftsByDay(week, i, rank);
             if(futureCrafts == null)
             {
-                lastDaySet = i-1;
-                break;
+                if(rank != maxIslandRank)
+                    futureCrafts = craftRepository.findCraftsByDay(week, i, maxIslandRank);
+
+                if(futureCrafts == null)
+                {
+                    lastDaySet = i-1;
+                    break;
+                }
             }
             var crafts = futureCrafts.getCrafts();
             LOG.info("Reserving future crafts for day {}: {}", i+1, crafts);
