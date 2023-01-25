@@ -124,7 +124,7 @@ public class GetPeaksTask implements ScheduledTask
             String response = null;
 
             int peakday = Math.min(recDay, 3);
-            var peaksByDay = peakRepository.findPeaksByDay(week, peakday);
+            List<CraftPeaks> peaksByDay = peakRepository.findPeaksByDay(week, peakday);
             if(peaksByDay != null && peaksByDay.size() > 0)
             {
                 LOG.info("Peaks for day {} already found. Skipping grabbing from TC.", peakday+1);
@@ -167,7 +167,6 @@ public class GetPeaksTask implements ScheduledTask
                 }
                 else
                     LOG.error("TC days is null");
-
             }
 
 
@@ -243,7 +242,6 @@ public class GetPeaksTask implements ScheduledTask
                         channel.createMessage(OCUtils.generateCrimeTimeEmbed(week, crime)).flatMap(Message::publish).subscribe();
                 }
             }
-
         }
     }
 
@@ -330,6 +328,7 @@ public class GetPeaksTask implements ScheduledTask
 
         String peaks = Arrays.toString(newPeaks.toArray());
         LOG.info(MessageFormatter.format("As of day 1, Peaks: {}, safe? {}", peaks, true ).getMessage());
+        LOG.info("Peaks for D1: num2Strong = {}/5?, num2Weak= {}/5?", num2Strong, num2Weak);
         if (day == 0)
             return true;
 
@@ -375,12 +374,11 @@ public class GetPeaksTask implements ScheduledTask
             }
         }
 
-        valid = num2Strong == 5 && num2Weak == 5 && num3Strong == 5 && num3Weak == 0 && num45 == 20 && num67 == 25;
+        valid = num2Strong >= 4 && num2Weak >= 4 && num3Strong >= 4 && num3Weak == 0 && num45 >= 19 && num67 >= 24;
 
         peaks = Arrays.toString(newPeaks.toArray());
         LOG.info(MessageFormatter.format("As of day 2, Peaks: {}, safe? {}", peaks, valid ).getMessage());
-        if(!valid)
-            LOG.error("Invalid peaks for D2 "+", num2Strong = "+num2Strong+"/5"+", num2Weak = "+num2Weak+"/5"+", num3Strong = "+num3Strong+"/5"+", num3Weak = "+num3Weak+"/5"+", num45 = "+num45+"/20"+", num67 = "+num67+"/20");
+        LOG.info("Peaks for D2 "+", num2Strong = "+num2Strong+"/5?"+", num2Weak = "+num2Weak+"/5?"+", num3Strong = "+num3Strong+"/5?"+", num3Weak = "+num3Weak+"/5?"+", num45 = "+num45+"/20?"+", num67 = "+num67+"/20?");
         if (day == 1)
             return valid;
 
@@ -427,13 +425,12 @@ public class GetPeaksTask implements ScheduledTask
                 }
             }
         }
-        valid = num3Weak == 5 && num4Weak == 5 && num4Strong == 5 && num5 == 10 && ((num6Weak == 5 && num67 == 15) || (num6Weak == 4 && num67 == 16));
+        valid = num3Weak >= 4 && num4Weak >= 4 && num4Strong >= 4 && num5 >= 9 && num6Weak >= 4 && num67 >= 14;
 
         peaks = Arrays.toString(newPeaks.toArray());
         LOG.info(MessageFormatter.format("As of day 3, Peaks: {}, safe? {}", peaks, valid ).getMessage());
 
-        if(!valid)
-            LOG.error("Invalid peaks for D3 "+", num3Weak = "+num3Weak+"/5"+", num4Weak = "+num4Weak+"/5"+", num4Strong = "+num4Strong+"/5"+", num5 = "+num5+"/10"+", num6Weak = "+num6Weak+"/5?"+", num67 = "+num67+"/15?");
+        LOG.info("Peaks for D3 "+", num3Weak = "+num3Weak+"/5?"+", num4Weak = "+num4Weak+"/5?"+", num4Strong = "+num4Strong+"/5?"+", num5 = "+num5+"/10?"+", num6Weak = "+num6Weak+"/5?"+", num67 = "+num67+"/15?");
         if (day == 2)
             return valid;
 
@@ -478,18 +475,13 @@ public class GetPeaksTask implements ScheduledTask
                 }
             }
         }
-        valid = num5Weak == 5 && num5Strong == 5;// && num6Weak == 5 && num6Strong == 5 && num7Weak == 5 && num7Strong == 5;
-        LOG.info("Peaks for D4 "+", num5Weak = "+num5Weak+"/5"+", num5Strong = "+num5Strong+"/5"
-                +", num6Weak = "+num6Weak+"/5?"+", num6Strong = "+num6Strong+"/5?"+", num7Weak = "+num7Weak+"/5?"
-                +", num7Strong = "+num7Strong+"/5?");
-
+        valid = num5Weak >= 4 && num5Strong >= 4 && num6Weak >= 4 && num6Strong >= 4 && num7Weak >= 4 && num7Strong >= 4;
         peaks = Arrays.toString(newPeaks.toArray());
         LOG.info(MessageFormatter.format("As of day 4, Peaks: {}, safe? {}", peaks, valid ).getMessage());
 
-        if(!valid)
-            LOG.error("Invalid peaks for D4 "+", num5Weak = "+num5Weak+"/5"+", num5Strong = "+num5Strong+"/5"
-                    +", num6Weak = "+num6Weak+"/5"+", num6Strong = "+num6Strong+"/5"+", num7Weak = "+num7Weak+"/5"
-                    +", num7Strong = "+num7Strong+"/5");
+        LOG.info("Peaks for D4 "+", num5Weak = "+num5Weak+"/5?"+", num5Strong = "+num5Strong+"/5?"
+                    +", num6Weak = "+num6Weak+"/5?"+", num6Strong = "+num6Strong+"/5?"+", num7Weak = "+num7Weak+"/5?"
+                    +", num7Strong = "+num7Strong+"/5?");
         return valid;
     }
 }
