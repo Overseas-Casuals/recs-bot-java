@@ -1270,6 +1270,9 @@ public class Solver
 
     public List<List<Item>> getRestOfWeekRecs(int rank)
     {
+        if(rank > maxIslandRank)
+            rank = maxIslandRank;
+
         if(restOfWeek.containsKey(rank))
         {
             LOG.info("Returning rest of week from cache");
