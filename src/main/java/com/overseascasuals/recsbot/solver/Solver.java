@@ -330,7 +330,7 @@ public class Solver
                 LOG.info("Rechecking day {}'s rank {} recs starting at {} groove with craft {}", day+1, rank, startingGroove, currentCrafts.get(0));
 
 
-                WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, startingGroove, rested>=0, reservedHelpers);
+                WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, startingGroove, restedAlready(), reservedHelpers);
                 var newBest = getBestBruteForceSchedules(day, startingGroove,
                         null, day, 1, currentCrafts.get(0), 24, rank);
 
@@ -419,6 +419,11 @@ public class Solver
         return listOfRecs;
     }
 
+    private boolean restedAlready()
+    {
+        return rested >0 && rested <= day;
+    }
+
     private void setCraftedFromHistory()
     {
         for(int i=1; i<=day; i++)
@@ -494,7 +499,7 @@ public class Solver
             CycleSchedule schedule = new CycleSchedule(dayToSolve, startingGroovePerDay.get(dayToSolve));
             schedule.setForAllWorkshops(bestSchedule.getKey().getItems());
 
-            if(rested < 0) //If we haven't already rested, check to see if we should now
+            if(!restedAlready()) //If we haven't already rested, check to see if we should now
             {
                 if(day < 2 && isWorseThanAllFollowing(bestSchedule, dayToSolve, false, rank, limitedUse))
                     shouldRest = true;
@@ -888,7 +893,7 @@ public class Solver
             cycle6Sched = getBestBruteForceSchedules(5, startingGroove, limitedUse, 6, alternatives, rank);
             cycle7Sched = getBestBruteForceSchedules(6, startingGroove, limitedUse, 6, alternatives, rank);
 
-            if(rested == -1)
+            if(rested < 0 || rested >= 4)
             {
                 //Haven't rested, need to pick 5 or 7
                 if(cycle6Sched.get(0).getValue().getWeighted() > cycle7Sched.get(0).getValue().getWeighted())
@@ -933,7 +938,7 @@ public class Solver
             //System.out.println("Day 7 is best");
             Map<Item,Integer> reserved7Set = cycle7Sched.get(0).getKey().getLimitedUses(limitedUse);
 
-            if(rested == -1)//We only care about one of 5 or 6
+            if(rested < 0 || rested >= 4)//We only care about one of 5 or 6
             {
                 cycle5Sched = getBestBruteForceSchedules(4, startingGroove, reserved7Set, 6, alternatives, rank);
                 cycle6Sched = getBestBruteForceSchedules(5, startingGroove, reserved7Set, 6, alternatives, rank);
@@ -1033,7 +1038,7 @@ public class Solver
             var onlyCycle5Sched = getBestBruteForceSchedules(4, startingGroove,
                     reservedOnly6, 5, alternatives, rank);
 
-            if(rested == -1)
+            if(rested < 0 || rested >= 4)
             {
                 //We only care about either 5 or 7, not both
                 int best56Combo = cycle6Sched.get(0).getValue().getWeighted() + recalcedCycle5Sched.get(0).getValue().getWeighted();
@@ -1180,7 +1185,7 @@ public class Solver
                     c5Peaks.get(i).peak = Cycle5Weak;
             }
 
-            int toAdd = solution.getKey().getValueWithGrooveEstimate(4, groove, rested >= 0, reservedHelpers).getWeighted();
+            int toAdd = solution.getKey().getValueWithGrooveEstimate(4, groove, restedAlready(), reservedHelpers).getWeighted();
             LOG.trace("Permutation " + p + " has value " + toAdd);
             sum += toAdd;
         }
@@ -1310,7 +1315,7 @@ public class Solver
 
         if(rested == -1 && worstIndex>=0)
         {
-            //If we haven't rested, rest the worst day
+            //If we haven't rested or scheduled to rest, rest the worst day
             restOfWeekRank.remove(worstIndex);
             restOfWeekRank.add(worstIndex, new ArrayList<>());
         }
@@ -1672,7 +1677,7 @@ public class Solver
             return;
         }
 
-        WorkshopValue value = workshop.getValueWithGrooveEstimate(day, groove, rested >= 0, reservedHelpers);
+        WorkshopValue value = workshop.getValueWithGrooveEstimate(day, groove, restedAlready(), reservedHelpers);
 
         if(verboseSolverLogging)
             LOG.info("Schedule has value {}", value.getWeighted());
