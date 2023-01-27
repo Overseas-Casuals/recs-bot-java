@@ -543,14 +543,18 @@ public class Solver
         return recs;
     }
 
-    private void clearLateDayUsage()
+    private void clearDayUsage(List<Integer> days)
     {
         for(ItemInfo item : items)
         {
-            item.clearCrafted(4);
-            item.clearCrafted(5);
-            item.clearCrafted(6);
+            for(Integer day : days)
+                item.clearCrafted(day);
         }
+    }
+
+    private void clearLateDayUsage()
+    {
+        clearDayUsage(List.of(4,5,6));
     }
 
     public void generateCrimeTimeRecs()
@@ -850,6 +854,59 @@ public class Solver
     {
         return getLateDays(rank, limitedUse, -1);
     }
+
+    /*public List<DailyRecommendation> getBestLateDays(int rank, Map<Item, Integer> limitedUse, List<Integer> daysToTest, int startingGroove, int daySet, WorkshopSchedule itemsSet)
+    {
+        LOG.info("Getting best late days for days {}. Previous day set: {}", daysToTest, daySet);
+        List<DailyRecommendation> recommendations = null;
+
+        for(Integer bestDay : daysToTest)
+        {
+            clearDayUsage(daysToTest);
+            groove = startingGroove;
+            Map<Item, Integer> realLimited = limitedUse;
+            if(daySet > bestDay)
+                realLimited = itemsSet.getLimitedUses(limitedUse);
+            List<DailyRecommendation> basedOnSingle = new ArrayList<>();
+            LOG.info("Getting best schedule for best day {} and groove {}. Limited items: {}", bestDay,startingGroove, realLimited);
+            var sched = getBestBruteForceSchedules(bestDay, startingGroove, realLimited, Math.min(6,bestDay + 1), alternatives, rank);
+            addDailyRecToList(sched, bestDay, startingGroove, rank, basedOnSingle);
+            List<Integer> newDays = new ArrayList<>();
+            for(int day : daysToTest)
+                if(day != bestDay)
+                    newDays.add(day);
+            if(newDays.size() > 1)
+            {
+                LOG.info("Having set day {}, now getting best of days {}", bestDay, newDays);
+                basedOnSingle.addAll(getBestLateDays(rank, realLimited, newDays, startingGroove, bestDay, sched.get(0).getKey()));
+            }
+            else
+            {
+                if(bestDay > newDays.get(0))
+                    realLimited = sched.get(0).getKey().getLimitedUses(realLimited);
+                LOG.info("Only one day left. Getting best schedule for best day {} and groove {}. Limited items: {}", newDays.get(0),startingGroove, realLimited);
+                addDailyRecToList(getBestBruteForceSchedules(newDays.get(0), startingGroove, realLimited, Math.min(6,newDays.get(0) + 1), alternatives, rank), newDays.get(0), startingGroove,rank,basedOnSingle);
+            }
+
+            if(recommendations == null || (getTotalForRecs(basedOnSingle) > getTotalForRecs(recommendations)))
+            {
+                LOG.info("New best day detected! Of {}, best is {}", daysToTest, bestDay);
+                recommendations = basedOnSingle;
+            }
+        }
+        return recommendations;
+    }*/
+
+    private int getTotalForRecs(List<DailyRecommendation> recs)
+    {
+        int total = 0;
+        for(DailyRecommendation rec : recs)
+        {
+            total += rec.getDailyValue();
+        }
+        return total;
+    }
+
     public List<DailyRecommendation> getLateDays(int rank, Map<Item, Integer> limitedUse, int startingGroove)
     {
         clearLateDayUsage();
@@ -857,7 +914,7 @@ public class Solver
 
         if(startingGroove == -1)
             startingGroove = startingGroovePerDay.get(4);
-        var cycle5Sched = getBestBruteForceSchedules(4, startingGroove, limitedUse, 6, alternatives, rank);
+        var cycle5Sched = getBestBruteForceSchedules(4, startingGroove, limitedUse, 5, alternatives, rank);
         var cycle6Sched = getBestBruteForceSchedules(5, startingGroove, limitedUse, 6, alternatives, rank);
         var cycle7Sched = getBestBruteForceSchedules(6, startingGroove, limitedUse, 6, alternatives, rank);
 

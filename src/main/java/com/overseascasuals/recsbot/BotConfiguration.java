@@ -93,14 +93,7 @@ public class BotConfiguration implements CommandLineRunner
                     LOG.info(String.format("Logged in as %s#%s", self.getUsername(), self.getDiscriminator()));
                 });
 
-        for(EventListener<T,R> listener : eventListeners)
-        {
-            //If we handle error actually did anything, we'd want to call it like this:
-            client.on(listener.getEventType()).flatMap(event -> listener.execute(event).onErrorResume(listener::handleError)).subscribe();
 
-            //client.on(listener.getEventType(), listener::execute).subscribe();
-        }
-        LOG.info("Listening to "+eventListeners.size()+" event(s)");
 
         this.taskList = taskList;
 
@@ -112,6 +105,14 @@ public class BotConfiguration implements CommandLineRunner
         }
         LOG.info("Scheduled "+taskList.size()+" task(s)");
         LOG.info("{}", testStr);
+
+        if(!("live".equals(activeProfile))) return client;
+
+        for(EventListener<T,R> listener : eventListeners)
+        {
+            client.on(listener.getEventType()).flatMap(event -> listener.execute(event).onErrorResume(listener::handleError)).subscribe();
+        }
+        LOG.info("Listening to "+eventListeners.size()+" event(s)");
 
         //registerCommands(client);
         //deregisterCommands(client);

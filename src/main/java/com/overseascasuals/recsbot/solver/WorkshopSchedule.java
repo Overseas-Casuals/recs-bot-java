@@ -224,7 +224,7 @@ public class WorkshopSchedule
 
         //Figure out if a penalty should apply for using a future item
         int helperPenalty = 0;
-        if(reservedHelpers != null)
+        if(reservedHelpers != null && day < 4)
         {
             for(var kvp : reservedHelpers.entrySet())
             {
