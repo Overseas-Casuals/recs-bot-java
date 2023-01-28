@@ -34,7 +34,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
     @Value("${discord.c1HelperRole}")
     String c1PeakRole;
-
+    @Value("${discord.squawkboxRole}")
+    String squawkboxRole;
+    @Value("${discord.crimeRole}")
+    String crimeTimeRole;
     @Value("${discord.recsChannel}")
     String recsChannelID;
 
@@ -200,7 +203,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                         .cast(NewsChannel.class).block();
 
                 recs.forEach(
-                        rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole))
+                        rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole, squawkboxRole))
                                 .flatMap(Message::publish).subscribe()
                 );
 
@@ -397,7 +400,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
 
         recs.forEach(
-                rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole))
+                rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole, squawkboxRole))
                         .flatMap(Message::publish).subscribe()
         );
 

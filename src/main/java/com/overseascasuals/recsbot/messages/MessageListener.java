@@ -111,7 +111,7 @@ public abstract class MessageListener {
 
                             return Mono.just(eventMessage)
                                     .flatMap(Message::getChannel)
-                                    .flatMap(channel -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), recs.get(0), c1PeakRole)).flatMap(Message::publish))
+                                    .flatMap(channel -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), recs.get(0), c1PeakRole, "")).flatMap(Message::publish))
                                     .then();
                         }
                         else

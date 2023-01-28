@@ -45,6 +45,10 @@ public class GetPeaksTask implements ScheduledTask
 
     @Value("${discord.c1HelperRole}")
     String c1PeakRole;
+    @Value("${discord.squawkboxRole}")
+    String squawkboxRole;
+    @Value("${discord.crimeRole}")
+    String crimeTimeRole;
 
     @Value("${testing.startDay}")
     int startDayOverride;
@@ -228,7 +232,7 @@ public class GetPeaksTask implements ScheduledTask
             {
                 for(var recs : list)
                 {
-                    var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole));
+                    var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole, squawkboxRole));
                     if(recs.isTentative())
                         message.subscribe();
                     else
@@ -239,7 +243,7 @@ public class GetPeaksTask implements ScheduledTask
                 {
                     var crimes = solver.crimeTimeRecs;
                     for(var crime : crimes)
-                        channel.createMessage(OCUtils.generateCrimeTimeEmbed(week, crime)).flatMap(Message::publish).subscribe();
+                        channel.createMessage(OCUtils.generateCrimeTimeEmbed(week, crime, crimeTimeRole)).flatMap(Message::publish).subscribe();
                 }
             }
         }
