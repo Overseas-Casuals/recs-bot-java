@@ -20,9 +20,6 @@ import java.util.stream.Collectors;
 
 public class OCUtils
 {
-    @Value("${discord.c1HelperRole}")
-    String c1PeakRole;
-
     private static String getDateStr(int season)
     {
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d");
@@ -238,7 +235,7 @@ public class OCUtils
             {
                 if(alt.getKey().getItems().size() > 0)
                 {
-                    String altText = alt.getKey().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - "));
+                    String altText = alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
                     altSb.append(altText).append('\n');
                     grossSb.append(alt.getValue().getWeighted()).append('\n');
                 }
