@@ -99,8 +99,14 @@ public class RecsTweet
 
 
         str.append("\n\n#FF14 #FFXIV #FinalFantasyXIV #IslandSanctuary");
-        if(str.length() > 280)
-            str.setLength(280);
-        return str.toString();
+        String toReturn = str.toString();
+
+        if(toReturn.length() > 280)
+            toReturn = toReturn.replace("#FinalFantasyXIV ","");
+        if(toReturn.length() > 280)
+            toReturn = toReturn.replace("#FF14 ","");
+        if(toReturn.length() > 280)
+            toReturn = toReturn.substring(0, 280);
+        return toReturn;
     }
 }
