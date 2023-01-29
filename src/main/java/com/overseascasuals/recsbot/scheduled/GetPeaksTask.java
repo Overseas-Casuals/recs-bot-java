@@ -8,6 +8,7 @@ import com.overseascasuals.recsbot.json.RestService;
 import com.overseascasuals.recsbot.json.TCDay;
 import com.overseascasuals.recsbot.mysql.*;
 import com.overseascasuals.recsbot.solver.Solver;
+import com.overseascasuals.recsbot.twitter.RecsTweet;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.Message;
@@ -59,8 +60,7 @@ public class GetPeaksTask implements ScheduledTask
     @Value("${testing.week}")
     int weekOverride;
 
-    @Value("${spring.profiles.active}")
-    private String activeProfile;
+    private boolean local;
 
     @Autowired
     PeakRepository peakRepository;
@@ -90,12 +90,13 @@ public class GetPeaksTask implements ScheduledTask
     }
 
     @Override
-    public void initialize(GatewayDiscordClient client) {
+    public void initialize(GatewayDiscordClient client, boolean local) {
         this.client = client;
         channel = client.getChannelById(Snowflake.of(recsChannel))
                 .cast(MessageChannel.class).block();
         peakChannel = client.getChannelById(Snowflake.of(peaksChannel))
                 .cast(MessageChannel.class).block();
+        this.local = local;
     }
 
     @Override
@@ -109,7 +110,7 @@ public class GetPeaksTask implements ScheduledTask
         int startDay = actualDay;
         int endDay = actualDay;
 
-        if("local".equals(activeProfile))
+        if(local)
         {
             if(startDayOverride != -1)
                 startDay = startDayOverride;
@@ -234,9 +235,23 @@ public class GetPeaksTask implements ScheduledTask
                 {
                     var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole, squawkboxRole));
                     if(recs.isTentative())
+                    {
                         message.subscribe();
+                    }
+
                     else
+                    {
                         message.flatMap(Message::publish).subscribe();
+                    }
+
+                    try{
+                        RecsTweet.sendRecAsReply(week, recs, !local);
+                    }
+                    catch(Exception e)
+                    {
+                        LOG.error("Error tweeting!!",e);
+                    }
+
                 }
 
                 if(recDay == 3)

@@ -38,7 +38,7 @@ public class PingIslandTask implements ScheduledTask
     }
 
     @Override
-    public void initialize(GatewayDiscordClient client) {
+    public void initialize(GatewayDiscordClient client, boolean local) {
         channel = client.getChannelById(Snowflake.of(botTestingChannel))
                 .cast(MessageChannel.class).block();
     }

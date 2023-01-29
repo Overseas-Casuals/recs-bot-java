@@ -30,7 +30,7 @@ public class SetChannelTask implements ScheduledTask
     }
 
     @Override
-    public void initialize(GatewayDiscordClient client) {
+    public void initialize(GatewayDiscordClient client, boolean local) {
         this.client = client;
         channel = client.getChannelById(Snowflake.of(currentDayChannel))
                 .cast(VoiceChannel.class).block();

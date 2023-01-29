@@ -8,6 +8,7 @@ import com.overseascasuals.recsbot.json.RestService;
 import com.overseascasuals.recsbot.mysql.PeakRepository;
 import com.overseascasuals.recsbot.mysql.PopularityRepository;
 import com.overseascasuals.recsbot.solver.Solver;
+import com.overseascasuals.recsbot.twitter.RecsTweet;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
@@ -153,13 +154,14 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             return event.editReply(itemName+" is not a valid item");
         }
         boolean valid = false;
+
+        var d1 = new Date(1661241600000L);
+        var d2 = new Date();
+
+        int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
+        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
         if(!solver.hasRunRecs)
         {
-            var d1 = new Date(1661241600000L);
-            var d2 = new Date();
-
-            int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
-            int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
             if(day==0)
             {
 
@@ -206,6 +208,14 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                         rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole, squawkboxRole))
                                 .flatMap(Message::publish).subscribe()
                 );
+
+                try{
+                    RecsTweet.sendRecAsReply(week, recs.get(0), true);
+                }
+                catch(Exception e)
+                {
+                    LOG.error("Error tweeting non-tentative C2!!",e);
+                }
 
                 return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Generating recs.");
             }

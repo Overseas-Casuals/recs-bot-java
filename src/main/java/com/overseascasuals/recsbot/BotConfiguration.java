@@ -99,14 +99,14 @@ public class BotConfiguration implements CommandLineRunner
 
         for(var task : taskList)
         {
-            task.initialize(client);
+            task.initialize(client, "local".equals(activeProfile));
             taskScheduler.schedule(task, new CronTrigger(task.getCron(), ZoneId.of("UTC")));
 
         }
         LOG.info("Scheduled "+taskList.size()+" task(s)");
         LOG.info("{}", testStr);
 
-        if(!("live".equals(activeProfile))) return client;
+        if(("local".equals(activeProfile))) return client;
 
         for(EventListener<T,R> listener : eventListeners)
         {

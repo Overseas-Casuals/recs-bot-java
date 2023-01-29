@@ -631,7 +631,7 @@ public class Solver
 
             Arrays.stream(items).forEach(item -> item.setCrafted(schedule.numCrafted.getOrDefault(item.item, 0), schedule.day));
 
-            groove = schedule.endingGroove;
+            groove = schedule.getEndingGroove();
             if(real && rank == maxIslandRank)
             {
                 startingGroovePerDay.put(day+1, groove);

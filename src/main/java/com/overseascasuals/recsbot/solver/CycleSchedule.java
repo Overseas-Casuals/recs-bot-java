@@ -11,7 +11,8 @@ public class CycleSchedule
     Logger LOG = LoggerFactory.getLogger(CycleSchedule.class);
     int day;
     private int startingGroove;
-    int endingGroove;
+
+    private int endingGroove;
     WorkshopSchedule[] workshops = new WorkshopSchedule[3];
     HashMap<Item, Integer> numCrafted;
     
@@ -121,7 +122,9 @@ public class CycleSchedule
     public int getStartingGroove() {
         return startingGroove;
     }
-
+    public int getEndingGroove() {
+        return endingGroove;
+    }
     public void setStartingGroove(int startingGroove) {
         this.startingGroove = startingGroove;
     }
