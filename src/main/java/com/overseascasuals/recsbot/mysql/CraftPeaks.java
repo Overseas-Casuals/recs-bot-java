@@ -75,7 +75,7 @@ public class CraftPeaks
             case "2S":
                 peakEnum = PeakCycle.Cycle2Strong;
                 break;
-            case "2W":
+            case "2W", "2U":
                 peakEnum = PeakCycle.Cycle2Weak;
                 break;
             case "3S":
@@ -116,9 +116,6 @@ public class CraftPeaks
                 break;
             case "67":
                 peakEnum = PeakCycle.Cycle67;
-                break;
-            case "2U":
-                peakEnum = PeakCycle.Cycle2Unknown;
                 break;
         }
         return peakEnum;
