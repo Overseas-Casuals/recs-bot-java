@@ -1531,18 +1531,27 @@ public class Solver
         int permutations = (int) Math.pow(2, c2Unknowns.size());
 
         Map<Integer, Integer> rankToBest = new HashMap<>();
+        Map<Integer, List<Item>> rankToSchedule = new HashMap<>();
 
         for(int rank = 11; rank < 12; rank++)
         {
             var schedule = getBestSchedule(1, 0, null, rank);
             int value = 0;
-            if (schedule != null)
-                value = schedule.getValue().getWeighted();
+            if (schedule == null)
+            {
+                rankToBest.put(rank, 0);
+                continue;
+            }
+
+            value = schedule.getValue().getWeighted();
 
             boolean shouldRest =  isWorseThanAllFollowing(schedule, 1, rank);
             if(shouldRest)
                 value = 0;
+            else
+                rankToSchedule.put(rank, schedule.getKey().getItems());
             rankToBest.put(rank, value);
+
         }
 
         Map<Integer, List<Item>> betterPermuts = new HashMap<>();
@@ -1561,8 +1570,10 @@ public class Solver
             {
                 var schedule = getBestSchedule(1, 0, null, rank);
                 int value = 0;
-                if (schedule != null)
-                    value = schedule.getValue().getWeighted();
+                if (schedule == null)
+                    continue;
+
+                value = schedule.getValue().getWeighted();
 
                 if(rankToBest.get(rank) == 0)
                 {
@@ -1572,9 +1583,9 @@ public class Solver
                         betterPermuts.put(p, schedule.getKey().getItems());
                     }
                 }
-                else if(value > rankToBest.get(rank))
+                else if(value > rankToBest.get(rank) && !schedule.getKey().getItems().equals(rankToSchedule.get(rank)))
                 {
-                    LOG.info("Schedule {} is better with permutation {} on rank {}", schedule.getKey().getItems(), p, rank);
+                    LOG.info("Schedule {} ({}) is better with permutation {} on rank {}", schedule.getKey().getItems(), value, p, rank);
                     betterPermuts.put(p, schedule.getKey().getItems());
                 }
             }
