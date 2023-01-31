@@ -51,14 +51,15 @@ public class OCUtils
             //builder.color(Color.RED);
             if(rec.isRestRecommended())
             {
-                builder.addField("Main Recommendation",getRestText(), false);
+                builder.addField("Tentative Recommendation",getRestText(), false);
             }
 
             else
             {
                 builder.addField("Tentative Recommendation", rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - ")), false)
-                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue())+ cowriesEmoji, true)
-                        .addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
+                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue())+ cowriesEmoji, true);
+                if(rec.get(0).getValue().getGroove() > 0)
+                        builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
             }
             builder.addField("\u200B", "\u200B", false)
                     .addField("Required Info", rec.getTroublemakers().stream().map(Item::getDisplayName).collect(Collectors.joining(", ")), true)

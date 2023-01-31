@@ -136,6 +136,11 @@ public class Solver
             new ItemInfo(Isloaf,Foodstuffs,Concoctions,52,4,11,Map.of(Wheat,2)),
             new ItemInfo(PopotoSalad,Foodstuffs,Invalid,52,4,11,Map.of(Popoto,2)),
             new ItemInfo(Dressing,Ingredients,Invalid,52,4,11,Map.of(Onion,2))};
+
+    public static int getHoursForItem(Item item)
+    {
+        return items[item.ordinal()].time;
+    }
     
     private int groove = 0;
 
@@ -1583,7 +1588,7 @@ public class Solver
                         betterPermuts.put(p, schedule.getKey().getItems());
                     }
                 }
-                else if(value > rankToBest.get(rank) && !schedule.getKey().getItems().equals(rankToSchedule.get(rank)))
+                else if(value > rankToBest.get(rank) && (betterPermuts.size() > 0 || !schedule.getKey().getItems().equals(rankToSchedule.get(rank))))
                 {
                     LOG.info("Schedule {} ({}) is better with permutation {} on rank {}", schedule.getKey().getItems(), value, p, rank);
                     betterPermuts.put(p, schedule.getKey().getItems());

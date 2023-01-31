@@ -1,5 +1,7 @@
 package com.overseascasuals.recsbot.data;
 
+import com.overseascasuals.recsbot.solver.Solver;
+
 public enum Item
 {
     Potion("Potion","<:OC_Potion:1035399553551188008>"),
@@ -72,5 +74,7 @@ public enum Item
     }
 
     public String getDisplayName() { return displayName; }
-    public String getDisplayWithEmoji() { return emoji + " " + displayName; }
+
+    public String getDisplayNameWithTime() { return displayName + " ("+Solver.getHoursForItem(this)+"h)";}
+    public String getDisplayWithEmoji() { return emoji + " " + displayName + " ("+Solver.getHoursForItem(this)+"h)"; }
 }

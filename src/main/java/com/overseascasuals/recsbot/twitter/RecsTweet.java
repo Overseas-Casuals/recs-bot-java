@@ -57,7 +57,7 @@ public class RecsTweet
         else
         {
             str.append("\n∟ ")
-                    .append(rec.getBestRec().getItems().stream().map(Item::getDisplayName)
+                    .append(rec.getBestRec().getItems().stream().map(Item::getDisplayNameWithTime)
                             .collect(Collectors.joining(" - ")));
             str.append("\nBase value: ").append(rec.getGroovelessValue());
             if(rec.getBestRec().getStartingGroove() > 0)
