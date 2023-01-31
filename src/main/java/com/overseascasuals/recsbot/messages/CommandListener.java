@@ -206,7 +206,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
                 recs.forEach(
                         rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole, squawkboxRole))
-                                .flatMap(Message::publish).subscribe()
+                                .subscribe()
                 );
 
                 try{
@@ -408,11 +408,15 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 .cast(NewsChannel.class).block();
 
 
-
-        recs.forEach(
-                rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole, squawkboxRole))
-                        .flatMap(Message::publish).subscribe()
-        );
+        for (var rec: recs)
+        {
+            if(rec.getOldRec()==null)
+                channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole, squawkboxRole))
+                    .flatMap(Message::publish).subscribe();
+            else
+                channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole, squawkboxRole))
+                        .subscribe();
+        }
 
         return event.editReply("Re-ran recs successfully. Check <#"+recsChannelID+">");
     }

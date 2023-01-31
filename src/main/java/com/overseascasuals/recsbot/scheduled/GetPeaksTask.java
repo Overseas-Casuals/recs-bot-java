@@ -234,11 +234,10 @@ public class GetPeaksTask implements ScheduledTask
                 for(var recs : list)
                 {
                     var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole, squawkboxRole));
-                    if(recs.isTentative())
+                    if(recs.getOldRec() != null)
                     {
                         message.subscribe();
                     }
-
                     else
                     {
                         message.flatMap(Message::publish).subscribe();
