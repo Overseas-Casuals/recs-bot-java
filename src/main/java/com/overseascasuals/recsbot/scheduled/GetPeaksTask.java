@@ -360,6 +360,7 @@ public class GetPeaksTask implements ScheduledTask
             for (int i = 0; i < newPeaks.size(); i++)
             {
                 CraftPeaks currentPeak = newPeaks.get(i);
+                currentPeak.setPeakID(new PeakID(currentPeak.getPeakID().getWeek(), day, currentPeak.getPeakID().getItemID()));
                 ItemSupply supply = tcDays.get(1).getObjects().get(i+1);
                 if (supply.getSupply() == Nonexistent) {
                     num2Strong++;
@@ -408,6 +409,7 @@ public class GetPeaksTask implements ScheduledTask
             for (int i = 0; i < newPeaks.size(); i++)
             {
                 CraftPeaks currentPeak = newPeaks.get(i);
+                currentPeak.setPeakID(new PeakID(currentPeak.getPeakID().getWeek(), day, currentPeak.getPeakID().getItemID()));
                 ItemSupply supply = tcDays.get(2).getObjects().get(i+1);
                 if (currentPeak.getPeak().equals("45"))
                 {
@@ -461,6 +463,7 @@ public class GetPeaksTask implements ScheduledTask
         for (int i = 0; i < newPeaks.size(); i++)
         {
             CraftPeaks currentPeak = newPeaks.get(i);
+            currentPeak.setPeakID(new PeakID(currentPeak.getPeakID().getWeek(), day, currentPeak.getPeakID().getItemID()));
             ItemSupply supply = tcDays.get(3).getObjects().get(i + 1);
 
             if (currentPeak.getPeak().equals("67") && supply.getSupply() == Sufficient)
