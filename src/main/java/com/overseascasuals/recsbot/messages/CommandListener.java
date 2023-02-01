@@ -205,7 +205,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                         .cast(NewsChannel.class).block();
 
                 recs.forEach(
-                        rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole, squawkboxRole))
+                        rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec.withRank(-1), c1PeakRole, squawkboxRole))
                                 .subscribe()
                 );
 
@@ -411,10 +411,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         for (var rec: recs)
         {
             if(rec.getOldRec()==null)
-                channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole, squawkboxRole))
+                channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec.withRank(-1), c1PeakRole, squawkboxRole))
                     .flatMap(Message::publish).subscribe();
             else
-                channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec, c1PeakRole, squawkboxRole))
+                channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec.withRank(-1), c1PeakRole, squawkboxRole))
                         .subscribe();
         }
 

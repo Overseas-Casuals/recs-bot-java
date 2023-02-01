@@ -1588,7 +1588,7 @@ public class Solver
                         betterPermuts.put(p, schedule.getKey().getItems());
                     }
                 }
-                else if(value > rankToBest.get(rank) && (betterPermuts.size() > 0 || !schedule.getKey().getItems().equals(rankToSchedule.get(rank))))
+                else if(value > rankToBest.get(rank) + 100 && (betterPermuts.size() > 0 || !schedule.getKey().getItems().equals(rankToSchedule.get(rank))))
                 {
                     LOG.info("Schedule {} ({}) is better with permutation {} on rank {}", schedule.getKey().getItems(), value, p, rank);
                     betterPermuts.put(p, schedule.getKey().getItems());

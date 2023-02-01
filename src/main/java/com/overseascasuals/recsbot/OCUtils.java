@@ -44,7 +44,7 @@ public class OCUtils
 
         if(rec.isTentative())
         {
-            var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations for Rank "+rec.getMaxRank());
+            var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations");
             builder.timestamp(Instant.now());
             messageSpec.content("Tentative rec detected! <@&"+c1PeakRole+">");
 
@@ -82,6 +82,9 @@ public class OCUtils
     public static EmbedCreateSpec getGeneralRecEmbed(int season, DailyRecommendation rec)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations for Rank "+rec.getMaxRank());
+
+        if(rec.getMaxRank() < 0)
+            builder.title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations");
         builder.timestamp(Instant.now());
 
         if(rec.isRestRecommended())
