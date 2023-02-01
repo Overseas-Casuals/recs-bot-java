@@ -57,9 +57,13 @@ public class OCUtils
             else
             {
                 builder.addField("Tentative Recommendation", rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - ")), false)
-                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue())+ cowriesEmoji, true);
+                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
+
+                if(rec.getBestRec().getStartingGroove() != 0)
+                    builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue() + cowriesEmoji, true);
+
                 if(rec.get(0).getValue().getGroove() > 0)
-                        builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
+                    builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
             }
             builder.addField("\u200B", "\u200B", false)
                     .addField("Required Info", rec.getTroublemakers().stream().map(Item::getDisplayName).collect(Collectors.joining(", ")), true)

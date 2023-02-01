@@ -153,7 +153,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         {
             return event.editReply(itemName+" is not a valid item");
         }
-        boolean valid = false;
+
 
         var d1 = new Date(1661241600000L);
         var d2 = new Date();
@@ -162,7 +162,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
         if(!solver.hasRunRecs)
         {
-            if(day==0)
+            if(day==0 || day == 1)
             {
 
                 LOG.info("Haven't run recs yet. Doing so now.");
@@ -170,35 +170,42 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             }
         }
 
-        if(solver.isSolvedD2()) //Really just doesn't have anything
+        if(solver.isSolvedD2() && solver.isSolvedD3()) //Really just doesn't have anything
         {
             return event.editReply("Current cycle doesn't need confirmation of any peaks.");
         }
+
         String peakType = event.getOption("peak_type")
                 .flatMap(ApplicationCommandInteractionOption::getValue)
                 .map(ApplicationCommandInteractionOptionValue::asString)
                 .get();
 
-        if(peakType.equals("strong"))
+        boolean valid = false;
+
+        if(day == 0 && peakType.equals("strong"))
         {
             valid = solver.updatePeak(item, PeakCycle.Cycle2Strong);
         }
-        else if(peakType.equals("weak"))
+        else if(day == 0 && peakType.equals("weak"))
         {
             valid = solver.updatePeak(item, PeakCycle.Cycle2Weak);
+        }
+        else if(day == 1 && peakType.equals("weak"))
+        {
+            valid = solver.updatePeak(item, PeakCycle.Cycle3Weak);
         }
 
         if(valid)
         {
             LOG.info("command is valid");
-            if(solver.allTentativeD2Set())
+            if(day == 0 && solver.allTentativeD2Set())
             {
                 LOG.info("All troublemakers set. Running solver again");
                 var recs = solver.redoDay2Recs();
 
                 if(recs== null || recs.size() == 0)
                 {
-                    return event.editReply("Set peak for item "+item.getDisplayName()+", but no recs returned. <@"+miennaID+">");
+                    return event.editReply("Set C2 peak for item "+item.getDisplayName()+", but no recs returned. <@"+miennaID+">");
                 }
 
                 NewsChannel channel = event.getClient().getChannelById(Snowflake.of(recsChannelID))
@@ -217,11 +224,37 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                     LOG.error("Error tweeting non-tentative C2!!",e);
                 }
 
-                return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Generating recs.");
+                return event.editReply("Item "+item.getDisplayName()+" set to C2 "+peakType+" peak. Generating recs.");
+            }
+            else if(day == 1 && solver.allTentativeD3Set())
+            {
+                var recs = solver.getDailyRecommendations(week, 1, false);
+                if(recs == null || recs.size() == 0)
+                {
+                    return event.editReply("Set peak for item "+item.getDisplayName()+", but no recs returned. <@"+miennaID+">");
+                }
+
+                NewsChannel channel = event.getClient().getChannelById(Snowflake.of(recsChannelID))
+                        .cast(NewsChannel.class).block();
+
+                recs.forEach(
+                        rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec.withRank(-1), c1PeakRole, squawkboxRole))
+                                .subscribe()
+                );
+
+                try{
+                    RecsTweet.sendRecAsReply(week, recs.get(0), true);
+                }
+                catch(Exception e)
+                {
+                    LOG.error("Error tweeting non-tentative C3!!",e);
+                }
+
+                return event.editReply("Item "+item.getDisplayName()+" set to C3 "+peakType+" peak. Generating recs.");
             }
             else
             {
-                return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Still waiting on more required info.");
+                return event.editReply("Item "+item.getDisplayName()+" set to C"+(day+2)+" "+peakType+" peak. Still waiting on more required info.");
             }
         }
         else

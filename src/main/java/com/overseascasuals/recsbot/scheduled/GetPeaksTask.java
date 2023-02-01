@@ -444,6 +444,8 @@ public class GetPeaksTask implements ScheduledTask
                         num67++;
                     }
                 }
+                else if(Objects.equals(currentPeak.getPeak(), "3W"))
+                    num3Weak++;
             }
             valid = num3Weak >= 4 && num4Weak >= 4 && num4Strong >= 4 && num5 >= 8 && num6Weak >= 4 && num67 >= 14;
 
@@ -500,7 +502,7 @@ public class GetPeaksTask implements ScheduledTask
         LOG.info(MessageFormatter.format("As of day 4, Peaks: {}, safe? {}", peaks, valid ).getMessage());
 
         LOG.info("Peaks for D4 "+", num5Weak = "+num5Weak+"/5?"+", num5Strong = "+num5Strong+"/5?"
-                    +", num6Weak = "+num6Weak+"/5?"+", num6Strong = "+num6Strong+"/5?"+", num7Weak = "+num7Weak+"/5?"
+                    +", num6Strong = "+num6Strong+"/5?"+", num7Weak = "+num7Weak+"/5?"
                     +", num7Strong = "+num7Strong+"/5?");
         return valid;
     }
