@@ -131,23 +131,31 @@ public class OCUtils
 
         if(rec.size() > 1 && rec.getOldRec() == null)
         {
-            //Add alts also
-            builder.addField("\u200B", "\u200B", false);
-
-            StringBuilder altSb = new StringBuilder();
-            StringBuilder grossSb = new StringBuilder();
-            for(var alt : rec)
+            if(rec.getMaxRank() > 0)
             {
-                String altText = alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
-                altSb.append(altText).append('\n');
-                grossSb.append(alt.getValue().getWeighted()).append('\n');
-            }
-            altSb.setLength(altSb.length()-1);
-            grossSb.setLength(grossSb.length()-1);
+                //Add alts also
+                builder.addField("\u200B", "\u200B", false);
 
-            builder.addField("Alternatives", altSb.toString(), true)
-                    .addField("Weighted Value", grossSb.toString(), true);
-            //.addField("Net", netSb.toString(), true);
+                StringBuilder altSb = new StringBuilder();
+                StringBuilder grossSb = new StringBuilder();
+                for(var alt : rec)
+                {
+                    String altText = alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
+                    altSb.append(altText).append('\n');
+                    grossSb.append(alt.getValue().getWeighted()).append('\n');
+                }
+                altSb.setLength(altSb.length()-1);
+                grossSb.setLength(grossSb.length()-1);
+
+                builder.addField("Alternatives", altSb.toString(), true)
+                        .addField("Weighted Value", grossSb.toString(), true);
+                //.addField("Net", netSb.toString(), true);
+            }
+            else
+            {
+                builder.addField("Alternatives", "Can't make the rec? Forgot to set today's schedule? Going out of town?\n" +
+                        "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);
+            }
         }
         return builder.build();
     }
