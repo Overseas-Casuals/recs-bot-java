@@ -353,7 +353,7 @@ public class GetPeaksTask implements ScheduledTask
             String peaks = Arrays.toString(newPeaks.toArray());
             LOG.info(MessageFormatter.format("As of day 1, Peaks: {}, safe? {}", peaks, true ).getMessage());
             LOG.info("Peaks for D1: num2Strong = {}/5?, num2Weak= {}/5?", num2Strong, num2Weak);
-            return true;
+            return newPeaks.size() == oldPeaks.size();
         }
         else if(day==1)
         {
