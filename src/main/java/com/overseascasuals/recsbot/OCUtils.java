@@ -3,6 +3,7 @@ package com.overseascasuals.recsbot;
 import com.overseascasuals.recsbot.data.DailyRecommendation;
 import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.data.WorkshopValue;
+import com.overseascasuals.recsbot.solver.CycleSchedule;
 import com.overseascasuals.recsbot.solver.WorkshopSchedule;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.MessageCreateSpec;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 
 public class OCUtils
 {
+    private static String cowriesEmoji = " <:OC_BlueShell:1035493003655127071>";
     private static String getDateStr(int season)
     {
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d");
@@ -153,6 +155,15 @@ public class OCUtils
             }
             else
             {
+                if(rec.isRestRecommended())
+                {
+                    CycleSchedule sched = new CycleSchedule(rec.getDay(), 0);
+                    sched.setForAllWorkshops(rec.get(0).getKey().getItems());
+
+                    //Show one alt
+                    builder.addField("Best Non-Rest", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - "))+"||", true)
+                            .addField("Grooveless Value","||"+sched.getValue()+cowriesEmoji+"||", true);
+                }
                 builder.addField("Alternatives", "Can't make the rec? Forgot to set today's schedule? Going out of town?\n" +
                         "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);
             }
@@ -160,7 +171,7 @@ public class OCUtils
         return builder.build();
     }
 
-    private static String cowriesEmoji = " <:OC_BlueShell:1035493003655127071>";
+
 
 
     public static MessageCreateSpec generateCrimeTimeEmbed(int season, List<DailyRecommendation> recs, String crimeTimeRole)
