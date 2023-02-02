@@ -553,6 +553,7 @@ public class Solver
 
         if(day+1>=Math.min(dayToSolve, 4)) //If we have the peaks for the day we're trying to solve
         {
+            LOG.info("Caching results for "+cacheKey);
             cachedAltRecs.put(cacheKey, recs);
         }
 
