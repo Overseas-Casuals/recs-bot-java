@@ -310,6 +310,12 @@ public class BotConfiguration implements CommandLineRunner
         ApplicationCommandRequest clear_cache = ApplicationCommandRequest.builder()
                 .name("clear_cache")
                 .description("Clears the alts cache for a specific key")
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("key")
+                        .description("The key to clear")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(true)
+                        .build())
                 .build();
         commands.add(clear_cache);
 
