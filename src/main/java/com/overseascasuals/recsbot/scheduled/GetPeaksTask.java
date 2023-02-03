@@ -237,9 +237,22 @@ public class GetPeaksTask implements ScheduledTask
             {
                 if(recDay == 3)
                 {
-                    var crimes = solver.crimeTimeRecs;
-                    for(var crime : crimes)
-                        channel.createMessage(OCUtils.createCombinedC4Post(week, list, crime, crimeTimeRole, squawkboxRole, solver.totalValue, solver.crimeTimeValue)).flatMap(Message::publish).subscribe();
+                    int numDays = list.size()/3;
+                    for(int i=0; i<numDays;i++)
+                    {
+                        var crimes = solver.crimeTimeRecs.get(i);
+
+                        channel.createMessage(OCUtils.createCombinedC4Post(week, list, squawkboxRole, solver.totalValue)).flatMap(Message::publish).subscribe();
+                        channel.createMessage(OCUtils.createCrimeTimePost(week, list, crimes, crimeTimeRole, solver.crimeTimeValue)).flatMap(Message::publish).subscribe();
+
+                        //Pop the first 3 recs and start again
+                        //Note: Like, test this before we do multiple ranks again
+                        list.remove(0);
+                        list.remove(0);
+                        list.remove(0);
+                    }
+
+
                 }
                 else
                 {

@@ -171,8 +171,58 @@ public class OCUtils
         return builder.build();
     }
 
+    public static MessageCreateSpec createCrimeTimePost(int season, List<DailyRecommendation> recs, List<DailyRecommendation> crimeRecs, String crimeTimeRole, int crimeTotal)
+    {
+        if(recs == null || recs.size() == 0)
+        {
+            return MessageCreateSpec.builder().content("No recs returned").build();
+        }
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Crime Time Recommendations");
+        builder.timestamp(Instant.now());
+        var messageSpec = MessageCreateSpec.builder();
+        messageSpec.content("<@&"+crimeTimeRole+">");
 
-    public static MessageCreateSpec createCombinedC4Post(int season, List<DailyRecommendation> recs, List<DailyRecommendation> crimeRecs, String squawkboxRole, String crimeTimeRole, int total, int crimeTotal)
+        builder.color(Color.SEA_GREEN);
+        boolean crimeDiff = false;
+        boolean crimeTotalDiff = true;
+
+        for(int i=0; i<3; i++)
+        {
+            var rec = recs.get(i);
+            var crimeRec = crimeRecs.get(i);
+            if (rec.isRestRecommended() || !crimeRec.getBestRec().getItems().equals(rec.getBestRec().getItems())) {
+                crimeDiff = true;
+                builder.addField("Crime Time Cycle "+(i+5),  crimeRec.getBestRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - ")) , false)
+                        .addField("Grooveless Value",  String.valueOf(crimeRec.getGroovelessValue()), true)
+                        .addField("With " + crimeRec.getBestRec().getStartingGroove() + " Groove",  crimeRec.getDailyValue() + cowriesEmoji , true);
+            }
+            else
+            {
+                crimeTotalDiff = false;
+            }
+        }
+
+        if(crimeTotalDiff)
+        {
+            builder.addField("","",false);
+        }
+        else if(crimeDiff)
+        {
+            builder.description("Use the normal recs except for the days below!");
+            builder.addField("","",false);
+        }
+
+        else
+            builder.description("You use the same schedules as the main recommendations this season!");
+
+
+        builder.addField("Total Weekly Value", crimeTotal+cowriesEmoji, false);
+
+        messageSpec.addEmbed(builder.build());
+        return messageSpec.build();
+    }
+
+    public static MessageCreateSpec createCombinedC4Post(int season, List<DailyRecommendation> recs, String squawkboxRole, int total)
     {
         if(recs == null || recs.size() == 0)
         {
@@ -183,13 +233,13 @@ public class OCUtils
         var messageSpec = MessageCreateSpec.builder();
 
         builder.color(Color.SEA_GREEN);
-        boolean crimeDiff = false;
 
-        for(int i=0; i<recs.size(); i++)
+        for(int i=0; i<3; i++)
         {
             if(i>0)
                 builder.addField("","",false);
             var rec = recs.get(i);
+
             if(rec.isRestRecommended())
             {
                 builder.addField("Cycle "+(i+5),getRestText(), false);
@@ -206,30 +256,16 @@ public class OCUtils
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
                         .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue()+ cowriesEmoji, true);
             }
-
-            var crimeRec = crimeRecs.get(i);
-            if(rec.isRestRecommended() || !crimeRec.getBestRec().getItems().equals(rec.getBestRec().getItems()))
-            {
-                crimeDiff = true;
-                builder.addField("Crime Time", "||"+crimeRec.getBestRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - "))+"||", false)
-                        .addField("Grooveless Value", "||"+crimeRec.getGroovelessValue()+"||", true)
-                        .addField("With "+ crimeRec.getBestRec().getStartingGroove() +" Groove", "||"+crimeRec.getDailyValue()+ cowriesEmoji+"||", true);
-            }
-
         }
 
         //builder.addField("\u200B", "\u200B", false);
         builder.addField("","",false);
-        builder.addField("Total Weekly Value", total+cowriesEmoji, true);
-        builder.addField("Crime Time Cowries", crimeTotal+cowriesEmoji, true);
+        builder.addField("Total Weekly Value", total+cowriesEmoji, false);
         builder.addField("","",false);
         builder.addField("Alternatives", "Can't make the rec? Forgot to set today's schedule? Going out of town?\n" +
                 "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);
 
-        String content = "<@&"+squawkboxRole+"><@&"+crimeTimeRole+">";
-        if(!crimeDiff)
-            content+="\nCrime Time, your recs are the same this week!";
-        messageSpec.content(content);
+        messageSpec.content("<@&"+squawkboxRole+">");
         messageSpec.addEmbed(builder.build());
         return messageSpec.build();
     }
