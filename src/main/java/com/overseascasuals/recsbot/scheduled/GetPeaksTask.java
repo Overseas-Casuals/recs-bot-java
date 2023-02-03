@@ -235,33 +235,35 @@ public class GetPeaksTask implements ScheduledTask
                 peakChannel.createMessage("<@"+miennaID+"> No recs returned").subscribe();
             else
             {
-                for(var recs : list)
-                {
-                    var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole));
-                    if(recs.getOldRec() != null)
-                    {
-                        message.subscribe();
-                    }
-                    else
-                    {
-                        message.flatMap(Message::publish).subscribe();
-                    }
-
-                    try{
-                        RecsTweet.sendRecAsReply(week, recs, !local);
-                    }
-                    catch(Exception e)
-                    {
-                        LOG.error("Error tweeting!!",e);
-                    }
-
-                }
-
                 if(recDay == 3)
                 {
                     var crimes = solver.crimeTimeRecs;
                     for(var crime : crimes)
-                        channel.createMessage(OCUtils.generateCrimeTimeEmbed(week, crime, crimeTimeRole)).flatMap(Message::publish).subscribe();
+                        channel.createMessage(OCUtils.createCombinedC4Post(week, list, crime, crimeTimeRole, squawkboxRole, solver.totalValue, solver.crimeTimeValue)).flatMap(Message::publish).subscribe();
+                }
+                else
+                {
+                    for(var recs : list)
+                    {
+                        var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole));
+                        if(recs.getOldRec() != null)
+                        {
+                            message.subscribe();
+                        }
+                        else
+                        {
+                            message.flatMap(Message::publish).subscribe();
+                        }
+
+                        try{
+                            RecsTweet.sendRecAsReply(week, recs, !local);
+                        }
+                        catch(Exception e)
+                        {
+                            LOG.error("Error tweeting!!",e);
+                        }
+
+                    }
                 }
             }
         }

@@ -170,6 +170,8 @@ public class Solver
     private final Map<Integer, Integer> hoursLeftInDay = new HashMap<>();
     private final Map<String, List<DailyRecommendation>> cachedAltRecs = new HashMap<>();
     public final List<List<DailyRecommendation>> crimeTimeRecs = new ArrayList<>();
+    public int crimeTimeValue = 0;
+    public int totalValue = 0;
 
 
     private boolean autocompletePeaks = false;
@@ -239,6 +241,8 @@ public class Solver
             confirmedD2Strong = 0;
             vacationRecs.clear();
             crimeTimeRecs.clear();
+            crimeTimeValue = 0;
+            totalValue = 0;
 
             int currentPop = generateVacationRecs(week);
 
@@ -321,7 +325,7 @@ public class Solver
 
         List<DailyRecommendation> listOfRecs = new ArrayList<>();
 
-        if((day == 1 || day == 2 || day == 3) && rested != day) //The only days when pre-peaks are unknown
+        if((day == 1 || day == 2) && rested != day) //The only days when pre-peaks are unknown
         {
             populateReservedItems(day);
 
@@ -376,6 +380,7 @@ public class Solver
         }
 
         populateReservedItems(day+1);
+        crimeTimeRecs.clear();
         int dayToSolve = day+1;
         for(int rank = 11; rank < 12; rank++)
         {
@@ -412,7 +417,7 @@ public class Solver
             }
             else
             {
-                generateCrimeTimeRecs();
+                generateCrimeTimeRecs(rank);
                 setCraftedFromHistory();
                 //Try days 5-7
                 listOfRecs = getLateDays(rank, null);
@@ -420,6 +425,9 @@ public class Solver
                 {
                     addCraftedFromCycle(rec.getDay(), rec.getBestRec(), rec.getMaxRank(), true);
                 }
+
+                if(rank==maxIslandRank)
+                    totalValue = generateTotalValue(listOfRecs);
             }
         }
 
@@ -574,7 +582,7 @@ public class Solver
         clearDayUsage(List.of(4,5,6));
     }
 
-    public void generateCrimeTimeRecs()
+    public void generateCrimeTimeRecs(int rank)
     {
         List<int[]> crafted = new ArrayList<>();
         for(var item : items)
@@ -585,11 +593,14 @@ public class Solver
         List<Item> crimeCrafts2 = Arrays.asList(Firesand, PowderedPaprika, Isloaf, PopotoSalad, ParsnipSalad, PopotoSalad);
         List<Item> crimeCrafts3 = Arrays.asList(Necklace, Brush, Rope, CulinaryKnife, Earrings, CulinaryKnife);
 
+        int totalCowries = 0;
+
         CycleSchedule crime1 = new CycleSchedule(1, 0);
         crime1.setWorkshop(0, crimeCrafts1);
         crime1.setWorkshop(1, crimeCrafts2);
         crime1.setWorkshop(2, crimeCrafts3);
         addCraftedFromCycle(1, crime1, maxIslandRank, false);
+        totalCowries+=crime1.getValue();
 
         CycleSchedule crime2 = new CycleSchedule(2, groove);
         crime2.setForAllWorkshops(new ArrayList<>());
@@ -600,11 +611,43 @@ public class Solver
         crime3.setWorkshop(1, crimeCrafts2);
         crime3.setWorkshop(2, crimeCrafts3);
         addCraftedFromCycle(3, crime3, maxIslandRank, false);
+        totalCowries+=crime3.getValue();
 
-        crimeTimeRecs.clear();
-        for(int rank = 11; rank <12; rank++)
-            crimeTimeRecs.add(getLateDays(rank, null, 30));
+
+        crimeTimeRecs.add(getLateDays(rank, null, 30));
+
+        for(var rec : crimeTimeRecs.get(crimeTimeRecs.size()-1))
+        {
+            totalCowries+=rec.getDailyValue();
+        }
+
+        if(rank == maxIslandRank)
+            crimeTimeValue=totalCowries;
+
         rested = oldRested;
+    }
+
+    public int generateTotalValue(List<DailyRecommendation> lateWeekRecs)
+    {
+        int total = 0;
+        for(int day = 1; day < 4; day++)
+        {
+            var crafts = craftRepository.findCraftsByDay(week, day, maxIslandRank);
+            CycleSchedule sched = new CycleSchedule(day, startingGroovePerDay.get(day));
+            sched.setForAllWorkshops(crafts.getCrafts());
+            int today = sched.getValue();
+            LOG.info("Getting total for day {}, crafts {}: {} cowries", day+1, sched.getItems(), today);
+            total += today;
+        }
+        for(var rec : lateWeekRecs)
+        {
+            if(!rec.isRestRecommended())
+            {
+                LOG.info("Getting total for day {}, crafts {}: {} cowries", rec.getDay(), rec.getBestRec().getItems(), rec.getDailyValue());
+                total+=rec.getDailyValue();
+            }
+        }
+        return total;
     }
     public void setScheduleCommand(int day, int rank, List<Item> newItems)
     {
@@ -1551,6 +1594,7 @@ public class Solver
 
         return true;
     }
+
 
     public Map<Item, Boolean> getTentativeD2Items()
     {
