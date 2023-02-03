@@ -101,6 +101,9 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 case "push_peaks" -> {
                     return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredPushPeaks(event)));
                 }
+                case "clear_cache" -> {
+                    return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredClearCache(event)));
+                }
             }
 
             LOG.info("Unknown command???");
@@ -136,6 +139,17 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         }
 
         return event.deferReply(/*InteractionCallbackSpec.builder().ephemeral(true).build()*/);
+    }
+
+    private InteractionReplyEditMono deferredClearCache(ChatInputInteractionEvent event)
+    {
+        String cacheKey = event.getOption("key")
+                .flatMap(ApplicationCommandInteractionOption::getValue)
+                .map(ApplicationCommandInteractionOptionValue::asString)
+                .get();
+
+        solver.clearCache(cacheKey);
+        return event.editReply("Cleared");
     }
 
     private InteractionReplyEditMono deferredPeakResponse(ChatInputInteractionEvent event)

@@ -106,6 +106,9 @@ public class BotConfiguration implements CommandLineRunner
         LOG.info("Scheduled "+taskList.size()+" task(s)");
         LOG.info("{}", testStr);
 
+        //registerCommands(client);
+        //deregisterCommands(client);
+
         if(("local".equals(activeProfile))) return client;
 
         for(EventListener<T,R> listener : eventListeners)
@@ -114,8 +117,6 @@ public class BotConfiguration implements CommandLineRunner
         }
         LOG.info("Listening to "+eventListeners.size()+" event(s)");
 
-        //registerCommands(client);
-        //deregisterCommands(client);
 
         return client;
     }
@@ -306,6 +307,14 @@ public class BotConfiguration implements CommandLineRunner
                 .build();
         commands.add(islandRequest);
 
+        ApplicationCommandRequest clear_cache = ApplicationCommandRequest.builder()
+                .name("clear_cache")
+                .description("Clears the alts cache for a specific key")
+                .build();
+        commands.add(clear_cache);
+
+
+
 
         /* Bulk overwrite commands.
         */
@@ -352,7 +361,12 @@ public class BotConfiguration implements CommandLineRunner
         //solver.getRestOfDayRecs(2, 2, 11);
         //solver.getRestOfDayRecs(2, 22, 11);
         Map<Item, Integer> limited = new HashMap<>();
-        //solver.getLateDays(8, limited);
+        var result = solver.getRecForSingleDay(4,11, new ArrayList<>(), false);
+        for(int i=0;i<result.size();i++)
+        {
+            LOG.info("Day {}: {}",i+5,result.get(i));
+        }
+
 
     }
 }

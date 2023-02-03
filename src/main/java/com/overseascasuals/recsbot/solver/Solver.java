@@ -325,6 +325,11 @@ public class Solver
 
         List<DailyRecommendation> listOfRecs = new ArrayList<>();
 
+        restOfDay.clear();
+        restOfWeek.clear();
+        hoursLeftInDay.clear();
+        cachedAltRecs.clear();
+
         if((day == 1 || day == 2) && rested != day) //The only days when pre-peaks are unknown
         {
             populateReservedItems(day);
@@ -420,7 +425,7 @@ public class Solver
                 generateCrimeTimeRecs(rank);
                 setCraftedFromHistory();
                 //Try days 5-7
-                listOfRecs = getLateDays(rank, null);
+                listOfRecs = getRecForSingleDay(dayToSolve, rank, null, true);
                 for(var rec : listOfRecs)
                 {
                     addCraftedFromCycle(rec.getDay(), rec.getBestRec(), rec.getMaxRank(), true);
@@ -431,10 +436,6 @@ public class Solver
             }
         }
 
-        restOfDay.clear();
-        restOfWeek.clear();
-        hoursLeftInDay.clear();
-        cachedAltRecs.clear();
 
         hasRunRecs = true;
         isRunningRecs = false;
@@ -580,6 +581,11 @@ public class Solver
     private void clearLateDayUsage()
     {
         clearDayUsage(List.of(4,5,6));
+    }
+
+    public void clearCache(String key)
+    {
+        cachedAltRecs.remove(key);
     }
 
     public void generateCrimeTimeRecs(int rank)
