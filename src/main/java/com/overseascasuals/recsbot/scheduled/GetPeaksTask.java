@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.overseascasuals.recsbot.data.Supply.*;
 import static com.overseascasuals.recsbot.data.DemandShift.*;
@@ -160,7 +161,8 @@ public class GetPeaksTask implements ScheduledTask
                     peaksByDay = new ArrayList<>();
                 List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
 
-                validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay);
+                validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay);
+                validTCPeaks = validTCPeaks && validate63Peaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay);
             }
             else if (!alreadyHavePeaks)
             {
@@ -284,12 +286,12 @@ public class GetPeaksTask implements ScheduledTask
 
 
 
-    private boolean validatePeaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<TCDay> tcDays, int week, int day)
+    private boolean validate62Peaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<TCDay> tcDays, int week, int day)
     {
         day = Math.min(day, 3);
         boolean valid;
 
-        LOG.info("Validating TC peaks from day {}", day+1);
+        LOG.info("Validating TC peaks from day {} for items 1-50", day+1);
 
         int num2Weak = 0;
         int num2Strong = 0;
@@ -313,21 +315,17 @@ public class GetPeaksTask implements ScheduledTask
             return false;
         }
 
-        if(tcDays.get(day).getObjects().size()<=oldPeaks.size())
-        {
-            LOG.warn("Could not find enough crafts TC data. Only found "+(tcDays.get(day).getObjects().size() -1 )+" crafts. Needed "+oldPeaks.size());
-            return false;
-        }
-
         //Day 1
-        if(day == 0)
+        if(day==0)
         {
-            for(var lastWeekPeak : oldPeaks)
+            int num2Unk = 0;
+            for(int i=0; i<50; i++)
             {
+                var lastWeekPeak = oldPeaks.get(i);
                 ItemSupply supply = tcDays.get(0).getObjects().get(lastWeekPeak.getPeakID().getItemID());
                 String peakString;
                 if(supply.getSupply() == Surplus)
-                    break;
+                    return false;
                 else if(supply.getSupply() == Insufficient)
                 {
                     if(supply.getDemand() == Skyrocketing && lastWeekPeak.getPeakEnum().isReliable)
@@ -345,7 +343,10 @@ public class GetPeaksTask implements ScheduledTask
                         peakString = "2S";
                     }
                     else
+                    {
+                        num2Unk++;
                         peakString = "2U";
+                    }
                 }
                 else
                     peakString = "U1";
@@ -355,27 +356,34 @@ public class GetPeaksTask implements ScheduledTask
                 newCraft.setPeakID(new PeakID(week, day, supply.getId()));
                 newPeaks.add(newCraft);
             }
-            LOG.info("new peaks length: {}", newPeaks.size());
-            if (num2Strong == 5)
-                for (int i = 0; i < newPeaks.size(); i++)
+
+            if (num2Strong == 4)
+                for (int i = 0; i < 50; i++)
                     if (newPeaks.get(i).getPeak().equals("2U"))
                         newPeaks.get(i).setPeak("2W");
-            if (num2Weak == 5)
-                for (int i = 0; i < newPeaks.size(); i++)
+            if (num2Weak == 4)
+                for (int i = 0; i < 50; i++)
                     if (newPeaks.get(i).getPeak().equals("2U"))
                         newPeaks.get(i).setPeak("2S");
 
-            String peaks = Arrays.toString(newPeaks.toArray());
-            LOG.info(MessageFormatter.format("As of day 1, Peaks: {}, safe? {}", peaks, true ).getMessage());
-            LOG.info("Peaks for D1: num2Strong = {}/5?, num2Weak= {}/5?", num2Strong, num2Weak);
-            return newPeaks.size() == oldPeaks.size();
+            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::toString).collect(Collectors.joining(", "));
+            valid = num2Unk+num2Strong+num2Weak==8 && num2Strong<=4 && num2Weak<=4;
+            LOG.info(MessageFormatter.format("As of day 1, 1-50 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
+
+            LOG.info("Peaks for 1-50 C1: num2Strong={}/4, num2Weak={}/4, num2Unknown={}/0", num2Strong, num2Weak, num2Unk);
+
+
+            return valid;
         }
-        else if(day==1)
+
+
+        //Day 2
+        if(day==1)
         {
-            for (int i = 0; i < newPeaks.size(); i++)
+            for (int i = 0; i < 50; i++)
             {
                 CraftPeaks currentPeak = newPeaks.get(i);
-                currentPeak.setPeakID(new PeakID(currentPeak.getPeakID().getWeek(), day, currentPeak.getPeakID().getItemID()));
+                currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
                 ItemSupply supply = tcDays.get(1).getObjects().get(i+1);
                 if (supply.getSupply() == Nonexistent) {
                     num2Strong++;
@@ -393,11 +401,6 @@ public class GetPeaksTask implements ScheduledTask
                         num3Strong++;
                         currentPeak.setPeak("3S");
                     }
-                /*else if (supply.getDemand() == Increasing)
-                {
-                    num3Weak++;
-                    currentPeak.setPeak("3W");;
-                }*/
                     else
                     {
                         num67++;
@@ -410,75 +413,70 @@ public class GetPeaksTask implements ScheduledTask
                     currentPeak.setPeak("45");;
                 }
             }
+            valid = num2Strong == 4 && num2Weak == 4 && num3Strong == 4 && num45 == 16 && num67 == 22;
 
-            valid = num2Strong >= 4 && num2Weak >= 4 && num3Strong >= 4 && num3Weak == 0 && num45 >= 16 && num67 >= 22;
+            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::toString).collect(Collectors.joining(", "));
+            LOG.info(MessageFormatter.format("As of day 2, 1-50 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
 
-            String peaks = Arrays.toString(newPeaks.toArray());
-            LOG.info(MessageFormatter.format("As of day 2, Peaks: {}, safe? {}", peaks, valid ).getMessage());
-            LOG.info("Peaks for D2 "+", num2Strong = "+num2Strong+"/5?"+", num2Weak = "+num2Weak+"/5?"+", num3Strong = "+num3Strong+"/5?"+", num3Weak = "+num3Weak+"/5?"+", num45 = "+num45+"/20?"+", num67 = "+num67+"/20?");
+                LOG.info("peaks for 1-50 D2 "+", num2Strong = "+num2Strong+"/4"+", num2Weak = "+num2Weak+"/4"+", num3Strong = "+num3Strong+"/4"+", num45 = "+num45+"/16"+", num67 = "+num67+"/22");
 
             return valid;
         }
-        else if(day==2)
-        {
-            for (int i = 0; i < newPeaks.size(); i++)
-            {
+
+
+
+        if(day==2) {
+            //Day 3
+            for (int i = 0; i < 50; i++) {
                 CraftPeaks currentPeak = newPeaks.get(i);
-                currentPeak.setPeakID(new PeakID(currentPeak.getPeakID().getWeek(), day, currentPeak.getPeakID().getItemID()));
-                ItemSupply supply = tcDays.get(2).getObjects().get(i+1);
-                if (currentPeak.getPeak().equals("45"))
-                {
+                currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
+                ItemSupply supply = tcDays.get(2).getObjects().get(i + 1);
+                if (currentPeak.getPeak().equals("45")) {
                     if (supply.getSupply() == Insufficient) //potentialPeaks 4
                     {
                         if (supply.getDemand() == Skyrocketing) {
                             num4Strong++;
-                            currentPeak.setPeak("4S");;
-                        }
-                        else
-                        {
+                            currentPeak.setPeak("4S");
+                        } else {
                             num4Weak++;
-                            currentPeak.setPeak("4W");;
+                            currentPeak.setPeak("4W");
                         }
-                    }
-                    else //potentialPeaks 5
+                    } else //potentialPeaks 5
                     {
                         num5++;
-                        currentPeak.setPeak("5U");;
+                        currentPeak.setPeak("5U");
                     }
-                }
-                else if (Objects.equals(currentPeak.getPeak(), "67"))
-                {
-                    if (supply.getSupply() == Sufficient && supply.getDemand() == Decreasing) {
-                        num6Weak++;
-                        currentPeak.setPeak("6W");;
-                    }
-                    else if(supply.getSupply() == Insufficient)
+                } else if (currentPeak.getPeak().equals("67")) {
+                    if(supply.getSupply() == Insufficient)
                     {
-                        currentPeak.setPeak(("3W"));
                         num3Weak++;
+                        currentPeak.setPeak("3W");
                     }
-                    else {
+                    else if (supply.getSupply() == Sufficient && supply.getDemand() == Decreasing) {
+                        num6Weak++;
+                        currentPeak.setPeak("6W");
+                    } else {
                         num67++;
                     }
                 }
-                else if(Objects.equals(currentPeak.getPeak(), "3W"))
+                else if(currentPeak.getPeak().equals("3W"))
                     num3Weak++;
             }
-            valid = num3Weak >= 4 && num4Weak >= 4 && num4Strong >= 4 && num5 >= 8 && num6Weak >= 4 && num67 >= 14;
+            valid = num3Weak == 4 && num4Weak == 4 && num4Strong == 4 && num5 == 8 && num6Weak == 4 && num67 == 14;
 
-            String peaks = Arrays.toString(newPeaks.toArray());
-            LOG.info(MessageFormatter.format("As of day 3, Peaks: {}, safe? {}", peaks, valid ).getMessage());
+            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::toString).collect(Collectors.joining(", "));
+            LOG.info(MessageFormatter.format("As of day 3, 1-50 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
 
-            LOG.info("Peaks for D3 "+", num3Weak = "+num3Weak+"/5?"+", num4Weak = "+num4Weak+"/5?"+", num4Strong = "+num4Strong+"/5?"+", num5 = "+num5+"/10?"+", num6Weak = "+num6Weak+"/5?"+", num67 = "+num67+"/15?");
+                LOG.info("Peaks for 1-50 D3 "+ ", num3Weak = " + num3Weak + "/4"  + ", num4Weak = " + num4Weak + "/4" + ", num4Strong = " + num4Strong + "/4" + ", num5 = " + num5 + "/8" + ", num6Weak = " + num6Weak + "/4" + ", num67 = " + num67 + "/14");
 
             return valid;
         }
 
         //Day 4
-        for (int i = 0; i < newPeaks.size(); i++)
+        for (int i = 0; i < 50; i++)
         {
             CraftPeaks currentPeak = newPeaks.get(i);
-            currentPeak.setPeakID(new PeakID(currentPeak.getPeakID().getWeek(), day, currentPeak.getPeakID().getItemID()));
+            currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
             ItemSupply supply = tcDays.get(3).getObjects().get(i + 1);
 
             if (currentPeak.getPeak().equals("67") && supply.getSupply() == Sufficient)
@@ -515,13 +513,274 @@ public class GetPeaksTask implements ScheduledTask
                 }
             }
         }
-        valid = num5Weak >= 4 && num5Strong >= 4 && num6Strong >= 4 && num7Weak >= 4 && num7Strong >= 4;
-        String peaks = Arrays.toString(newPeaks.toArray());
-        LOG.info(MessageFormatter.format("As of day 4, Peaks: {}, safe? {}", peaks, valid ).getMessage());
+        valid = num5Weak == 4 && num5Strong == 4 && num6Strong == 4 && num7Weak == 5 && num7Strong == 5;
 
-        LOG.info("Peaks for D4 "+", num5Weak = "+num5Weak+"/5?"+", num5Strong = "+num5Strong+"/5?"
-                    +", num6Strong = "+num6Strong+"/5?"+", num7Weak = "+num7Weak+"/5?"
-                    +", num7Strong = "+num7Strong+"/5?");
+        String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::toString).collect(Collectors.joining(", "));
+        LOG.info(MessageFormatter.format("As of day 4, 1-50 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
+
+            LOG.info("peaks for 1-50 D4 "+", num5Weak = "+num5Weak+"/4"+", num5Strong = "+num5Strong+"/4"
+                    +", num6Strong = "+num6Strong+"/4"+", num7Weak = "+num7Weak+"/5"
+                    +", num7Strong = "+num7Strong+"/5");
+        return valid;
+    }
+
+    private boolean validate63Peaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<TCDay> tcDays, int week, int day)
+    {
+        day = Math.min(day, 3);
+        boolean valid;
+
+        LOG.info("Validating TC peaks from day {} for items 51-60", day+1);
+
+        if(day >= tcDays.size())
+        {
+            LOG.warn("Could not find today's data in TC data. Only found "+tcDays.size()+" days. Needed day "+(day+1));
+            return false;
+        }
+
+        //Day 1
+        if(day==0)
+        {
+            int num2Strong = 0;
+            int num2Weak = 0;
+            int num2Unk = 0;
+            for(int i=50; i<60; i++)
+            {
+                var lastWeekPeak = oldPeaks.get(i);
+                ItemSupply supply = tcDays.get(0).getObjects().get(lastWeekPeak.getPeakID().getItemID());
+                String peakString;
+                if(supply.getSupply() == Surplus)
+                    return false;
+                else if(supply.getSupply() == Insufficient)
+                {
+                    if(supply.getDemand() == Skyrocketing && lastWeekPeak.getPeakEnum().isReliable)
+                    {
+                        num2Strong++;
+                        peakString = "2S";
+                    }
+                    else if (supply.getDemand() == Increasing || supply.getDemand() == Decreasing)
+                    {
+                        num2Weak++;
+                        peakString = "2W";
+                    }
+                    else if (supply.getDemand() == None) {
+                        num2Strong++;
+                        peakString = "2S";
+                    }
+                    else
+                    {
+                        num2Unk++;
+                        peakString = "2U";
+                    }
+
+                }
+                else
+                    peakString = "U1";
+
+                CraftPeaks newCraft = new CraftPeaks();
+                newCraft.setPeak(peakString);
+                newCraft.setPeakID(new PeakID(week, day, supply.getId()));
+                newPeaks.add(newCraft);
+            }
+
+            if (num2Strong == 1 && num2Unk == 1)
+                for (int i = 50; i < newPeaks.size(); i++)
+                    if (newPeaks.get(i).getPeak().equals("2U"))
+                        newPeaks.get(i).setPeak("2W");
+            if (num2Weak == 1 && num2Unk == 1)
+                for (int i = 50; i < newPeaks.size(); i++)
+                    if (newPeaks.get(i).getPeak().equals("2U"))
+                        newPeaks.get(i).setPeak("2S");
+
+            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>50 && peak.getPeakID().getItemID()<=60).map(CraftPeaks::toString).collect(Collectors.joining(", "));
+            valid = num2Unk + num2Strong + num2Weak <=2 && num2Strong <= 1 && num2Weak <= 1 && num2Unk <=2;
+
+            LOG.info(MessageFormatter.format("As of day 1, 51-60 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
+
+            LOG.error("peaks for 51-60 C1: num2Strong={}/1?, num2Weak={}/1?, num2Unknown={}/0", num2Strong, num2Weak, num2Unk);
+
+
+            return valid;
+        }
+
+
+        //Day 2
+        if(day==1)
+        {
+            int num2Strong = 0;
+            int num2Weak = 0;
+            int num3Strong = 0;
+            int num67 = 0;
+            int num45 = 0;
+            for (int i = 50; i < 60; i++)
+            {
+                CraftPeaks currentPeak = newPeaks.get(i);
+                currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
+                ItemSupply supply = tcDays.get(1).getObjects().get(i+1);
+                if (supply.getSupply() == Nonexistent) {
+                    num2Strong++;
+                    currentPeak.setPeak("2S");
+                }
+                else if (supply.getSupply() == Insufficient && (currentPeak.getPeak().equals("2U") || currentPeak.getPeak().equals("2W")))
+                {
+                    num2Weak++;
+                    currentPeak.setPeak("2W");
+                }
+                else if (supply.getSupply() == Insufficient) //Peaks D3 or 6/7
+                {
+                    if (supply.getDemand() == Skyrocketing)
+                    {
+                        num3Strong++;
+                        currentPeak.setPeak("3S");
+                    }
+                    else
+                    {
+                        num67++;
+                        currentPeak.setPeak("67");;
+                    }
+                }
+                else
+                {
+                    num45++;
+                    currentPeak.setPeak("45");;
+                }
+            }
+            valid = num2Strong <= 1 && num2Weak <=1 && num3Strong <=1 && num45 <= 4 && num67 <= 5;
+
+            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>50 && peak.getPeakID().getItemID()<=60).map(CraftPeaks::toString).collect(Collectors.joining(", "));
+            LOG.info(MessageFormatter.format("As of day 2, 51-60 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
+
+                LOG.info("Peaks for 51-60 D2 "+", num2Strong = "+num2Strong+"/1?"+", num2Weak = "+num2Weak+"/1?"+", num3Strong = "+num3Strong+"/1?"+", num45 = "+num45+"/4?"+", num67 = "+num67+"/5?");
+
+            return valid;
+        }
+
+
+
+        if(day==2) {
+            int num4Strong = 0;
+            int num5 = 0;
+            int num4Weak = 0;
+            int num3Weak = 0;
+            int num67 = 0;
+            int num6Weak = 0;
+            int numEarlier = 0;
+            //Day 3
+            for (int i = 50; i < 60; i++) {
+                CraftPeaks currentPeak = newPeaks.get(i);
+                currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
+                ItemSupply supply = tcDays.get(2).getObjects().get(i + 1);
+                if (currentPeak.getPeak().equals("45")) {
+                    if (supply.getSupply() == Insufficient) //potentialPeaks 4
+                    {
+                        if (supply.getDemand() == Skyrocketing) {
+                            num4Strong++;
+                            currentPeak.setPeak("4S");
+                        } else {
+                            num4Weak++;
+                            currentPeak.setPeak("4W");
+                        }
+                    } else //potentialPeaks 5
+                    {
+                        num5++;
+                        currentPeak.setPeak("5U");
+                    }
+                } else if (currentPeak.getPeak().equals("67")) {
+                    if(supply.getSupply() == Insufficient)
+                    {
+                        num3Weak++;
+                        currentPeak.setPeak("3W");
+                    }
+                    else if (supply.getSupply() == Sufficient && supply.getDemand() == Decreasing) {
+                        num6Weak++;
+                        currentPeak.setPeak("6W");
+                    } else {
+                        num67++;
+                    }
+                }
+                else if(currentPeak.getPeak().equals("3W"))
+                    num3Weak++;
+                else
+                {
+                    numEarlier++;
+                }
+
+            }
+            valid = num3Weak <= 1 && num4Weak <= 1 && num4Strong <= 1 && num5 <= 2 && num6Weak <=1 && num67 <=3 && numEarlier+num3Weak+num4Weak+num4Strong+num5+num6Weak+num67 == 10;
+
+            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>50 && peak.getPeakID().getItemID()<=60).map(CraftPeaks::toString).collect(Collectors.joining(", "));
+            LOG.info(MessageFormatter.format("As of day 3, 51-60 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
+
+                LOG.info("peaks for 51-60 C3 "+ ", num3Weak = " + num3Weak + "/1"  + ", num4Weak = " + num4Weak + "/1" + ", num4Strong = " + num4Strong + "/1" +
+                        ", num5 = " + num5 + "/2" + ", num6Weak = " + num6Weak + "/1" + ", num67 = " + num67 + "/3. Peaked earlier: {}",numEarlier);
+
+            return valid;
+        }
+
+        int num6Strong = 0;
+        int num7Weak = 0;
+        int num7Strong = 0;
+        int num5Strong = 0;
+        int num5Weak = 0;
+
+        int numEarlier = 0;
+        //Day 4
+        for (int i = 50; i < 60; i++)
+        {
+
+            CraftPeaks currentPeak = newPeaks.get(i);
+            currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
+            ItemSupply supply = tcDays.get(3).getObjects().get(i + 1);
+
+            if (currentPeak.getPeak().equals("67"))
+            {
+                if(supply.getSupply() == Sufficient)
+                {
+                    if (supply.getDemand() == Skyrocketing)
+                    {
+                        num6Strong++;
+                        currentPeak.setPeak("6S");
+                    }
+                    else if (supply.getDemand() == Increasing)
+                    {
+                        num7Weak++;
+                        currentPeak.setPeak("7W");
+                    }
+                    else
+                    {
+                        num7Strong++;
+                        currentPeak.setPeak("7S");
+                    }
+                }
+            }
+            else if (currentPeak.getPeak().equals("5U"))
+            {
+                if (supply.getSupply() == Insufficient)
+                {
+                    if (supply.getDemand() == Skyrocketing) {
+                        num5Strong++;
+                        currentPeak.setPeak("5S");
+                    }
+                    else
+                    {
+                        num5Weak++;
+                        currentPeak.setPeak("5W");
+                    }
+                }
+            }
+            else
+            {
+                numEarlier++;
+            }
+        }
+        valid = num5Weak <= 1 && num5Strong <=1 && num6Strong <=1 && num7Weak <=1 && num7Strong <= 1 && numEarlier + num5Weak + num5Strong + num6Strong + num7Weak + num7Strong == 10;
+
+        String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>50 && peak.getPeakID().getItemID()<=60).map(CraftPeaks::toString).collect(Collectors.joining(", "));
+
+        LOG.info(MessageFormatter.format("As of day 4, 51-60 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
+
+            LOG.info("peaks for 51-60 C4"+", num5Weak = "+num5Weak+"/1"+", num5Strong = "+num5Strong+"/1"
+                    +", num6Strong = "+num6Strong+"/1"+", num7Weak = "+num7Weak+"/1"
+                    +", num7Strong = "+num7Strong+"/1 Peaked earlier: {}",numEarlier);
         return valid;
     }
 }
