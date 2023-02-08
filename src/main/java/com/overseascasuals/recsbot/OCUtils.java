@@ -161,7 +161,7 @@ public class OCUtils
                     sched.setForAllWorkshops(rec.get(0).getKey().getItems());
 
                     //Show one alt
-                    builder.addField("If you can't rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - "))+"||", true)
+                    builder.addField("If You Can't Rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - "))+"||", true)
                             .addField("Grooveless Value","||"+sched.getValue()+"||", true);
                 }
                 builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
@@ -247,7 +247,7 @@ public class OCUtils
                 sched.setForAllWorkshops(rec.get(0).getKey().getItems());
 
                 //Show one alt
-                builder.addField("If you can't rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - "))+"||", true)
+                builder.addField("If You Can't Rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - "))+"||", true)
                         .addField("Grooveless Value","||"+sched.getValue()+"||", true);
             }
             else
