@@ -188,25 +188,41 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         {
             return event.editReply("Current cycle doesn't need confirmation of any peaks.");
         }
-
-        String peakType = event.getOption("peak_type")
-                .flatMap(ApplicationCommandInteractionOption::getValue)
-                .map(ApplicationCommandInteractionOptionValue::asString)
-                .get();
-
         boolean valid = false;
+        String peakType = "";
 
-        if(day == 0 && peakType.equals("strong"))
+        if(day == 0 && event.getOption("c2_peak").isPresent())
         {
-            valid = solver.updatePeak(item, PeakCycle.Cycle2Strong);
+            peakType = event.getOption("c2_peak")
+                    .flatMap(ApplicationCommandInteractionOption::getValue)
+                    .map(ApplicationCommandInteractionOptionValue::asString)
+                    .get();
+
+
+            if(peakType.equals("strong"))
+            {
+                valid = solver.updatePeak(item, PeakCycle.Cycle2Strong);
+            }
+            else if(peakType.equals("weak"))
+            {
+                valid = solver.updatePeak(item, PeakCycle.Cycle2Weak);
+            }
         }
-        else if(day == 0 && peakType.equals("weak"))
+        else if(day == 1 && event.getOption("c3_peak").isPresent())
         {
-            valid = solver.updatePeak(item, PeakCycle.Cycle2Weak);
-        }
-        else if(day == 1 && peakType.equals("weak"))
-        {
-            valid = solver.updatePeak(item, PeakCycle.Cycle3Weak);
+            peakType = event.getOption("c3_peak")
+                    .flatMap(ApplicationCommandInteractionOption::getValue)
+                    .map(ApplicationCommandInteractionOptionValue::asString)
+                    .get();
+
+            if(peakType.equals("3W"))
+            {
+                valid = solver.updatePeak(item, PeakCycle.Cycle3Weak);
+            }
+            else if(peakType.equals("6/7"))
+            {
+                valid = solver.updatePeak(item, PeakCycle.Cycle67);
+            }
         }
 
         if(valid)
@@ -264,17 +280,17 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                     LOG.error("Error tweeting non-tentative C3!!",e);
                 }
 
-                return event.editReply("Item "+item.getDisplayName()+" set to C3 "+peakType+" peak. Generating recs.");
+                return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Generating recs.");
             }
             else
             {
-                return event.editReply("Item "+item.getDisplayName()+" set to C"+(day+2)+" "+peakType+" peak. Still waiting on more required info.");
+                return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Still waiting on more required info.");
             }
         }
         else
         {
             LOG.info("command is for item we don't need");
-            return event.editReply("No peak info needed for "+item.getDisplayName());
+            return event.editReply("No peak info needed for "+item.getDisplayName() +" or corresponding peak info not present.");
         }
     }
 

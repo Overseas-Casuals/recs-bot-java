@@ -72,6 +72,13 @@ public class Solver
     @Autowired
     private void setMiddayUpdateThreshold(@Value("${solver.middayUpdateThreshold}")int threshold) {middayUpdateThreshold = threshold;}
 
+    private static boolean testC2Imposters;
+    @Autowired
+    private void setTestC2Imposters(@Value("${solver.testC2Imposters}")boolean test) {testC2Imposters = test;}
+    private static boolean testC3Imposters;
+    @Autowired
+    private void setTestC3Imposters(@Value("${solver.testC3Imposters}")boolean test) {testC3Imposters = test;}
+
     @Value("${spring.profiles.active}")
     private String activeProfile;
 
@@ -409,12 +416,11 @@ public class Solver
                 if(rec.isRestRecommended())
                     rested = dayToSolve;
 
-                if(dayToSolve==1 && !autocompletePeaks)
+                if(dayToSolve==1 && !autocompletePeaks && testC2Imposters)
                     rec.setTroublemakers(getTentativeD2Items(), d2Bystanders);
-                else if(dayToSolve == 2)
-                {
+                else if(dayToSolve == 2 && testC3Imposters)
                     rec.setTroublemakers(getC3Troublemakers(), new HashSet<>());
-                }
+
 
 
                 LOG.info("{}", rec);
@@ -779,12 +785,16 @@ public class Solver
                     setAllTentativePeaks(Cycle2Strong, peaksToSave);
                 }
 
-                CraftPeaks singlePeak = new CraftPeaks();
-                singlePeak.setPeakFromEnum(peak);
-                singlePeak.setPeakID(new PeakID(week, day, item.ordinal()+1));
-                peaksToSave.add(singlePeak);
+
                 if("live".equals(activeProfile))
+                {
+                    CraftPeaks singlePeak = new CraftPeaks();
+                    singlePeak.setPeakFromEnum(peak);
+                    singlePeak.setPeakID(new PeakID(week, day, item.ordinal()+1));
+                    peaksToSave.add(singlePeak);
                     peakRepository.saveAll(peaksToSave);
+                }
+
             }
 
             return changed;
@@ -793,13 +803,15 @@ public class Solver
         {
             groove = startingGroovePerDay.get(2);
             d3Troublemakers.put(item, true);
-            CraftPeaks singlePeak = new CraftPeaks();
-            singlePeak.setPeakFromEnum(peak);
-            singlePeak.setPeakID(new PeakID(week, day, item.ordinal()+1));
-            List<CraftPeaks> peaksToSave = new ArrayList<>();
-            peaksToSave.add(singlePeak);
-            if("live".equals(activeProfile))
+            if(peak == Cycle3Weak && "live".equals(activeProfile))
+            {
+                CraftPeaks singlePeak = new CraftPeaks();
+                singlePeak.setPeakFromEnum(peak);
+                singlePeak.setPeakID(new PeakID(week, day, item.ordinal()+1));
+                List<CraftPeaks> peaksToSave = new ArrayList<>();
+                peaksToSave.add(singlePeak);
                 peakRepository.saveAll(peaksToSave);
+            }
             return true;
         }
         return false;
@@ -861,11 +873,11 @@ public class Solver
         List<Item> itemsThatGetReservations = new ArrayList<>();
         for (int i = 0; i < itemsToReserve-(2*day) && itemIterator.hasNext(); i++)
         {
-            Item next = itemIterator.next().getKey();
-            LOG.info("Reserving item {}", next);
-            reservedItems.add(next);
+            var next = itemIterator.next();
+            LOG.info("Reserving item {} ({})", next.getKey(), next.getValue());
+            reservedItems.add(next.getKey());
             if (i < (5-day)*2)
-                itemsThatGetReservations.add(next);
+                itemsThatGetReservations.add(next.getKey());
         }
 
         reservedHelpers.clear();
@@ -1569,12 +1581,12 @@ public class Solver
     public boolean isSolvedD2()
     {
         //LOG.info("Day {} troublemakers: {}", day, d2Troublemakers==null?"null":String.valueOf(d2Troublemakers.size()));
-        return day != 0 || d2Troublemakers == null || d2Troublemakers.size() == 0;
+        return !testC2Imposters || day != 0 || d2Troublemakers == null || d2Troublemakers.size() == 0;
     }
 
     public boolean isSolvedD3()
     {
-        return day != 1 || d3Troublemakers == null || d3Troublemakers.size() == 0;
+        return !testC3Imposters || day != 1 || d3Troublemakers == null || d3Troublemakers.size() == 0;
     }
 
     public boolean allTentativeD2Set()
@@ -1658,11 +1670,11 @@ public class Solver
                 }
 
                 var newSchedule = getBestSchedule(1, 0, null, rank);
-                int newValue = 0;
+
                 if (newSchedule == null)
                     continue;
 
-                newValue = schedule.getValue().getWeighted();
+                int newValue = newSchedule.getValue().getWeighted();
 
                 if(newValue > value + middayUpdateThreshold && (betterPermuts.size() > 0 || !newSchedule.getKey().getItems().equals(schedule.getKey().getItems())))
                 {

@@ -161,10 +161,10 @@ public class OCUtils
                     sched.setForAllWorkshops(rec.get(0).getKey().getItems());
 
                     //Show one alt
-                    builder.addField("Best Non-Rest", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - "))+"||", true)
+                    builder.addField("If you can't rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - "))+"||", true)
                             .addField("Grooveless Value","||"+sched.getValue()+"||", true);
                 }
-                builder.addField("Alternatives", "Can't make the rec? Forgot to set today's schedule? Going out of town?\n" +
+                builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
                         "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);
             }
         }
@@ -247,7 +247,7 @@ public class OCUtils
                 sched.setForAllWorkshops(rec.get(0).getKey().getItems());
 
                 //Show one alt
-                builder.addField("Best Non-Rest", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - "))+"||", true)
+                builder.addField("If you can't rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining(" - "))+"||", true)
                         .addField("Grooveless Value","||"+sched.getValue()+"||", true);
             }
             else
@@ -262,7 +262,7 @@ public class OCUtils
         builder.addField("","",false);
         builder.addField("Total Weekly Value", total+cowriesEmoji, false);
         builder.addField("","",false);
-        builder.addField("Alternatives", "Can't make the rec? Forgot to set today's schedule? Going out of town?\n" +
+        builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
                 "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);
 
         messageSpec.content("<@&"+squawkboxRole+">");
