@@ -186,6 +186,7 @@ public class Solver
     private int week = 0;
     public int getWeek() {return week;}
     private int day = 0;
+    public int getDay() {return day;}
 
     private CSVImporter csvImporter;
 
