@@ -30,7 +30,7 @@ public class AutocompleteListener implements EventListener<ChatInputAutoComplete
                 .orElse("").replace(" ","").toLowerCase();
 
 
-        LOG.info("Getting autocomplete for {}", typing);
+        //LOG.info("Getting autocomplete for {}", typing);
 
         int i=0;
         List<ApplicationCommandOptionChoiceData> suggestions = new ArrayList<>();
@@ -66,7 +66,7 @@ public class AutocompleteListener implements EventListener<ChatInputAutoComplete
         {
             suggestions.add(ApplicationCommandOptionChoiceData.builder().name(item.getDisplayName()).value(item.name()).build());
         }
-        LOG.info("Returning {} results in {}ms", i, System.currentTimeMillis()-time);
+        //LOG.info("Returning {} results in {}ms", i, System.currentTimeMillis()-time);
 
         return event.respondWithSuggestions(suggestions);
     }
