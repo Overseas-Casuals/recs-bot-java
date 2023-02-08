@@ -530,8 +530,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
 
-        if(day != solver.getDay())
-            return event.editReply("Don't have peak info for the current day. Wait until recs get run!");
+
 
         if(day == 6)
             return event.editReply("It's Cycle 7! Set Cycle 1 of next season to rest, like always.");
@@ -543,6 +542,9 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             LOG.info("Haven't run recs yet. Doing so now.");
             solver.getDailyRecommendations(week, day, true);
         }
+
+        if(day != solver.getDay())
+            return event.editReply("Don't have peak info for the current day. Wait until recs get run!");
 
         String content = "";
         if(items.size()>0)
