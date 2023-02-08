@@ -106,8 +106,9 @@ public class BotConfiguration implements CommandLineRunner
         LOG.info("Scheduled "+taskList.size()+" task(s)");
         LOG.info("{}", testStr);
 
+
+        deregisterCommands(client);
         //registerCommands(client);
-        //deregisterCommands(client);
 
         if(("local".equals(activeProfile))) return client;
 
@@ -134,23 +135,32 @@ public class BotConfiguration implements CommandLineRunner
 
         // Build our command's definition
         ApplicationCommandRequest setPeakRequest = ApplicationCommandRequest.builder()
-                .name("set_peak")
-                .description("Sets the peak of a craft on Cycle 2")
+                .name("set_imposter_data")
+                .description("Reports the new supply and demand shift after imposter testing")
                 .addOption(ApplicationCommandOptionData.builder()
                         .name("item")
-                        .description("The item to set the peak of")
+                        .description("The item to set the data for")
                         .type(ApplicationCommandOption.Type.STRING.getValue())
                         .required(true)
                         .autocomplete(true)
                         .build()
                 )
                 .addOption(ApplicationCommandOptionData.builder()
-                        .name("peak_type")
-                        .description("Whether the peak is strong or weak on C2")
+                        .name("new_supply")
+                        .description("What the supply is after testing")
                         .type(ApplicationCommandOption.Type.STRING.getValue())
                         .required(true)
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Strong").value("strong").build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Weak").value("weak").build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Insufficient").value("insufficient").build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sufficient").value("sufficient").build())
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("new_demand_shift")
+                        .description("What the demand shift is after testing")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(true)
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Skyrocketing").value("skyrocketing").build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Increasing").value("increasing").build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("None").value("none").build())
                         .build())
                 .defaultMemberPermissions("0")
                 .dmPermission(false)
