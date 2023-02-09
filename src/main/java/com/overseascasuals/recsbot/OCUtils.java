@@ -58,7 +58,8 @@ public class OCUtils
 
             else
             {
-                builder.addField("Tentative Recommendation", rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")), true)
+                boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.get(0).getValue().getGroove() > 0);
+                builder.addField("Tentative Recommendation", rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")), inline)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
 
                 if(rec.getBestRec().getStartingGroove() != 0)
@@ -106,8 +107,8 @@ public class OCUtils
                 title = "Updated Recommendation";
             }
 
-
-            builder.addField(title, rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")), true)
+            boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.get(0).getValue().getGroove() > 0);
+            builder.addField(title, rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")), inline)
                     .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
 
             if(rec.getBestRec().getStartingGroove() != 0)
@@ -118,8 +119,9 @@ public class OCUtils
 
             if(rec.getOldRec() != null)
             {
+                boolean oldInline = !(rec.getBestRec().getStartingGroove() != 0 && rec.getOldValue().getGroove() > 0);
 
-                builder.addField("Original Recommendation", rec.getOldRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")), true)
+                builder.addField("Original Recommendation", rec.getOldRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")), oldInline)
                         .addField("Grooveless Value", String.valueOf(rec.getOldGrooveless())+(rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
 
                 if(rec.getBestRec().getStartingGroove() != 0)
