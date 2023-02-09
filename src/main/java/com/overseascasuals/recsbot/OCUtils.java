@@ -131,12 +131,14 @@ public class OCUtils
         }
 
 
+
         if(rec.size() > 1 && rec.getOldRec() == null)
         {
             if(rec.getMaxRank() > 0)
             {
                 //Add alts also
-                builder.addField("\u200B", "\u200B", false);
+                //builder.addField("\u200B", "\u200B", false);
+                builder.addField("", "", false);
 
                 StringBuilder altSb = new StringBuilder();
                 StringBuilder grossSb = new StringBuilder();
