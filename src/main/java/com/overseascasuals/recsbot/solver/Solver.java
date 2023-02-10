@@ -1388,7 +1388,7 @@ public class Solver
         return solution;
     }
 
-    public List<Entry<WorkshopSchedule, WorkshopValue>> getRestOfDayRecs(int day, int hoursLeft, int rank)
+    public List<Entry<WorkshopSchedule, WorkshopValue>> getRestOfDayRecs(int day, int hoursLeft, int rank, Item startingItem)
     {
         if(rank > maxIslandRank)
             rank = maxIslandRank;
@@ -1437,7 +1437,7 @@ public class Solver
 
         LOG.info("Getting rest of day schedules for day {} with groove {}, limited items {} through day {}",
                 day, startingGroove, limitedItems, lastDaySet);
-        var schedules = getBestBruteForceSchedules(day, startingGroove, limitedItems, lastDaySet, 5, null, hoursLeft, rank);
+        var schedules = getBestBruteForceSchedules(day, startingGroove, limitedItems, lastDaySet, 5, startingItem, hoursLeft, rank);
 
         if(schedules == null || schedules.size() == 0)
             return null;
