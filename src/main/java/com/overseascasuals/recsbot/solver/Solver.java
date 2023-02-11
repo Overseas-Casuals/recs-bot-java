@@ -72,6 +72,10 @@ public class Solver
     @Autowired
     private void setMiddayUpdateThreshold(@Value("${solver.middayUpdateThreshold}")int threshold) {middayUpdateThreshold = threshold;}
 
+    private static int chinaUpdateThreshold;
+    @Autowired
+    private void setChinaUpdateThreshold(@Value("${solver.chinaUpdateThreshold}")int threshold) {chinaUpdateThreshold = threshold;}
+
     private static boolean testC2Imposters;
     @Autowired
     private void setTestC2Imposters(@Value("${solver.testC2Imposters}")boolean test) {testC2Imposters = test;}
@@ -1736,7 +1740,9 @@ public class Solver
                     if(newSchedule == null)
                         continue;
                     int newValue = newSchedule.getValue().getWeighted();
-                    if(newValue > baseValue + middayUpdateThreshold && !newSchedule.getKey().getItems().equals(schedule.getKey().getItems())) {
+                    boolean itemIsGoodEnough = (item.item.ordinal() >= 50 && newValue > baseValue + middayUpdateThreshold) ||
+                            (item.item.ordinal() < 50 && newValue > baseValue + chinaUpdateThreshold);
+                    if(itemIsGoodEnough && !newSchedule.getKey().getItems().equals(schedule.getKey().getItems())) {
                         if (shouldRest && isWorseThanAllFollowing(newSchedule, 2, rank))
                             continue;
                         d3Troublemakers.put(item.item, false);
