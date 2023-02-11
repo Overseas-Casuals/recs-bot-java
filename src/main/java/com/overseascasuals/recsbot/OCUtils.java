@@ -212,7 +212,7 @@ public class OCUtils
         }
         else if(crimeDiff)
         {
-            builder.description("Use the normal recs except for the days below!");
+            builder.description("Use the main recommendations except for the days below!");
             builder.addField("","",false);
         }
 
