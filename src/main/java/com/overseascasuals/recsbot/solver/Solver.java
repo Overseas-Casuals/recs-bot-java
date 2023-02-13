@@ -431,10 +431,14 @@ public class Solver
                 LOG.info("{}", rec);
                 addCraftedFromCycle(rec.getDay(), rec.getBestRec(), rank, true);
             }
-            else
+            else if(day < 6)
             {
-                generateCrimeTimeRecs(rank);
-                setCraftedFromHistory();
+                if(day == 3)
+                {
+                    generateCrimeTimeRecs(rank);
+                    setCraftedFromHistory();
+                }
+
                 //Try days 5-7
                 listOfRecs = getRecForSingleDay(dayToSolve, rank, null, true);
                 for(var rec : listOfRecs)
@@ -442,7 +446,7 @@ public class Solver
                     addCraftedFromCycle(rec.getDay(), rec.getBestRec(), rec.getMaxRank(), true);
                 }
 
-                if(rank==maxIslandRank)
+                if(day == 3 && rank==maxIslandRank)
                     totalValue = generateTotalValue(listOfRecs);
             }
         }
@@ -523,7 +527,7 @@ public class Solver
         List<DailyRecommendation> recs = new ArrayList<>();
         LOG.info("Solving recs for day {}, rank {}",(dayToSolve+1), rank);
 
-        if(dayToSolve != 4 && dayToSolve != 5)
+        if(dayToSolve != 4 && dayToSolve != 5 && dayToSolve < 7)
         {
             DailyRecommendation rec;
             var todayRecs =  getBestBruteForceSchedules(dayToSolve, startingGroovePerDay.get(dayToSolve),
@@ -566,7 +570,8 @@ public class Solver
             }
             recs.add(rec);
         }
-        else {
+        else if (dayToSolve == 4 || dayToSolve == 5)
+        {
             recs = getLateDays(rank, limitedUse);
         }
 
