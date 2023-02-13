@@ -271,7 +271,7 @@ public class GetPeaksTask implements ScheduledTask
                         }
 
                         try{
-                            RecsTweet.sendRecAsReply(week, recs, !local);
+                            RecsTweet.sendRec(week, recs, !local);
                         }
                         catch(Exception e)
                         {

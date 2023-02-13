@@ -247,7 +247,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 );
 
                 try{
-                    RecsTweet.sendRecAsReply(week, recs.get(0), true);
+                    RecsTweet.sendRec(week, recs.get(0), true);
                 }
                 catch(Exception e)
                 {
@@ -273,7 +273,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 );
 
                 try{
-                    RecsTweet.sendRecAsReply(week, recs.get(0), true);
+                    RecsTweet.sendRec(week, recs.get(0), true);
                 }
                 catch(Exception e)
                 {

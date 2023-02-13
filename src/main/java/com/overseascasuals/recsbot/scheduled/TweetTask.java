@@ -32,7 +32,7 @@ public class TweetTask implements ScheduledTask
 
             int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
             if(live)
-                RecsTweet.sendTweetAPI("Season "+(week+1)+", Cycle 1: "+RecsTweet.rest);
+                RecsTweet.sendTweetAPI("Season "+(week+1)+", Cycle 1:\n"+RecsTweet.rest);
         }
         catch(TwitterException e)
         {

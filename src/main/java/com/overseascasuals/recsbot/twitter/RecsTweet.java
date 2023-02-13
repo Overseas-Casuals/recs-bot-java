@@ -20,7 +20,9 @@ public class RecsTweet
 
         LOG.info("Tweet response: {}",response.getText());
     }
-    public static void sendTweetAsReply(String line) throws TwitterException
+
+    //Can no longer get user timeline
+    /*public static void sendTweetAsReply(String line) throws TwitterException
     {
         Twitter twitter = Twitter.getInstance();
         var response = twitter.v1().timelines().getUserTimeline();
@@ -29,13 +31,13 @@ public class RecsTweet
             StatusUpdate status = StatusUpdate.of(line).inReplyToStatusId(response.get(0).getId());
             twitter.v1().tweets().updateStatus(status);
         }
-    }
-    public static void sendRecAsReply(int week, DailyRecommendation rec, boolean live) throws TwitterException
+    }*/
+    public static void sendRec(int week, DailyRecommendation rec, boolean live) throws TwitterException
     {
         String str = convertRecToString(week, rec);
         LOG.info("{}:\n{}\n\nLength: {}", live?"Tweeting":"Would be tweeting", str, str.length());
         if(live)
-            sendTweetAsReply(str);
+            sendTweetAPI(str);
     }
 
     public static String convertRecToString(int week, DailyRecommendation rec)
