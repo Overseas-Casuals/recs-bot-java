@@ -9,7 +9,7 @@ import twitter4j.TwitterException;
 
 import java.util.Date;
 
-//@Service
+@Service
 public class TweetTask implements ScheduledTask
 {
     private static Logger LOG = LoggerFactory.getLogger(TweetTask.class);
