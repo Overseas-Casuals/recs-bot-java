@@ -16,11 +16,11 @@ public class RecsTweet
     {
         Twitter twitter = Twitter.getInstance();
 
-        var response = twitter.v1().tweets().updateStatus(line);
+        /*var response = twitter.v1().tweets().updateStatus(line);
 
-        LOG.info("Tweet response: {}",response.getText());
+        LOG.info("Tweet response: {}",response.getText());*/
     }
-    public static void sendTweetAsReply(String line) throws TwitterException
+    private static void sendTweetAsReply(String line) throws TwitterException
     {
         Twitter twitter = Twitter.getInstance();
         var response = twitter.v1().timelines().getUserTimeline();
@@ -34,8 +34,8 @@ public class RecsTweet
     {
         String str = convertRecToString(week, rec);
         LOG.info("{}:\n{}\n\nLength: {}", live?"Tweeting":"Would be tweeting", str, str.length());
-        if(live)
-            sendTweetAsReply(str);
+        /*if(live)
+            sendTweetAsReply(str);*/
     }
 
     public static String convertRecToString(int week, DailyRecommendation rec)
