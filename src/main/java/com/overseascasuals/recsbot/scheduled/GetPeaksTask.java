@@ -333,12 +333,12 @@ public class GetPeaksTask implements ScheduledTask
                         num2Strong++;
                         peakString = "2S";
                     }
-                    else if (supply.getDemand() == Increasing || supply.getDemand() == Decreasing)
+                    else if (supply.getDemand() == Increasing)
                     {
                         num2Weak++;
                         peakString = "2W";
                     }
-                    else if (supply.getDemand() == None) {
+                    else if (supply.getDemand() == None) { //This will never happen again. RIP None. 6.2-6.2
                         num2Strong++;
                         peakString = "2S";
                     }

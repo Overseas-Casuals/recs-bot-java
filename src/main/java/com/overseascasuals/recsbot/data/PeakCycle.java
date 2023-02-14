@@ -14,7 +14,7 @@ public enum PeakCycle
     Cycle5Strong (true, true),
     Cycle6Weak (false, true),
     Cycle6Strong (true, true),
-    Cycle7Weak (true, true),
+    Cycle7Weak (false, true),
     Cycle7Strong (false, true),
     Cycle45 (false, false),
     Cycle5 (false, false),
