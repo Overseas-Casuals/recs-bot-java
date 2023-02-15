@@ -100,7 +100,10 @@ public class BotConfiguration implements CommandLineRunner
         for(var task : taskList)
         {
             task.initialize(client, "local".equals(activeProfile));
-            taskScheduler.schedule(task, new CronTrigger(task.getCron(), ZoneId.of("UTC")));
+            if(("local".equals(activeProfile)))
+                task.run();
+            else
+                taskScheduler.schedule(task, new CronTrigger(task.getCron(), ZoneId.of("UTC")));
 
         }
         LOG.info("Scheduled "+taskList.size()+" task(s)");
@@ -367,12 +370,7 @@ public class BotConfiguration implements CommandLineRunner
         LOG.info("Found "+response.getCraft1());
         if(!("local".equals(activeProfile))) return;
 
-        LOG.info("Running Bot config with taskList {}", taskList);
-        for(var task : taskList)
-        {
-            task.run();
-        }
-
+        LOG.info("Ran taskList {}", taskList);
 
         //solver.getRestOfDayRecs(3, 20, 11, Item.GrowthFormula);
         //solver.getRestOfDayRecs(2, 22, 11);
