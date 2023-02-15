@@ -186,6 +186,7 @@ public class Solver
 
 
     private boolean autocompletePeaks = false;
+    private boolean allC3Set = false;
 
     private int week = 0;
     public int getWeek() {return week;}
@@ -242,6 +243,7 @@ public class Solver
             startingGroovePerDay.put(0,0);
             startingGroovePerDay.put(1,0);
             autocompletePeaks = false;
+            allC3Set = false;
             rested = -1;
             groove = 0;
             guaranteeRestD5 = false;
@@ -404,7 +406,6 @@ public class Solver
             groove = startingGroovePerDay.get(dayToSolve);
             if(day < 3)
             {
-
                 if(rested == dayToSolve)
                     rested = -1;
 
@@ -423,10 +424,8 @@ public class Solver
 
                 if(dayToSolve==1 && !autocompletePeaks && testC2Imposters)
                     rec.setTroublemakers(getTentativeD2Items(), d2Bystanders);
-                else if(dayToSolve == 2 && testC3Imposters)
+                else if(dayToSolve == 2 && !allC3Set && testC3Imposters)
                     rec.setTroublemakers(getC3Troublemakers(), new HashSet<>());
-
-
 
                 LOG.info("{}", rec);
                 addCraftedFromCycle(rec.getDay(), rec.getBestRec(), rank, true);
@@ -1620,6 +1619,7 @@ public class Solver
             if(!value)
                 return false;
 
+        allC3Set = true;
         return true;
     }
 
@@ -1723,6 +1723,7 @@ public class Solver
     private Map<Item,Boolean> getC3Troublemakers()
     {
         d3Troublemakers = new HashMap<>();
+        allC3Set = false;
         for(int rank = 11; rank < 12; rank++)
         {
             var schedule = getBestSchedule(2, groove, null, rank);
