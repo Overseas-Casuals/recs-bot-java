@@ -18,7 +18,7 @@ public class PingIslandTask implements ScheduledTask
     private static Logger LOG = LoggerFactory.getLogger(PingIslandTask.class);
     @Value("${discord.peaksChannel}")
     private String botTestingChannel;
-    private String cron = "0 0 * * * ?";
+    private String cron = "0 0/15 * * * ?";
 
     private MessageChannel channel;
 
