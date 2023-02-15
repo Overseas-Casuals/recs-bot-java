@@ -152,6 +152,11 @@ public class Solver
             new ItemInfo(PopotoSalad,Foodstuffs,Invalid,52,4,11,Map.of(Popoto,2)),
             new ItemInfo(Dressing,Ingredients,Invalid,52,4,11,Map.of(Onion,2))};
 
+    public static int getNumItems()
+    {
+        return items.length;
+    }
+
     public static int getHoursForItem(Item item)
     {
         return items[item.ordinal()].time;

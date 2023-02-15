@@ -3,6 +3,7 @@ package com.overseascasuals.recsbot.scheduled;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.overseascasuals.recsbot.OCUtils;
+import com.overseascasuals.recsbot.data.DailyRecommendation;
 import com.overseascasuals.recsbot.json.ItemSupply;
 import com.overseascasuals.recsbot.json.RestService;
 import com.overseascasuals.recsbot.json.TCDay;
@@ -131,7 +132,7 @@ public class GetPeaksTask implements ScheduledTask
 
             int peakday = Math.min(recDay, 3);
             List<CraftPeaks> peaksByDay = peakRepository.findPeaksByDay(week, peakday);
-            if(peaksByDay != null && peaksByDay.size() > 0)
+            if(peaksByDay != null && peaksByDay.size() >= Solver.getNumItems())
             {
                 LOG.info("Peaks for day {} already found. Skipping grabbing from TC.", peakday+1);
                 alreadyHavePeaks = true;
@@ -229,10 +230,28 @@ public class GetPeaksTask implements ScheduledTask
                 return;
             }
             //Also send to Discord
+
+
+            List<DailyRecommendation> list;
+
+            try
+            {
+                list = solver.getDailyRecommendations(week, recDay, false, peaksByDay);
+            }
+            catch(Exception e)
+            {
+                LOG.error("Error running recs. Rescheduling. ", e);
+
+                ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+                int delay = 15;
+                scheduler.schedule(this, delay, TimeUnit.MINUTES);
+                scheduler.shutdown();
+                return;
+            }
+
             var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).toArray();
             peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
-            var list = solver.getDailyRecommendations(week, recDay, false, peaksByDay);
             if(list == null)
                 peakChannel.createMessage("<@"+miennaID+"> No recs returned").subscribe();
             else
@@ -253,8 +272,6 @@ public class GetPeaksTask implements ScheduledTask
                         list.remove(0);
                         list.remove(0);
                     }
-
-
                 }
                 else
                 {
@@ -277,7 +294,6 @@ public class GetPeaksTask implements ScheduledTask
                         {
                             LOG.error("Error tweeting!!",e);
                         }
-
                     }
                 }
             }
