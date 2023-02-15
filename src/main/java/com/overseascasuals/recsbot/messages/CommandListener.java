@@ -566,10 +566,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         {
             recs.remove(0);
         }
-        else if(day != 3 && recs.get(0).isTentative())
-        {
-            return event.editReply("C2 info not known. Need more peaks");
-        }
 
         List<EmbedCreateSpec> embeds = new ArrayList<>();
         for(var rec : recs)
