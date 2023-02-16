@@ -51,7 +51,7 @@ public class PingIslandTask implements ScheduledTask
         }
         catch(RestClientException e)
         {
-            LOG.error("Failed to get response from peak DB. Sleeping.");
+            LOG.error("Failed to get response from peak DB. Asking it to restart.");
             
             String response = restService.postRestart();
             channel.createMessage("<@"+miennaID+"> Couldn't connect to peak database. Restarted? "+response).subscribe();
