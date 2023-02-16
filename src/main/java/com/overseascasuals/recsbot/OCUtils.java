@@ -329,7 +329,6 @@ public class OCUtils
         if(recs != null && recs.size() > 0 && recs.get(0).getKey().getItems().size() > 0)
         {
             StringBuilder altSb = new StringBuilder();
-            StringBuilder grossSb = new StringBuilder();
             for(var alt : recs)
             {
                 if(alt.getKey().getItems().size() > 0)
@@ -339,12 +338,11 @@ public class OCUtils
                 }
             }
             altSb.setLength(altSb.length()-1);
-            grossSb.setLength(grossSb.length()-1);
 
             builder.addField("Schedules by Value", altSb.toString(), true);
         }
         else
-            builder.addField("Schedules", "None available", false);
+            builder.addField("Schedules by Value", "None available", false);
 
 
 
