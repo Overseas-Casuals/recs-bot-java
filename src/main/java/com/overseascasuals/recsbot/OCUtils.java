@@ -146,15 +146,15 @@ public class OCUtils
                 StringBuilder grossSb = new StringBuilder();
                 for(var alt : rec)
                 {
-                    String altText = alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
+                    String altText = "**"+alt.getValue().getWeighted() +"**\u00A0\u00A0" + alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
                     altSb.append(altText).append('\n');
                     grossSb.append(alt.getValue().getWeighted()).append('\n');
                 }
                 altSb.setLength(altSb.length()-1);
                 grossSb.setLength(grossSb.length()-1);
 
-                builder.addField("Alternatives", altSb.toString(), true)
-                        .addField("Weighted Value", grossSb.toString(), true);
+                builder.addField("Alternatives by Value", altSb.toString(), true);
+                       // .addField("Weighted Value", grossSb.toString(), true);
                 //.addField("Net", netSb.toString(), true);
             }
             else
@@ -334,16 +334,14 @@ public class OCUtils
             {
                 if(alt.getKey().getItems().size() > 0)
                 {
-                    String altText = alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
+                    String altText = "**"+alt.getValue().getWeighted() +"**\u00A0\u00A0" + alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
                     altSb.append(altText).append('\n');
-                    grossSb.append(alt.getValue().getWeighted()).append('\n');
                 }
             }
             altSb.setLength(altSb.length()-1);
             grossSb.setLength(grossSb.length()-1);
 
-            builder.addField("Schedules", altSb.toString(), true)
-                    .addField("Weighted Value", grossSb.toString(), true);
+            builder.addField("Schedules by Value", altSb.toString(), true);
         }
         else
             builder.addField("Schedules", "None available", false);
