@@ -70,4 +70,17 @@ public class RestService {
 
         return restTemplate.postForObject(peakDbURL+"/pop", entity, String.class);
     }
+
+    public String postRestart() throws RestClientException
+    {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        map.add("key","Zac4@^dOUlJGeKLnR%&EcPdD");
+
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(map, headers);
+
+        return restTemplate.postForObject(peakDbURL+"/tryHandle", entity, String.class);
+    }
 }
