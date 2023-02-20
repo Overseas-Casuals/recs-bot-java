@@ -212,12 +212,12 @@ public class OCUtils
         }
         else if(crimeDiff)
         {
-            builder.description("Use the main recommendations except for the days below!");
+            builder.description("Use the normal squawkbox recommendations except for the days below!");
             builder.addField("","",false);
         }
 
         else
-            builder.description("You use the same schedules as the main recommendations this season!");
+            builder.description("You use the same schedules as the normal squawkbox recommendations this season!");
 
 
         builder.addField("Total Weekly Value", crimeTotal+cowriesEmoji, false);
