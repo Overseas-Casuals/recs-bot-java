@@ -266,11 +266,22 @@ public class GetPeaksTask implements ScheduledTask
                         channel.createMessage(OCUtils.createCombinedC4Post(week, list, squawkboxRole, solver.totalValue)).flatMap(Message::publish).subscribe();
                         channel.createMessage(OCUtils.createCrimeTimePost(week, list, crimes, crimeTimeRole, solver.crimeTimeValue)).flatMap(Message::publish).subscribe();
 
+                        for(int d=0;d<3;d++)
+                        {
+                            try{
+                                RecsTweet.sendRec(week, list.get(d), !local);
+                            }
+                            catch(Exception e)
+                            {
+                                LOG.error("Error tweeting!!",e);
+                            }
+                        }
                         //Pop the first 3 recs and start again
                         //Note: Like, test this before we do multiple ranks again
                         list.remove(0);
                         list.remove(0);
                         list.remove(0);
+
                     }
                 }
                 else
