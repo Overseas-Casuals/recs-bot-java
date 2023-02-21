@@ -390,6 +390,11 @@ public class GetPeaksTask implements ScheduledTask
                         num2Strong++;
                         peakString = "2S";
                     }
+                    else if(china && supply.getDemand() == Decreasing)
+                    {
+                        num2Weak++;
+                        peakString = "2W";
+                    }
                     else
                     {
                         num2Unk++;
