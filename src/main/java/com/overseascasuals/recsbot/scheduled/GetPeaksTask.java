@@ -43,6 +43,9 @@ public class GetPeaksTask implements ScheduledTask
     @Value("${tcUrl}")
     private String tcURL;
 
+    @Value("${chinaTcUrl}")
+    private String tcChinaURL;
+
     @Value("${mienna}")
     private String miennaID;
 
@@ -127,6 +130,7 @@ public class GetPeaksTask implements ScheduledTask
         {
             boolean validTCPeaks = false;
             List<TCDay> tcDays = null;
+            List<TCDay> chinaDays = null;
             boolean alreadyHavePeaks = false;
             String response = null;
 
@@ -146,11 +150,22 @@ public class GetPeaksTask implements ScheduledTask
                     //Parse data from JSON
                     if(response != null)
                         tcDays = objectMapper.readValue(response, new TypeReference<>(){});
+
                     validTCPeaks = tcDays != null && tcDays.size() > recDay && tcDays.get(recDay).getObjects() != null && tcDays.get(recDay).getObjects().size() > 0;
+                    if(validTCPeaks && recDay < 2)
+                    {
+                        response = restService.getURLResponse(tcChinaURL);
+                        //Parse data from JSON
+                        if(response != null)
+                            chinaDays = objectMapper.readValue(response, new TypeReference<>(){});
+
+                        validTCPeaks = chinaDays != null && chinaDays.size() > recDay && chinaDays.get(recDay).getObjects() != null && chinaDays.get(recDay).getObjects().size() > 0;
+                    }
                 }
                 catch(Exception e)
                 {
                     LOG.error("Error parsing data from TC: "+response, e);
+                    validTCPeaks = false;
                 }
             }
 
@@ -162,8 +177,13 @@ public class GetPeaksTask implements ScheduledTask
                     peaksByDay = new ArrayList<>();
                 List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
 
-                validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay);
-                validTCPeaks = validTCPeaks && validate63Peaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay);
+                if(recDay < 2)
+                    validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, chinaDays, week, recDay, true);
+                else
+                    validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay, false);
+
+                if(validTCPeaks)
+                    validTCPeaks = validate63Peaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay);
             }
             else if (!alreadyHavePeaks)
             {
@@ -244,6 +264,7 @@ public class GetPeaksTask implements ScheduledTask
 
                 ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
                 int delay = 15;
+
                 scheduler.schedule(this, delay, TimeUnit.MINUTES);
                 scheduler.shutdown();
                 return;
@@ -313,7 +334,7 @@ public class GetPeaksTask implements ScheduledTask
 
 
 
-    private boolean validate62Peaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<TCDay> tcDays, int week, int day)
+    private boolean validate62Peaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<TCDay> tcDays, int week, int day, boolean china)
     {
         day = Math.min(day, 3);
         boolean valid;
@@ -428,6 +449,11 @@ public class GetPeaksTask implements ScheduledTask
                         num3Strong++;
                         currentPeak.setPeak("3S");
                     }
+                    else if(china && supply.getDemand() == Increasing)
+                    {
+                        num3Weak++;
+                        currentPeak.setPeak("3W");
+                    }
                     else
                     {
                         num67++;
@@ -440,12 +466,12 @@ public class GetPeaksTask implements ScheduledTask
                     currentPeak.setPeak("45");;
                 }
             }
-            valid = num2Strong == 4 && num2Weak == 4 && num3Strong == 4 && num45 == 16 && num67 == 22;
+            valid = num2Strong == 4 && num2Weak == 4 && num3Strong == 4 && num45 == 16 && ((!china && num67 == 22) || (china && num67 == 18 && num3Weak == 4));
 
             String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::toString).collect(Collectors.joining(", "));
             LOG.info(MessageFormatter.format("As of day 2, 1-50 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
 
-                LOG.info("peaks for 1-50 D2 "+", num2Strong = "+num2Strong+"/4"+", num2Weak = "+num2Weak+"/4"+", num3Strong = "+num3Strong+"/4"+", num45 = "+num45+"/16"+", num67 = "+num67+"/22");
+            LOG.info("peaks for 1-50 D2 "+", num2Strong = "+num2Strong+"/4"+", num2Weak = "+num2Weak+"/4"+", num3Strong = "+num3Strong+"/4"+", num3Weak = "+num3Weak+"/4"+", num45 = "+num45+"/16"+", num67 = "+num67+"/18");
 
             return valid;
         }

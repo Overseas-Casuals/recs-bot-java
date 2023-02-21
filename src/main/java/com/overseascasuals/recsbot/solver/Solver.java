@@ -1742,8 +1742,9 @@ public class Solver
 
             boolean shouldRest =  isWorseThanAllFollowing(schedule, 2, rank);
 
-            for(var item : items)
+            for(int i=50; i<items.length; i++) //Only check imposters in post-6.3 items
             {
+                var item = items[i];
                 if(item.peak == Cycle67)
                 {
                     item.peak = Cycle3Weak;
@@ -1751,9 +1752,9 @@ public class Solver
                     if(newSchedule == null)
                         continue;
                     int newValue = newSchedule.getValue().getWeighted();
-                    boolean itemIsGoodEnough = (item.item.ordinal() >= 50 && newValue > baseValue + middayUpdateThreshold) ||
-                            (item.item.ordinal() < 50 && newValue > baseValue + chinaUpdateThreshold);
-                    if(itemIsGoodEnough && !newSchedule.getKey().getItems().equals(schedule.getKey().getItems())) {
+                    boolean itemIsGoodEnough = newValue > baseValue + middayUpdateThreshold;
+                    if(itemIsGoodEnough && !newSchedule.getKey().getItems().equals(schedule.getKey().getItems()))
+                    {
                         if (shouldRest && isWorseThanAllFollowing(newSchedule, 2, rank))
                             continue;
                         d3Troublemakers.put(item.item, false);
