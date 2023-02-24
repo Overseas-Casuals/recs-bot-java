@@ -626,7 +626,9 @@ public class Solver
         crime1.setWorkshop(1, crimeCrafts2);
         crime1.setWorkshop(2, crimeCrafts3);
         addCraftedFromCycle(1, crime1, maxIslandRank, false);
-        totalCowries+=crime1.getValue();
+        int c1Value = crime1.getValue();
+        LOG.info("Crime time C2: "+c1Value);
+        totalCowries+=c1Value;
 
         CycleSchedule crime2 = new CycleSchedule(2, groove);
         crime2.setForAllWorkshops(new ArrayList<>());
@@ -637,14 +639,18 @@ public class Solver
         crime3.setWorkshop(1, crimeCrafts2);
         crime3.setWorkshop(2, crimeCrafts3);
         addCraftedFromCycle(3, crime3, maxIslandRank, false);
-        totalCowries+=crime3.getValue();
+        int c3Value = crime3.getValue();
+        LOG.info("Crime time C4: "+c3Value);
+        totalCowries+=c3Value;
 
 
         crimeTimeRecs.add(getLateDays(rank, null, 30));
 
         for(var rec : crimeTimeRecs.get(crimeTimeRecs.size()-1))
         {
-            totalCowries+=rec.getDailyValue();
+            int crimeValue = rec.getDailyValue();
+            LOG.info("Crime rec {}, crime value {}", rec.getBestRec().getItems(), crimeValue);
+            totalCowries+=crimeValue;
         }
 
         if(rank == maxIslandRank)
