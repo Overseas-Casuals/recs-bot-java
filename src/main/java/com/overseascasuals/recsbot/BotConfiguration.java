@@ -95,6 +95,9 @@ public class BotConfiguration implements CommandLineRunner
 
 
 
+        //registerCommands(client);
+        //deregisterCommands(client);
+
         this.taskList = taskList;
 
         for(var task : taskList)
@@ -109,8 +112,7 @@ public class BotConfiguration implements CommandLineRunner
         LOG.info("Scheduled "+taskList.size()+" task(s)");
         LOG.info("{}", testStr);
 
-        //registerCommands(client);
-        //deregisterCommands(client);
+
 
         if(("local".equals(activeProfile))) return client;
 
@@ -302,6 +304,45 @@ public class BotConfiguration implements CommandLineRunner
                         .type(ApplicationCommandOption.Type.STRING.getValue())
                         .required(false)
                         .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("nomat1")
+                        .description("The name of a material you don't want to use")
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
+                        .required(false)
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Laver").value(1).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sap").value(2).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Copper Ore").value(3).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Rock Salt").value(4).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sugarcane").value(5).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cotton Boll").value(6).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Tinsand").value(0).build())
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("nomat2")
+                        .description("The name of a 2nd material you don't want to use")
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
+                        .required(false)
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Laver").value(1).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sap").value(2).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Copper Ore").value(3).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Rock Salt").value(4).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sugarcane").value(5).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cotton Boll").value(6).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Tinsand").value(0).build())
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("nomat3")
+                        .description("The name of a 3rd material you don't want to use")
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
+                        .required(false)
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Laver").value(1).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sap").value(2).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Copper Ore").value(3).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Rock Salt").value(4).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sugarcane").value(5).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cotton Boll").value(6).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Tinsand").value(0).build())
                         .build())
                 .build();
         commands.add(altsRequest);

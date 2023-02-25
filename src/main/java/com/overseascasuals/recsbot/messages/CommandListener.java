@@ -61,6 +61,19 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
     @Autowired
     RestService restService;
 
+    public enum Material {Tinsand, Laver, Sap, Copper, RockSalt, Sugarcane, Cotton};
+
+    //Crafting around really annoying materials exclusion list
+    private Map<Material, List<Item>> caramelMap = Map.of(
+            Material.Laver, List.of(Item.SharkOil, Item.EssentialDraught, Item.VegetableJuice, Item.CawlCennin, Item.Dressing),
+            Material.Sap, List.of(Item.SharkOil, Item.SweetPopoto, Item.ParsnipSalad, Item.Jam, Item.Honey, Item.DriedFlowers, Item.Dressing),
+            Material.Copper, List.of(Item.Barbut, Item.BronzeSheep, Item.GarnetRapier, Item.SpruceRoundShield, Item.Ribbon),
+            Material.RockSalt, List.of(Item.Sauerkraut, Item.Butter, Item.SaltCod, Item.SquidInk, Item.OnionSoup, Item.Isloaf),
+            Material.Sugarcane, List.of(Item.Caramels, Item.Jam, Item.TomatoRelish, Item.Pie, Item.CornFlakes, Item.PickledRadish, Item.CoconutJuice),
+            Material.Cotton, List.of(Item.Ribbon, Item.CavaliersHat, Item.SheepfluffRug, Item.Bed, Item.ScaleFingers),
+            Material.Tinsand, List.of(Item.BronzeSheep, Item.GarnetRapier, Item.SilverEarCuffs)
+    );
+
     @Override
     public Class<ChatInputInteractionEvent> getEventType() {
         return ChatInputInteractionEvent.class;
@@ -510,6 +523,19 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 {
                     return event.editReply(itemName+" is not a valid item");
                 }
+            }
+            else
+            {
+                break;
+            }
+        }
+        for(int i=1; i<=3; i++)
+        {
+            if(event.getOption("nomat"+i).isPresent())
+            {
+                Material mat = Material.values()[event.getOption("nomat"+i).flatMap(ApplicationCommandInteractionOption::getValue).map(ApplicationCommandInteractionOptionValue::asLong).get().intValue()];
+                LOG.info("Running alts excluding mat {}", mat);
+                items.addAll(caramelMap.get(mat));
             }
             else
             {
