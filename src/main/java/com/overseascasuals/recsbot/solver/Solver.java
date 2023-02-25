@@ -1892,6 +1892,7 @@ public class Solver
             Map<Item,Integer> limitedUse, int allowUpToDay, int numToReturn, Item startingItem, int hoursLeft, int islandRank)
     {
         boolean verboseSolverLogging = false;
+        long startTime = System.currentTimeMillis();
         Map<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
 
         Map<ItemCategory, Set<Item>> validItemsByCategory = new HashMap<>();
@@ -1914,7 +1915,9 @@ public class Solver
            }
         }
 
-        LOG.info("Generating schedules");
+        long endTime = System.currentTimeMillis();
+        LOG.info("Generating valid items took {}ms", endTime - startTime);
+        startTime = endTime;
         List<List<Item>> schedules = null;
 
         List<Item> partialSchedule = new ArrayList<>();
@@ -1925,12 +1928,45 @@ public class Solver
         }
 
         schedules = getValidSchedules(validItemsByCategory, partialSchedule, hoursLeft);
+        endTime = System.currentTimeMillis();
+        LOG.info("Generating all schedules took {}ms", endTime - startTime);
+        startTime = endTime;
 
-        LOG.info("Evaluating {} schedules", schedules.size());
-         for(List<Item> schedule : schedules)
+        List<WorkshopSchedule> workshops = new ArrayList<>();
+        for(List<Item> schedule : schedules)
+        {
+            workshops.add(new WorkshopSchedule(schedule));
+        }
+        endTime = System.currentTimeMillis();
+        LOG.info("Creating {} workshop objects took {}ms", schedules.size(), endTime - startTime);
+        startTime = endTime;
+
+        List<WorkshopSchedule> enoughItems = new ArrayList<>();
+         for(var workshop : workshops)
          {
-             addToScheduleMap(schedule, day, groove, limitedUse, safeSchedules, verboseSolverLogging);
+             if(!workshop.usesTooMany(limitedUse, false))
+                 enoughItems.add(workshop);
          }
+        endTime = System.currentTimeMillis();
+        LOG.info("Evaluating {} schedules limited items took {}ms", workshops.size(), endTime - startTime);
+        startTime = endTime;
+
+        List<WorkshopValue> parallelValues = new ArrayList<>();
+        boolean rested = restedAlready();
+        for(var schedule : enoughItems)
+        {
+            parallelValues.add(schedule.getValueWithGrooveEstimate(day, groove, rested, reservedHelpers));
+        }
+        endTime = System.currentTimeMillis();
+        LOG.info("Evaluating {} schedules values took {}ms", enoughItems.size(), endTime - startTime);
+        startTime = endTime;
+
+        for(int i=0;i<parallelValues.size(); i++) {
+            condenseScheduleMap(enoughItems.get(i), parallelValues.get(i), safeSchedules);
+        }
+        endTime = System.currentTimeMillis();
+        LOG.info("Condensing {} schedules values took {}ms", parallelValues.size(), endTime - startTime);
+
         return sortAndFilterSchedules(safeSchedules, numToReturn);
     }
 
@@ -1996,7 +2032,7 @@ public class Solver
 
     private List<Map.Entry<WorkshopSchedule, WorkshopValue>> sortAndFilterSchedules(Map<WorkshopSchedule, WorkshopValue> safeSchedules, int numToReturn)
     {
-        LOG.info("Sorting {} schedules", safeSchedules.size());
+        long startTime = System.currentTimeMillis();
         var sortedSchedules = safeSchedules
                 .entrySet().stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
@@ -2033,12 +2069,27 @@ public class Solver
             return null;
         }
 
-        LOG.info("Finished sorting");
+        LOG.info("Sorting {} schedules took {}ms", safeSchedules.size(), System.currentTimeMillis() - startTime);
         return sortedSchedules.stream().limit(numToReturn).collect(Collectors.toList());
     }
     private static int getHoursUsed(List<Item> schedule)
     {
         return schedule.stream().mapToInt(item -> items[item.ordinal()].time).sum();
+    }
+
+    private void condenseScheduleMap(WorkshopSchedule workshop, WorkshopValue value, Map<WorkshopSchedule, WorkshopValue> safeSchedules)
+    {
+        if(safeSchedules.containsKey(workshop))
+        {
+            if(value.getWeighted() > safeSchedules.get(workshop).getWeighted())
+            {
+                safeSchedules.remove(workshop);
+            }
+        }
+        else
+        {
+            safeSchedules.put(workshop, value);
+        }
     }
     private void addToScheduleMap(List<Item> list, int day, int groove, Map<Item,Integer> limitedUse,
             Map<WorkshopSchedule, WorkshopValue> safeSchedules, boolean verboseSolverLogging)
