@@ -43,8 +43,8 @@ public class ItemInfo
     //Constant info
     public Item item;
     public int baseValue;
-    ItemCategory category1;
-    ItemCategory category2;
+    public final ItemCategory category1;
+    public final ItemCategory category2;
     public int time;
     public Map<RareMaterial, Integer> materialsRequired;
     public int materialValue;

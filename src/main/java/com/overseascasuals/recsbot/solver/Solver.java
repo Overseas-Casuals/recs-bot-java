@@ -225,10 +225,9 @@ public class Solver
     }
     public List<DailyRecommendation> getDailyRecommendations(int week, int day, boolean hardRefresh, List<CraftPeaks> peaks)
     {
+        long startTime = System.currentTimeMillis();
         isRunningRecs = true;
         LOG.info("Getting recommendations for week {} day {}, hardrefresh? {}. update threshold {}", week, day, hardRefresh, middayUpdateThreshold);
-
-
 
         if(peaks == null)
         {
@@ -369,7 +368,7 @@ public class Solver
 
 
                 WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, startingGroove, restedAlready(), reservedHelpers);
-                var newBest = getBestBruteForceSchedules(day, startingGroove,
+                var newBest = getBestGeneratedSchedules(day, startingGroove,
                         null, day, 1, currentCrafts.get(0), 24, rank);
 
                 int newValue = -1;
@@ -458,6 +457,7 @@ public class Solver
 
         hasRunRecs = true;
         isRunningRecs = false;
+        LOG.info("Runtime {}ms", System.currentTimeMillis() - startTime);
         return listOfRecs;
     }
 
@@ -1450,7 +1450,7 @@ public class Solver
 
         LOG.info("Getting rest of day schedules for day {} with groove {}, limited items {} through day {}",
                 day, startingGroove, limitedItems, lastDaySet);
-        var schedules = getBestBruteForceSchedules(day, startingGroove, limitedItems, lastDaySet, 5, startingItem, hoursLeft, rank);
+        var schedules = getBestGeneratedSchedules(day, startingGroove, limitedItems, lastDaySet, 5, startingItem, hoursLeft, rank);
 
         if(schedules == null || schedules.size() == 0)
             return null;
@@ -1565,9 +1565,9 @@ public class Solver
             items[i].setInitialData(ratio, Unknown);
         }
 
-        vacationRecs.put(9, vacationRecsHelper(9));
+        /*vacationRecs.put(9, vacationRecsHelper(9));
         vacationRecs.put(10, vacationRecsHelper(10));
-        vacationRecs.put(11, vacationRecsHelper(11));
+        vacationRecs.put(11, vacationRecsHelper(11));*/
         return popData.getPopularity();
     }
 
@@ -1786,7 +1786,7 @@ public class Solver
     private List<Map.Entry<WorkshopSchedule, WorkshopValue>> getBestBruteForceSchedules(int day, int groove,
                                             Map<Item,Integer> limitedUse, int allowUpToDay, int numToReturn, int islandRank)
     {
-        return getBestBruteForceSchedules(day, groove, limitedUse, allowUpToDay, numToReturn, null, 24, islandRank);
+        return getBestGeneratedSchedules(day, groove, limitedUse, allowUpToDay, numToReturn, null, 24, islandRank);
     }
 
     private List<Map.Entry<WorkshopSchedule, WorkshopValue>> getBestBruteForceSchedules(int day, int groove,
@@ -1796,6 +1796,7 @@ public class Solver
                 day+1, groove, limitedUse, allowUpToDay, startingItem, hoursLeft, csvImporter.allEfficientChains.size());*/
         HashMap<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
         Collection<List<Item>> filteredItemLists;
+        LOG.info("Filtering schedules");
 
         if(csvImporter.allEfficientChains.size() == 0)
         {
@@ -1863,6 +1864,7 @@ public class Solver
             return null;
         }
 
+        LOG.info("Evaluating {} schedules", filteredItemLists.size());
         for (List<Item> list : filteredItemLists)
         {
             addToScheduleMap(list, day, groove, limitedUse, safeSchedules, false);
@@ -1881,6 +1883,120 @@ public class Solver
                 return null;
         }
 
+
+        return sortAndFilterSchedules(safeSchedules, numToReturn);
+
+    }
+
+    private List<Map.Entry<WorkshopSchedule, WorkshopValue>> getBestGeneratedSchedules(int day, int groove,
+            Map<Item,Integer> limitedUse, int allowUpToDay, int numToReturn, Item startingItem, int hoursLeft, int islandRank)
+    {
+        boolean verboseSolverLogging = false;
+        Map<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
+
+        Map<ItemCategory, Set<Item>> validItemsByCategory = new HashMap<>();
+        for(ItemInfo item : items)
+        {
+           if(item.peaksOnOrBeforeDay(allowUpToDay, reservedItems) && item.rankUnlocked <= islandRank)
+           {
+               if(!validItemsByCategory.containsKey(item.category1))
+                   validItemsByCategory.put(item.category1, new HashSet<>());
+
+               validItemsByCategory.get(item.category1).add(item.item);
+
+               if(item.category2 != Invalid)
+               {
+                   if(!validItemsByCategory.containsKey(item.category2))
+                        validItemsByCategory.put(item.category2, new HashSet<>());
+
+                   validItemsByCategory.get(item.category2).add(item.item);
+               }
+           }
+        }
+
+        LOG.info("Generating schedules");
+        List<List<Item>> schedules = null;
+
+        List<Item> partialSchedule = new ArrayList<>();
+        if(startingItem != null)
+        {
+            partialSchedule.add(startingItem);
+            hoursLeft -= items[startingItem.ordinal()].time;
+        }
+
+        schedules = getValidSchedules(validItemsByCategory, partialSchedule, hoursLeft);
+
+        LOG.info("Evaluating {} schedules", schedules.size());
+         for(List<Item> schedule : schedules)
+         {
+             addToScheduleMap(schedule, day, groove, limitedUse, safeSchedules, verboseSolverLogging);
+         }
+        return sortAndFilterSchedules(safeSchedules, numToReturn);
+    }
+
+    private List<List<Item>> getValidSchedules(Map<ItemCategory, Set<Item>> validItemsByCategory, List<Item> scheduleSoFar, int hoursLeft)
+    {
+        List<List<Item>> schedules = new ArrayList<>();
+        if(hoursLeft < 4)
+        {
+            if(scheduleSoFar != null && hoursLeft >= 0 && scheduleSoFar.size() > 0)
+                schedules.add(scheduleSoFar);
+        }
+        else if(scheduleSoFar != null && scheduleSoFar.size() > 0)
+        {
+            ItemInfo lastItem = items[scheduleSoFar.get(scheduleSoFar.size()-1).ordinal()];
+            for(var item : validItemsByCategory.get(lastItem.category1))
+            {
+                ItemInfo newItem = items[item.ordinal()];
+                if(newItem.time <= hoursLeft && item != lastItem.item)
+                {
+                    List<Item> newSchedule = new ArrayList<>(scheduleSoFar);
+                    newSchedule.add(item);
+
+                    schedules.addAll(getValidSchedules(validItemsByCategory, newSchedule, hoursLeft - newItem.time));
+                }
+            }
+            if(lastItem.category2 != Invalid)
+            {
+                for(var item : validItemsByCategory.get(lastItem.category2))
+                {
+                    ItemInfo newItem = items[item.ordinal()];
+                    if(newItem.time <= hoursLeft && item != lastItem.item)
+                    {
+                        List<Item> newSchedule = new ArrayList<>(scheduleSoFar);
+                        newSchedule.add(item);
+
+                        schedules.addAll(getValidSchedules(validItemsByCategory, newSchedule, hoursLeft - newItem.time));
+                    }
+                }
+            }
+        }
+        else //Starting with a blank slate
+        {
+            Set<Item> validItems = new HashSet<>();
+            for (ItemCategory cat : ItemCategory.values())
+                if(validItemsByCategory.containsKey(cat))
+                    validItems.addAll(validItemsByCategory.get(cat));
+
+            for(var item : validItems)
+            {
+                ItemInfo newItem = items[item.ordinal()];
+                if(newItem.time <= hoursLeft)
+                {
+                    List<Item> newSchedule = new ArrayList<>();
+                    newSchedule.add(item);
+
+                    schedules.addAll(getValidSchedules(validItemsByCategory, newSchedule, hoursLeft - newItem.time));
+                }
+            }
+        }
+
+        return schedules;
+    }
+
+    private List<Map.Entry<WorkshopSchedule, WorkshopValue>> sortAndFilterSchedules(Map<WorkshopSchedule, WorkshopValue> safeSchedules, int numToReturn)
+    {
+        LOG.info("Sorting {} schedules", safeSchedules.size());
         var sortedSchedules = safeSchedules
                 .entrySet().stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
@@ -1917,6 +2033,7 @@ public class Solver
             return null;
         }
 
+        LOG.info("Finished sorting");
         return sortedSchedules.stream().limit(numToReturn).collect(Collectors.toList());
     }
     private static int getHoursUsed(List<Item> schedule)
@@ -1924,7 +2041,7 @@ public class Solver
         return schedule.stream().mapToInt(item -> items[item.ordinal()].time).sum();
     }
     private void addToScheduleMap(List<Item> list, int day, int groove, Map<Item,Integer> limitedUse,
-            HashMap<WorkshopSchedule, WorkshopValue> safeSchedules, boolean verboseSolverLogging)
+            Map<WorkshopSchedule, WorkshopValue> safeSchedules, boolean verboseSolverLogging)
     {
         if(verboseSolverLogging)
             LOG.info("Checking schedule {} against {} safe schedules", list, safeSchedules.size());
