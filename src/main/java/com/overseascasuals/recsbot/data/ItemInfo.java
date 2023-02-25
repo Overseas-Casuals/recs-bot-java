@@ -165,6 +165,31 @@ public class ItemInfo
         return true;
     }
 
+    public boolean peaksOnDay(int day)
+    {
+        if(peak == Cycle2Weak || peak == Cycle2Strong || peak == Cycle2Unknown)
+            return day == 1;
+        if (peak == Cycle3Weak || peak == Cycle3Strong)
+            return day == 2;
+        if(peak == Cycle4Weak || peak == Cycle4Strong)
+            return day == 3;
+        if(peak == Cycle5Weak || peak == Cycle5Strong || peak == Cycle5)
+            return day == 4;
+        if(peak == Cycle6Weak || peak == Cycle6Strong)
+            return day == 5;
+        if(peak == Cycle7Weak || peak == Cycle7Strong)
+            return day == 6;
+
+        if(peak == Unknown)
+            return day > 1;
+        if(peak == Cycle45)
+            return day == 3 || day == 4;
+        if(peak == Cycle67)
+            return day == 5 || day == 6;
+
+        return false;
+    }
+
     public boolean couldPrePeak(int day)
     {
         if(peak == Cycle45)
