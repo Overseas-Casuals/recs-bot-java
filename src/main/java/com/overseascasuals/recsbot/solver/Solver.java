@@ -1413,7 +1413,7 @@ public class Solver
             rank = maxIslandRank;
         LOG.info("Last day (hours) calculated: {} ({}). Searching for {} ({})", this.day, hoursLeftInDay.get(rank), day, hoursLeft);
 
-        if(day == this.day && hoursLeftInDay.containsKey(rank) && hoursLeftInDay.get(rank) == hoursLeft)
+        if(day == this.day && hoursLeftInDay.containsKey(rank) && hoursLeftInDay.get(rank) == hoursLeft && startingItem == null)
         {
             LOG.info("Returning rest of day recs from cache");
             return restOfDay.get(rank);
