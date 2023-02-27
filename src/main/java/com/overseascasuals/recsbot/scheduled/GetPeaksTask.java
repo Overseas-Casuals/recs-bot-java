@@ -281,6 +281,21 @@ public class GetPeaksTask implements ScheduledTask
                 peakChannel.createMessage("<@"+miennaID+"> No recs returned").subscribe();
             else
             {
+                if(list.get(0).getOldRec() != null)
+                {
+                    var recs = list.get(0);
+                    if(recs.getOldRec().getItems().equals(recs.getBestRec().getItems()))
+                    {
+                        peakChannel.createMessage("<@&"+archiveRole+">Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue()).subscribe();
+                    }
+                    else
+                    {
+                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).subscribe();
+                        trySendTweet(week, recs);
+                    }
+
+                    list.remove(0);
+                }
                 if(recDay == 3)
                 {
                     int numDays = list.size()/3;
@@ -293,13 +308,7 @@ public class GetPeaksTask implements ScheduledTask
 
                         for(int d=0;d<3;d++)
                         {
-                            try{
-                                RecsTweet.sendRec(week, list.get(d), !local);
-                            }
-                            catch(Exception e)
-                            {
-                                LOG.error("Error tweeting!!",e);
-                            }
+                            trySendTweet(week, list.get(d));
                         }
                         //Pop the first 3 recs and start again
                         //Note: Like, test this before we do multiple ranks again
@@ -313,34 +322,22 @@ public class GetPeaksTask implements ScheduledTask
                 {
                     for(var recs : list)
                     {
-                        Mono<Message> message;
-                        if(recs.getOldRec()!= null && (recs.getOldRec().getItems().equals(recs.getBestRec().getItems())))
-                        {
-                            message = peakChannel.createMessage("<@&"+archiveRole+">Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue());
-                        }
-                        else
-                        {
-                            message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole));
-                            try{
-                                RecsTweet.sendRec(week, recs, !local);
-                            }
-                            catch(Exception e)
-                            {
-                                LOG.error("Error tweeting!!",e);
-                            }
-                        }
-
-                        if(recs.getOldRec() != null)
-                        {
-                            message.subscribe();
-                        }
-                        else
-                        {
-                            message.flatMap(Message::publish).subscribe();
-                        }
+                        var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).flatMap(Message::publish).subscribe();
+                        trySendTweet(week, recs);
                     }
                 }
             }
+        }
+    }
+
+    private void trySendTweet(int week, DailyRecommendation rec)
+    {
+        try{
+            RecsTweet.sendRec(week, rec, !local);
+        }
+        catch(Exception e)
+        {
+            LOG.error("Error tweeting!!",e);
         }
     }
 

@@ -403,7 +403,7 @@ public class Solver
             }
         }
 
-        if((day == 1 || day == 2) && rested != day) //The only days when pre-peaks are unknown
+        if((day == 1 || day == 2 || day == 3) && rested != day) //The only days when pre-peaks are unknown
         {
 
             for(int rank = 11; rank < 12; rank++)
@@ -418,8 +418,16 @@ public class Solver
                     startingGroove = startingGroovePerDay.get(day);
                 }
 
+                int lastDaySolved = day+1;
                 LOG.info("Rechecking day {}'s rank {} recs starting at {} groove with craft {}", day+1, rank, startingGroove, currentCrafts.get(0));
-                List<Item> nextCycleCraft = craftRepository.findCraftsByDay(week, day+1, rank).getCrafts();
+                List<Item> nextCycleCraft = craftRepository.findCraftsByDay(week, lastDaySolved, rank).getCrafts();
+                if(day==3)
+                {
+                    nextCycleCraft.addAll(craftRepository.findCraftsByDay(week, 5, rank).getCrafts());
+                    nextCycleCraft.addAll(craftRepository.findCraftsByDay(week, 6, rank).getCrafts());
+                    lastDaySolved = 6;
+
+                }
                 Map<Item, Integer> limitedUse = new HashMap<>();
                 if(nextCycleCraft!=null && nextCycleCraft.size() > 0)
                 {
@@ -431,7 +439,7 @@ public class Solver
 
                 WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, startingGroove, restedAlready(), reservedHelpers);
                 var newBest = getBestBruteForceSchedules(day, startingGroove,
-                        limitedUse, day+1, 1, currentCrafts.get(0), 24, rank);
+                        limitedUse, lastDaySolved, 1, currentCrafts.get(0), 24, rank);
 
 
                 if(newBest != null && newBest.size() > 0)
@@ -450,7 +458,6 @@ public class Solver
                     {
                         LOG.info("Schedule updated detected for day {}! Now crafting {}", day+1,
                                 Arrays.toString(newBest.get(0).getKey().getItems().toArray()));
-                        listOfRecs.add(0, new DailyRecommendation(day, rank, newBest, newSched, oldSched, oldValue));
                         addCraftedFromCycle(day, newSched, rank, true);
                     }
                     else if(newValue < oldValue.getWeighted())
