@@ -277,8 +277,11 @@ public class GetPeaksTask implements ScheduledTask
             var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).toArray();
             peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
-            if(list == null)
-                peakChannel.createMessage("<@"+miennaID+"> No recs returned").subscribe();
+            if(list == null || list.size() == 0)
+            {
+                if(list == null || recDay < 4)
+                    peakChannel.createMessage("<@" + miennaID + "> No recs returned").subscribe();
+            }
             else
             {
                 if(list.get(0).getOldRec() != null)

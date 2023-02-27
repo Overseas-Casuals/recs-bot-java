@@ -229,7 +229,6 @@ public class Solver
         LOG.info("Getting recommendations for week {} day {}, hardrefresh? {}. update threshold {}", week, day, hardRefresh, middayUpdateThreshold);
 
 
-
         if(peaks == null)
         {
             LOG.info("No peaks passed in, grabbing from DB");
@@ -240,7 +239,6 @@ public class Solver
                 return null;
             }
         }
-
 
         if(hardRefresh || this.week != week)
         {
@@ -292,11 +290,15 @@ public class Solver
             }
 
             //Load previous crafts from db
-            for(int i=1; i<=day; i++)
+            for(int i=1; i<=6; i++)
             {
                 CycleCraft crafts = craftRepository.findCraftsByDay(week, i, maxIslandRank);
                 if(crafts == null)
+                {
+                    LOG.info("No history found for day {}, assuming we need to run recs", i+1);
                     continue;
+                }
+
                 LOG.info("Found history for day {}: {}", i+1, crafts);
                 if(crafts.getCraft1() == null || crafts.getCraft1().isEmpty())
                 {
@@ -349,8 +351,6 @@ public class Solver
         hoursLeftInDay.clear();
         cachedAltRecs.clear();
 
-
-
         populateReservedItems(day+1);
         crimeTimeRecs.clear();
         int dayToSolve = day+1;
@@ -383,13 +383,10 @@ public class Solver
                 LOG.info("{}", rec);
                 addCraftedFromCycle(rec.getDay(), rec.getBestRec(), rank, true);
             }
-            else if(day < 6)
+            else if(day == 3)
             {
-                if(day == 3)
-                {
-                    generateCrimeTimeRecs(rank);
-                    setCraftedFromHistory();
-                }
+                generateCrimeTimeRecs(rank);
+                setCraftedFromHistory();
 
                 //Try days 5-7
                 listOfRecs = getRecForSingleDay(dayToSolve, rank, null, true);
@@ -398,7 +395,7 @@ public class Solver
                     addCraftedFromCycle(rec.getDay(), rec.getBestRec(), rec.getMaxRank(), true);
                 }
 
-                if(day == 3 && rank==maxIslandRank)
+                if(rank==maxIslandRank)
                     totalValue = generateTotalValue(listOfRecs);
             }
         }
