@@ -415,13 +415,6 @@ public class BotConfiguration implements CommandLineRunner
 
         //solver.getRestOfDayRecs(3, 20, 11, Item.GrowthFormula);
         //solver.getRestOfDayRecs(2, 22, 11);
-       /* Map<Item, Integer> limited = new HashMap<>();
-        var result = solver.getRecForSingleDay(4,11, new ArrayList<>(), false);
-        for(int i=0;i<result.size();i++)
-        {
-            LOG.info("Day {}: {}",i+5,result.get(i));
-        }*/
-
-
+        //solver.getRecForSingleDay(5, 11, List.of(Item.GarnetRapier), true);
     }
 }

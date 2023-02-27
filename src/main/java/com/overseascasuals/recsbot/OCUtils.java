@@ -119,6 +119,7 @@ public class OCUtils
 
             if(rec.getOldRec() != null)
             {
+                builder.addField("", "", false);
                 boolean oldInline = !(rec.getBestRec().getStartingGroove() != 0 && rec.getOldValue().getGroove() > 0);
 
                 builder.addField("Original Recommendation", rec.getOldRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")), oldInline)

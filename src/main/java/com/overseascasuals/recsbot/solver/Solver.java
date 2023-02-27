@@ -349,59 +349,7 @@ public class Solver
         hoursLeftInDay.clear();
         cachedAltRecs.clear();
 
-        if((day == 1 || day == 2) && rested != day) //The only days when pre-peaks are unknown
-        {
-            populateReservedItems(day);
 
-            for(int rank = 11; rank < 12; rank++)
-            {
-                List<Item> currentCrafts = craftRepository.findCraftsByDay(week, day, rank).getCrafts();
-                if(currentCrafts == null || currentCrafts.size() == 0)
-                    continue;
-
-                int startingGroove =  groove - getGrooveMadeWithSchedule(currentCrafts);
-                if(startingGroovePerDay.containsKey(day))
-                {
-                    startingGroove = startingGroovePerDay.get(day);
-                }
-
-                LOG.info("Rechecking day {}'s rank {} recs starting at {} groove with craft {}", day+1, rank, startingGroove, currentCrafts.get(0));
-
-
-                WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, startingGroove, restedAlready(), reservedHelpers);
-                var newBest = getBestBruteForceSchedules(day, startingGroove,
-                        null, day, 1, currentCrafts.get(0), 24, rank);
-
-                int newValue = -1;
-                List<Item> newCrafts = null;
-                if(newBest != null && newBest.size() > 0)
-                {
-                    newCrafts = newBest.get(0).getKey().getItems();
-                    newValue = newBest.get(0).getValue().getWeighted();
-                }
-
-                LOG.info("Old value for day {}: {}: ({}), new value {}: ({})", day+1, currentCrafts, oldValue.getWeighted(), newCrafts, newValue);
-
-                if(newValue > oldValue.getWeighted())
-                {
-                    assert newBest != null;
-                    LOG.info("Schedule updated detected for day {}! Now crafting {}", day+1,
-                            Arrays.toString(newBest.get(0).getKey().getItems().toArray()));
-
-                    CycleSchedule oldSched = new CycleSchedule(day, startingGroove);
-                    CycleSchedule newSched = new CycleSchedule(day, startingGroove);
-                    newSched.setForAllWorkshops(newCrafts);
-                    oldSched.setForAllWorkshops(currentCrafts);
-                    listOfRecs.add(new DailyRecommendation(day, rank, newBest, newSched, oldSched, oldValue));
-                    addCraftedFromCycle(day, newSched, rank, true);
-                }
-                else if(newValue < oldValue.getWeighted())
-                {
-                    LOG.error("Somehow the best schedule for today is worse than what we generated before?? Help");
-                    return null;
-                }
-            }
-        }
 
         populateReservedItems(day+1);
         crimeTimeRecs.clear();
@@ -455,6 +403,71 @@ public class Solver
             }
         }
 
+        if((day == 1 || day == 2) && rested != day) //The only days when pre-peaks are unknown
+        {
+
+            for(int rank = 11; rank < 12; rank++)
+            {
+                List<Item> currentCrafts = craftRepository.findCraftsByDay(week, day, rank).getCrafts();
+                if(currentCrafts == null || currentCrafts.size() == 0)
+                    continue;
+
+                int startingGroove =  groove - getGrooveMadeWithSchedule(currentCrafts);
+                if(startingGroovePerDay.containsKey(day))
+                {
+                    startingGroove = startingGroovePerDay.get(day);
+                }
+
+                LOG.info("Rechecking day {}'s rank {} recs starting at {} groove with craft {}", day+1, rank, startingGroove, currentCrafts.get(0));
+                List<Item> nextCycleCraft = craftRepository.findCraftsByDay(week, day+1, rank).getCrafts();
+                Map<Item, Integer> limitedUse = new HashMap<>();
+                if(nextCycleCraft!=null && nextCycleCraft.size() > 0)
+                {
+                    for(var item : nextCycleCraft)
+                    {
+                        limitedUse.put(item,items[item.ordinal()].getCraftedOnDay(day)); //We can't use any more of anything we're using tomorrow
+                    }
+                }
+
+                WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, startingGroove, restedAlready(), reservedHelpers);
+                var newBest = getBestBruteForceSchedules(day, startingGroove,
+                        limitedUse, day+1, 1, currentCrafts.get(0), 24, rank);
+
+
+                if(newBest != null && newBest.size() > 0)
+                {
+                    int newValue = newBest.get(0).getValue().getWeighted();
+                    List<Item> newCrafts =newBest.get(0).getKey().getItems();
+                    CycleSchedule oldSched = new CycleSchedule(day, startingGroove);
+                    LOG.info("Old value for day {}: {}: ({}), new value {}: ({})", day+1, currentCrafts, oldValue.getWeighted(), newCrafts, newValue);
+
+                    CycleSchedule newSched = new CycleSchedule(day, startingGroove);
+                    newSched.setForAllWorkshops(newCrafts);
+                    oldSched.setForAllWorkshops(currentCrafts);
+                    listOfRecs.add(0, new DailyRecommendation(day, rank, newBest, newSched, oldSched, oldValue));
+
+                    if(newValue > oldValue.getWeighted())
+                    {
+                        LOG.info("Schedule updated detected for day {}! Now crafting {}", day+1,
+                                Arrays.toString(newBest.get(0).getKey().getItems().toArray()));
+                        listOfRecs.add(0, new DailyRecommendation(day, rank, newBest, newSched, oldSched, oldValue));
+                        addCraftedFromCycle(day, newSched, rank, true);
+                    }
+                    else if(newValue < oldValue.getWeighted())
+                    {
+                        LOG.error("Value is worse somehow??");
+                        return null;
+                    }
+                }
+                else
+                {
+                    LOG.error("Can't find updated recs? Very confusing");
+                    return null;
+                }
+
+
+            }
+        }
 
         hasRunRecs = true;
         isRunningRecs = false;
@@ -531,7 +544,15 @@ public class Solver
         List<DailyRecommendation> recs = new ArrayList<>();
         LOG.info("Solving recs for day {}, rank {}",(dayToSolve+1), rank);
 
-        if(dayToSolve != 4 && dayToSolve != 5 && dayToSolve < 7)
+        if (dayToSolve == 4)
+        {
+            recs = getLateDays(rank, limitedUse);
+        }
+        else if(dayToSolve == 5)
+        {
+            recs = getLastTwoDays(rank, limitedUse);
+        }
+        else if(dayToSolve < 7)
         {
             DailyRecommendation rec;
             var todayRecs =  getBestBruteForceSchedules(dayToSolve, startingGroovePerDay.get(dayToSolve),
@@ -573,10 +594,6 @@ public class Solver
                 rec = new DailyRecommendation(dayToSolve, rank, todayRecs, schedule);
             }
             recs.add(rec);
-        }
-        else if (dayToSolve == 4 || dayToSolve == 5)
-        {
-            recs = getLateDays(rank, limitedUse);
         }
 
 
@@ -974,6 +991,70 @@ public class Solver
     public List<DailyRecommendation> getLateDays(int rank, Map<Item, Integer> limitedUse)
     {
         return getLateDays(rank, limitedUse, -1);
+    }
+
+    public List<DailyRecommendation> getLastTwoDays(int rank, Map<Item, Integer> limitedUse)
+    {
+        int startingGroove = startingGroovePerDay.get(5);
+        List<DailyRecommendation> recs = new ArrayList<>();
+
+        var cycle6Sched = getBestBruteForceSchedules(5, startingGroove, limitedUse, 6, alternatives, rank);
+        var cycle7Sched = getBestBruteForceSchedules(6, startingGroove, limitedUse, 6, alternatives, rank);
+
+        if(restedAlready())
+        {
+            CycleSchedule best6 = new CycleSchedule(5, startingGroove);
+            best6.setForAllWorkshops(cycle6Sched.get(0).getKey().getItems());
+            best6.getValue();
+            int nextGroove6 = best6.getEndingGroove();
+            addCraftedFromCycle(5, best6, rank, false);
+            var recalced7Sched = getBestBruteForceSchedules(6, nextGroove6, limitedUse, 6, alternatives, rank);
+
+
+            int basedOn6Total = cycle6Sched.get(0).getValue().getWeighted() + recalced7Sched.get(0).getValue().getWeighted();
+
+            var newLimited = cycle7Sched.get(0).getKey().getLimitedUses(limitedUse);
+            var recalced6Sched = getBestBruteForceSchedules(5, startingGroove, newLimited, 6, alternatives, rank);
+            best6 = new CycleSchedule(5, startingGroove);
+            best6.setForAllWorkshops(recalced6Sched.get(0).getKey().getItems());
+            best6.getValue();
+            int nextGroove7 = best6.getEndingGroove();
+            addCraftedFromCycle(5, best6, rank, false);
+            var updated7Sched = getBestBruteForceSchedules(6, nextGroove7, limitedUse, 6, alternatives, rank);
+
+            int basedOn7Total = recalced6Sched.get(0).getValue().getWeighted() + updated7Sched.get(0).getValue().getWeighted();
+
+            if(basedOn7Total > basedOn6Total)
+            {
+                LOG.info("7 > 6 {}: {} + {}\n{}: {} + {}", basedOn7Total,recalced6Sched.get(0),updated7Sched.get(0), basedOn6Total, cycle6Sched.get(0), recalced7Sched.get(0));
+                addDailyRecToList(recalced6Sched, 5, startingGroove, rank, recs);
+                addDailyRecToList(updated7Sched, 6, nextGroove7, rank, recs);
+            }
+            else
+            {
+                LOG.info("6 >= 7 {}: {} + {}\n{}: {} + {}",  basedOn6Total, cycle6Sched.get(0), recalced7Sched.get(0), basedOn7Total,recalced6Sched.get(0),updated7Sched.get(0));
+                addDailyRecToList(cycle6Sched, 5, startingGroove, rank, recs);
+                addDailyRecToList(recalced7Sched, 6, nextGroove6, rank, recs);
+            }
+
+        }
+        else
+        {
+            var best6 = cycle6Sched.get(0);
+            var best7 = cycle7Sched.get(0);
+            if(best7.getValue().getWeighted() > best6.getValue().getWeighted())
+            {
+                var newLimited = cycle7Sched.get(0).getKey().getLimitedUses(limitedUse);
+                addRestToList(getBestBruteForceSchedules(5, startingGroove, newLimited, 6, alternatives, rank), 5, rank, recs);
+                addDailyRecToList(cycle7Sched, 6, startingGroove, rank, recs);
+            }
+            else
+            {
+                addDailyRecToList(cycle6Sched, 5, startingGroove, rank, recs);
+                addRestToList(getBestBruteForceSchedules(6, startingGroove, limitedUse, 6, alternatives, rank), 6, rank, recs);
+            }
+        }
+        return recs;
     }
 
     /*public List<DailyRecommendation> getBestLateDays(int rank, Map<Item, Integer> limitedUse, List<Integer> daysToTest, int startingGroove, int daySet, WorkshopSchedule itemsSet)

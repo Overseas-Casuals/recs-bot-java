@@ -54,4 +54,8 @@ public class WorkshopValue implements Comparable<WorkshopValue> {
             comparator = net - o.net;
         return comparator;
     }
+    public String toString()
+    {
+        return String.valueOf(weighted);
+    }
 }

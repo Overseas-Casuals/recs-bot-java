@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
+import reactor.core.publisher.Mono;
 
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -48,6 +49,9 @@ public class GetPeaksTask implements ScheduledTask
 
     @Value("${mienna}")
     private String miennaID;
+
+    @Value("${discord.archiveRole}")
+    private String archiveRole;
 
     @Value("${discord.c1HelperRole}")
     String c1PeakRole;
@@ -309,7 +313,23 @@ public class GetPeaksTask implements ScheduledTask
                 {
                     for(var recs : list)
                     {
-                        var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole));
+                        Mono<Message> message;
+                        if(recs.getOldRec()!= null && (recs.getOldRec().getItems().equals(recs.getBestRec().getItems())))
+                        {
+                            message = peakChannel.createMessage("<@&"+archiveRole+">Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue());
+                        }
+                        else
+                        {
+                            message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole));
+                            try{
+                                RecsTweet.sendRec(week, recs, !local);
+                            }
+                            catch(Exception e)
+                            {
+                                LOG.error("Error tweeting!!",e);
+                            }
+                        }
+
                         if(recs.getOldRec() != null)
                         {
                             message.subscribe();
@@ -317,14 +337,6 @@ public class GetPeaksTask implements ScheduledTask
                         else
                         {
                             message.flatMap(Message::publish).subscribe();
-                        }
-
-                        try{
-                            RecsTweet.sendRec(week, recs, !local);
-                        }
-                        catch(Exception e)
-                        {
-                            LOG.error("Error tweeting!!",e);
                         }
                     }
                 }
