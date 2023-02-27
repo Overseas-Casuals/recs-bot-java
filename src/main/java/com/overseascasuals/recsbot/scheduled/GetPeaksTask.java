@@ -140,7 +140,7 @@ public class GetPeaksTask implements ScheduledTask
 
             int peakday = Math.min(recDay, 3);
             List<CraftPeaks> peaksByDay = peakRepository.findPeaksByDay(week, peakday);
-            if(peaksByDay != null && peaksByDay.size() >= Solver.getNumItems())
+            if(peaksByDay != null && peaksByDay.size() >= Solver.getNumItems(week))
             {
                 LOG.info("Peaks for day {} already found. Skipping grabbing from TC.", peakday+1);
                 alreadyHavePeaks = true;

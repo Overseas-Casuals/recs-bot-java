@@ -152,8 +152,10 @@ public class Solver
             new ItemInfo(PopotoSalad,Foodstuffs,Invalid,52,4,11,Map.of(Popoto,2)),
             new ItemInfo(Dressing,Ingredients,Invalid,52,4,11,Map.of(Onion,2))};
 
-    public static int getNumItems()
+    public static int getNumItems(int week)
     {
+        if(week < 20)
+            return 50;
         return items.length;
     }
 
@@ -281,7 +283,7 @@ public class Solver
                 return null;
             }
 
-            for(int i=0;i<items.length;i++)
+            for(int i=0;i<items.length&&i<peaks.size();i++)
             {
                 items[i].popularityRatio = popJson.getPopularities()[i].getRatio();
                 items[i].peak = peaks.get(i).getPeakEnum();
@@ -335,7 +337,7 @@ public class Solver
         }
         else if(this.day != day)
         {
-            for(int i=0;i<items.length;i++)
+            for(int i=0;i<items.length && i<peaks.size();i++)
             {
                 items[i].peak = peaks.get(i).getPeakEnum();
                 LOG.info("Setting item {} to ratio {} and peak {}", items[i].item, items[i].popularityRatio, items[i].peak);
@@ -354,7 +356,7 @@ public class Solver
         populateReservedItems(day+1);
         crimeTimeRecs.clear();
         int dayToSolve = day+1;
-        for(int rank = 11; rank < 12; rank++)
+        for(int rank = maxIslandRank; rank <= maxIslandRank; rank++)
         {
             groove = startingGroovePerDay.get(dayToSolve);
             if(day < 3)
@@ -403,7 +405,7 @@ public class Solver
         if((day == 1 || day == 2 || day == 3) && rested != day) //The only days when pre-peaks are unknown
         {
 
-            for(int rank = 11; rank < 12; rank++)
+            for(int rank = maxIslandRank; rank <= maxIslandRank; rank++)
             {
                 List<Item> currentCrafts = craftRepository.findCraftsByDay(week, day, rank).getCrafts();
                 if(currentCrafts == null || currentCrafts.size() == 0)
@@ -1913,6 +1915,16 @@ public class Solver
                 .filter(list -> list.stream().allMatch(
                         item -> items[item.ordinal()].peaksOnOrBeforeDay(allowUpToDay, reservedItems)))
                 .collect(Collectors.toList());
+        //int numAfterFilter = filteredItemLists.size();
+
+        //If it's a 6-craft, *something* has to peak today to make it worthwhile.
+        if(day > 3)
+            filteredItemLists = filteredItemLists.stream()
+                .filter(list -> list.size() < 6 || list.stream().anyMatch(
+                        item -> items[item.ordinal()].peaksOnDay(day)))
+                .collect(Collectors.toList());
+
+        //LOG.info("Removed {} 6-crafts from list for not having any items that peak today", numAfterFilter-filteredItemLists.size());
 
         if(filteredItemLists.size() == 0)
         {
