@@ -156,7 +156,7 @@ public class GetPeaksTask implements ScheduledTask
                         tcDays = objectMapper.readValue(response, new TypeReference<>(){});
 
                     validTCPeaks = tcDays != null && tcDays.size() > recDay && tcDays.get(recDay).getObjects() != null && tcDays.get(recDay).getObjects().size() > 0;
-                    if(validTCPeaks && recDay < 2)
+                    if(validTCPeaks)
                     {
                         response = restService.getURLResponse(tcChinaURL);
                         //Parse data from JSON
@@ -181,10 +181,15 @@ public class GetPeaksTask implements ScheduledTask
                     peaksByDay = new ArrayList<>();
                 List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
 
-                if(recDay < 2)
-                    validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, chinaDays, week, recDay, true);
-                else
+                validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, chinaDays, week, recDay, true);
+                if(!validTCPeaks)
+                {
+                    if(recDay > 0)
+                        peaksByDay = peakRepository.findPeaksByDay(week, recDay-1);
+                    else
+                        peaksByDay = new ArrayList<>();
                     validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay, false);
+                }
 
                 if(validTCPeaks)
                     validTCPeaks = validate63Peaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay);
@@ -289,7 +294,7 @@ public class GetPeaksTask implements ScheduledTask
                     var recs = list.get(0);
                     if(recs.getOldRec().getItems().equals(recs.getBestRec().getItems()))
                     {
-                        peakChannel.createMessage("<@&"+archiveRole+">Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue()).subscribe();
+                        peakChannel.createMessage("<@&"+archiveRole+"> Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue()+" ("+recs.getGroovelessValue()+" grooveless)").subscribe();
                     }
                     else
                     {
