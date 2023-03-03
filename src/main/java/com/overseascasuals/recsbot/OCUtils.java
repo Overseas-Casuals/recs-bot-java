@@ -2,17 +2,16 @@ package com.overseascasuals.recsbot;
 
 import com.overseascasuals.recsbot.data.DailyRecommendation;
 import com.overseascasuals.recsbot.data.Item;
+import com.overseascasuals.recsbot.data.RestOfWeekRec;
 import com.overseascasuals.recsbot.data.WorkshopValue;
 import com.overseascasuals.recsbot.solver.CycleSchedule;
 import com.overseascasuals.recsbot.solver.WorkshopSchedule;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.MessageCreateSpec;
 import discord4j.rest.util.Color;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -298,22 +297,21 @@ public class OCUtils
         return "<:zzz:1068453995816964176> Rest <:zzz:1068453995816964176>";
     }
 
-    public static EmbedCreateSpec generateThisWeekEmbed(int season, List<List<Item>> recs, int rank)
+    public static EmbedCreateSpec generateThisWeekEmbed(int season, RestOfWeekRec recs, int rank)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations for Rank "+rank);
         builder.timestamp(Instant.now());
 
         builder.color(Color.SUMMER_SKY);
-        int startDay = 8-recs.size();
+        int startDay = 8-recs.getRecs().size();
 
-        for(int i=0; i<recs.size(); i++)
+        for(int i=0; i<recs.getRecs().size(); i++)
         {
-            String recString;
-            if(recs.get(i).size() > 0)
-                recString = recs.get(i).stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n"));
+            String recString = recs.getRecs().get(i).stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n"));
+            if(!recs.isRested() && i==recs.getWorstIndex())
+                builder.addField("Cycle "+(startDay+i)+" - Rest", "||"+recString+"||", true);
             else
-                recString = getRestText();
-            builder.addField("Cycle "+(startDay+i), recString, true);
+                builder.addField("Cycle "+(startDay+i), recString, true);
         }
 
         return builder.build();

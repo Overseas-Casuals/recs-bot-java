@@ -415,7 +415,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         var recs = solver.getRestOfWeekRecs(rank);
 
 
-        if(recs == null || recs.size() == 0)
+        if(recs == null || recs.getRecs() == null || recs.getRecs().size() == 0)
             return event.editReply("No rest of week recs returned. <@"+miennaID+">");
 
         var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs, rank);

@@ -180,7 +180,7 @@ public class Solver
 
     public List<List<Item>> getVacationRecs (int rank) { return vacationRecs.get(rank);}
 
-    private final Map<Integer, List<List<Item>>> restOfWeek = new HashMap<>();
+    private final Map<Integer, RestOfWeekRec> restOfWeek = new HashMap<>();
 
     private final Map<Integer, Integer> startingGroovePerDay = new HashMap<>();
 
@@ -1564,7 +1564,7 @@ public class Solver
         return restOfDayRank;
     }
 
-    public List<List<Item>> getRestOfWeekRecs(int rank)
+    public RestOfWeekRec getRestOfWeekRecs(int rank)
     {
         if(rank > maxIslandRank)
             rank = maxIslandRank;
@@ -1604,25 +1604,25 @@ public class Solver
             reservedSet = solution.getKey().getLimitedUses(reservedSet);
         }
 
-        if(rested == -1 && worstIndex>=0)
+        /*if(rested == -1 && worstIndex>=0)
         {
             //If we haven't rested or scheduled to rest, rest the worst day
             restOfWeekRank.remove(worstIndex);
             restOfWeekRank.add(worstIndex, new ArrayList<>());
-        }
+        }*/
         if(restOfWeekRank.size() == 5) //If we're at day 1, we have no real idea, so put our best guess at C6, the second-best day to craft
         {
             var best = restOfWeekRank.set(0, restOfWeekRank.get(3));
             restOfWeekRank.set(3, best);
         }
 
-        for(var list : restOfWeekRank)
-        {
+        for(var list : restOfWeekRank) {
             LOG.info("rest of week ({}): {}", rank, list);
         }
-        restOfWeek.put(rank, restOfWeekRank);
+        var rec = new RestOfWeekRec(restOfWeekRank, worstIndex, rested > 0 && rested <= day + 1);
+        restOfWeek.put(rank, rec);
 
-        return restOfWeekRank;
+        return rec;
     }
 
     private int generateVacationRecs(int currentWeek)
