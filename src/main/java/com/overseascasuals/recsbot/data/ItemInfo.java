@@ -17,24 +17,7 @@ public class ItemInfo
 {
     private static Logger LOG = LoggerFactory.getLogger(ItemInfo.class);
     //Contains exact supply values for concrete paths and worst-case supply values for tentative ones
-    private static final int[][] SUPPLY_PATH = {{0, 0, -8, 0, 0, 0, 0}, //Unknown
-            {-4, -4, 10, 0, 0, 0, 0}, //Cycle2Weak 
-            {-8, -7, 15, 0, 0, 0, 0}, //Cycle2Strong
-            {0, -4, -4, 10, 0, 0, 0}, //Cycle3Weak
-            {0, -8, -7, 15, 0, 0, 0}, //Cycle3Strong
-            {0, 0, -4, -4, 10, 0, 0}, //Cycle4Weak
-            {0, 0, -8, -7, 15, 0, 0}, //Cycle4Strong
-            {0, 0, 0, -4, -4, 10, 0}, //5Weak
-            {0, 0, 0, -8, -7, 15, 0}, //5Strong
-            {0, -1, 5, -4, -4, -4, 10}, //6Weak
-            {0, -1, 8, -7, -8, -7, 15}, //6Strong
-            {0, -1, 8, -3, -4, -4, -4}, //7Weak
-            {0, -1, 8, 0, -7, -8, -7}, //7Strong
-            {0, 0, 0, -8, 0, 10, 0}, //4/5
-            {0, 0, 0, -4, -4, 10, 0}, //5
-            {0, -1, 8, 0, -7, -8, 0}, //6/7
-            {-4, -4, 10, 0, 0, 0, 0} //Cycle2Unknown
-            };
+
     
     private static final PeakCycle[][] PEAKS_TO_CHECK = {{Cycle3Weak, Cycle3Strong, Cycle67, Cycle45}, //Day2
             {Cycle4Weak, Cycle4Strong, Cycle6Weak, Cycle5, Cycle67}, //Day3
@@ -49,11 +32,6 @@ public class ItemInfo
     public Map<RareMaterial, Integer> materialsRequired;
     public int materialValue;
     public int rankUnlocked;
-    
-    //Weekly info
-    public int popularityRatio;
-    public PeakCycle peak = Unknown;
-    public int[] craftedPerDay;
     
     public ItemInfo(Item i, ItemCategory cat1, ItemCategory cat2, int value, int hours, int rank, Map<RareMaterial,Integer> mats)
     {
@@ -77,127 +55,10 @@ public class ItemInfo
                 ((other.category1!=Invalid && (other.category1 == category1 || other.category1 == category2)) ||
                 (other.category2!=Invalid && (other.category2 == category1 || other.category2 == category2)));
     }
-    
-    //Set start-of-week data
-    public void setInitialData(int pop, PeakCycle peak)
-    {
-        popularityRatio = pop;
-        this.peak = peak;
-        craftedPerDay = new int[7];
-    }
-    public void setCrafted(int num, int day)
-    {
-        craftedPerDay[day]=num;
-    }
 
-    public int getCraftedOnDay(int day)
-    {
-        return craftedPerDay[day];
-    }
-
-    public void clearCrafted(int day)
-    {
-        craftedPerDay[day]=0;
-    }
-
-    
-    private int getCraftedBeforeDay(int day)
-    {
-        int sum = 0;
-        for(int c=0; c<day; c++)
-            sum+=craftedPerDay[c];
-        
-        return sum;
-    }
-
-    public int getSupplyAfterCraft(int day, int newCrafts)
-    {
-        return getSupplyOnDay(day) + newCrafts;
-    }
-    
-    public int getSupplyOnDay(int day)
-    {
-        int supply = SUPPLY_PATH[peak.ordinal()][0];
-        for(int c=1;c <= day; c++)
-        {
-            supply += craftedPerDay[c-1];
-            supply += SUPPLY_PATH[peak.ordinal()][c];
-        }
-        
-        return supply;
-    }
-    
-    public Supply getSupplyBucketOnDay(int day)
-    {
-        return getSupplyBucket(getSupplyOnDay(day));
-    }
-    public Supply getSupplyBucketAfterCraft(int day, int newCrafts)
-    {
-        return getSupplyBucket(getSupplyAfterCraft(day, newCrafts));
-    }
-    
     public boolean equals(ItemInfo other)
     {
         return item == other.item;
-    }
-    
-    public boolean peaksOnOrBeforeDay(int day, Set<Item> reservedItems)
-    {
-        if(reservedItems!=null && reservedItems.size()>0 && !reservedItems.contains(item))
-            return true;
-            
-        if(time == 4) //We can always borrow 4hr crafts
-            return true;
-        if(peak == Cycle2Weak || peak == Cycle2Strong || peak == Cycle2Unknown)
-            return day > 0;
-        if (peak == Cycle3Weak || peak == Cycle3Strong || peak == Unknown)
-            return day > 1;
-        if(peak == Cycle4Weak || peak == Cycle4Strong || peak == Cycle45)
-            return day > 2;
-        if(peak == Cycle5Weak || peak == Cycle5Strong || peak == Cycle5)
-            return day > 3;
-        if(peak == Cycle6Weak || peak == Cycle6Strong || peak == Cycle67)
-            return day > 4;
-        if(peak == Cycle7Weak || peak == Cycle7Strong)
-            return day > 5;
-
-        LOG.warn("No peak data found? Peak {} Returning true", peak);
-        return true;
-    }
-
-    public boolean peaksOnDay(int day)
-    {
-        if(peak == Cycle2Weak || peak == Cycle2Strong || peak == Cycle2Unknown)
-            return day == 1;
-        if (peak == Cycle3Weak || peak == Cycle3Strong)
-            return day == 2;
-        if(peak == Cycle4Weak || peak == Cycle4Strong)
-            return day == 3;
-        if(peak == Cycle5Weak || peak == Cycle5Strong || peak == Cycle5)
-            return day == 4;
-        if(peak == Cycle6Weak || peak == Cycle6Strong)
-            return day == 5;
-        if(peak == Cycle7Weak || peak == Cycle7Strong)
-            return day == 6;
-
-        if(peak == Unknown)
-            return day > 1;
-        if(peak == Cycle45)
-            return day == 3 || day == 4;
-        if(peak == Cycle67)
-            return day == 5 || day == 6;
-
-        return false;
-    }
-
-    public boolean couldPrePeak(int day)
-    {
-        if(peak == Cycle45)
-            return day==2;
-        if(peak == Unknown)
-            return day==1;
-
-        return false;
     }
     
     public static Supply getSupplyBucket(int supply)
@@ -212,13 +73,8 @@ public class ItemInfo
             return Surplus;
         return Overflowing;
     }
-    public String toString()
+    public int getSuffValueWithPopularity(int popularityRatio)
     {
-        return item+", "+peak;
-    }
-
-    public int getValueWithSupply(Supply supply)
-    {
-        return baseValue * supply.multiplier * popularityRatio / 10000;
+        return baseValue * popularityRatio / 100;
     }
 }
