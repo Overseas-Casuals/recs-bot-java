@@ -41,6 +41,9 @@ public class GetPeaksTask implements ScheduledTask
 
     @Value("${discord.peaksChannel}")
     private String peaksChannel;
+
+    @Value("${discord.archiveChannel}")
+    private String archiveChannelID;
     @Value("${tcUrl}")
     private String tcURL;
 
@@ -91,6 +94,7 @@ public class GetPeaksTask implements ScheduledTask
 
     private MessageChannel channel;
     private MessageChannel peakChannel;
+    private MessageChannel archiveChannel;
 
     @Override
     public String getCron()
@@ -104,6 +108,8 @@ public class GetPeaksTask implements ScheduledTask
         channel = client.getChannelById(Snowflake.of(recsChannel))
                 .cast(MessageChannel.class).block();
         peakChannel = client.getChannelById(Snowflake.of(peaksChannel))
+                .cast(MessageChannel.class).block();
+        archiveChannel = client.getChannelById(Snowflake.of(archiveChannelID))
                 .cast(MessageChannel.class).block();
         this.local = local;
     }
@@ -294,7 +300,7 @@ public class GetPeaksTask implements ScheduledTask
                     var recs = list.get(0);
                     if(recs.getOldRec().getItems().equals(recs.getBestRec().getItems()))
                     {
-                        peakChannel.createMessage("<@&"+archiveRole+"> Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue()+" ("+recs.getGroovelessValue()+" grooveless)").subscribe();
+                        archiveChannel.createMessage("<@&"+archiveRole+"> Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue()+" ("+recs.getGroovelessValue()+" grooveless)").subscribe();
                     }
                     else
                     {
@@ -311,7 +317,9 @@ public class GetPeaksTask implements ScheduledTask
                     {
                         var crimes = solver.crimeTimeRecs.get(i);
 
+                        LOG.info("Posting combined C4 post, total {}", solver.totalValue);
                         channel.createMessage(OCUtils.createCombinedC4Post(week, list, squawkboxRole, solver.totalValue)).flatMap(Message::publish).subscribe();
+                        LOG.info("Posting crime time post, total {}", solver.crimeTimeValue);
                         channel.createMessage(OCUtils.createCrimeTimePost(week, list, crimes, crimeTimeRole, solver.crimeTimeValue)).flatMap(Message::publish).subscribe();
 
                         for(int d=0;d<3;d++)
@@ -330,7 +338,7 @@ public class GetPeaksTask implements ScheduledTask
                 {
                     for(var recs : list)
                     {
-                        var message = channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).flatMap(Message::publish).subscribe();
+                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).flatMap(Message::publish).subscribe();
                         trySendTweet(week, recs);
                     }
                 }
