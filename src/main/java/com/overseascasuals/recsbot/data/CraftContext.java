@@ -5,9 +5,7 @@ import com.overseascasuals.recsbot.solver.Solver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static com.overseascasuals.recsbot.data.PeakCycle.*;
 import static com.overseascasuals.recsbot.data.PeakCycle.Unknown;
@@ -33,26 +31,91 @@ public class CraftContext
             {-4, -4, 10, 0, 0, 0, 0} //Cycle2Unknown
     };
 
+
+    private final Set<Item> reservedItems = new HashSet<>();
+    private final Map<Item, ReservedHelper> reservedHelpers = new HashMap<>();
+
     private static Logger LOG = LoggerFactory.getLogger(CraftContext.class);
-    List<PeakCycle> peaks;
-    List<Integer> popularity;
-    List<int[]> craftedPerDay;
+    private final Map<Integer, Integer> startingGroovePerDay = new HashMap<>();
+    private List<PeakCycle> peaks;
+    private List<Integer> popularity;
+    private List<int[]> craftedPerDay;
+
+    private int groove = 0;
+
+    private int rested = -1;
 
     public CraftContext()
     {
-        int numCrafts = Solver.getNumItems(21);
-        peaks = new ArrayList<>(numCrafts);
-        popularity = new ArrayList<>(numCrafts);
-        craftedPerDay = new ArrayList<>(numCrafts);
-
-
+        peaks = new ArrayList<>();
+        popularity = new ArrayList<>();
+        craftedPerDay = new ArrayList<>();
+        startingGroovePerDay.put(0,0);
+        startingGroovePerDay.put(1,0);
     }
 
-    public void setInitialData(Item item, int pop, PeakCycle peak)
+    public CraftContext(CraftContext other)
     {
-        popularity.set(item.ordinal(), pop);
+        this();
+
+        for(int i=0;i<other.popularity.size(); i++)
+        {
+            peaks.add(other.peaks.get(i));
+            popularity.add(other.popularity.get(i));
+            craftedPerDay.add(new int[7]);
+        }
+    }
+
+    public  Map<Item, ReservedHelper> getReservedHelpers()
+    {
+        return reservedHelpers;
+    }
+    public int getStartingGroove(int day)
+    {
+        return startingGroovePerDay.get(day);
+    }
+    public int getGroove()
+    {
+        return groove;
+    }
+    public void setGroove(int newGroove)
+    {
+        groove = newGroove;
+    }
+    public void setStartingGroovePerDay(int day, int groove)
+    {
+        startingGroovePerDay.put(day, groove);
+    }
+    public int getPopRatio(Item item)
+    {
+        return popularity.get(item.ordinal());
+    }
+    public PeakCycle getPeak(Item item)
+    {
+        return peaks.get(item.ordinal());
+    }
+    public void setPeak(Item item, PeakCycle peak)
+    {
         peaks.set(item.ordinal(), peak);
-        craftedPerDay.set(item.ordinal(), new int[7]);
+    }
+    public int getRested() {
+        return rested;
+    }
+
+    public boolean restedByDay(int day)
+    {
+        return rested > 0 && rested <= day;
+    }
+
+    public void setRested(int rested) {
+        this.rested = rested;
+    }
+
+    public void addInitialData(int pop, PeakCycle peak)
+    {
+        popularity.add(pop);
+        peaks.add(peak);
+        craftedPerDay.add(new int[7]);
     }
 
     public void setCrafted(Item item, int num, int day)
@@ -97,11 +160,11 @@ public class CraftContext
         return supply;
     }
 
-    public boolean peaksOnOrBeforeDay(Item item, int day, Set<Item> reservedItems)
+    public boolean peaksOnOrBeforeDay(Item item, int day)
     {
         int time = Solver.getHoursForItem(item);
         PeakCycle peak = peaks.get(item.ordinal());
-        if(reservedItems!=null && reservedItems.size()>0 && !reservedItems.contains(item))
+        if(reservedItems.size()>0 && !reservedItems.contains(item))
             return true;
 
         if(time == 4) //We can always borrow 4hr crafts
