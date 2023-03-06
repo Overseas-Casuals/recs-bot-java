@@ -217,6 +217,8 @@ public class OCUtils
 
 
         builder.addField("Total Weekly Value", crimeTotal+cowriesEmoji, false);
+        builder.addField("","",false);
+        builder.addField("Info","Want to learn more? See Crime Time Information in <#1034953674100842516>",false);
 
         return builder.build();
     }
