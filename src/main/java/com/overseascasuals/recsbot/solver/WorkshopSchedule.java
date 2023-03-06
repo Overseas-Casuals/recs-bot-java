@@ -6,7 +6,7 @@ import com.overseascasuals.recsbot.data.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.overseascasuals.recsbot.solver.Solver.NUM_WORKSHOPS;
+import static com.overseascasuals.recsbot.solver.Solver.*;
 
 
 public class WorkshopSchedule
@@ -110,8 +110,8 @@ public class WorkshopSchedule
     
     public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested, Map<Item,ReservedHelper> reservedHelpers) {
         boolean verboseLogging = false;
-        /*if(items.size() == 5 && items.get(0) == Item.CulinaryKnife && items.get(1) == Item.Butter && items.get(2) == Item.Jam
-                && items.get(3) == Item.Butter && items.get(4) == Item.Jam)
+        /*if(day == 1 && items.size() == 4 && items.get(0) == Item.Brush && items.get(1) == Item.Crook && items.get(2) == Item.Brush
+                && items.get(3) == Item.Crook)
             verboseLogging = true;*/
 
 
@@ -206,13 +206,38 @@ public class WorkshopSchedule
         int workshopValue = 0;
         HashMap<Item,Integer> numCrafted = new HashMap<>();
         currentIndex = 0;
+
+        int prepeakBonus = 0;
+
+
         for(int i=0; i<getNumCrafts(); i++)
         {
             ItemInfo completedCraft = getCurrentCraft();
             boolean efficient = currentCraftIsEfficient();
             int previouslyCrafted = numCrafted.getOrDefault(completedCraft.item, 0);
             int nextGroove = Math.min(startingGroove + i*NUM_WORKSHOPS, Solver.GROOVE_MAX);
-            workshopValue += getValueForCurrent(day, previouslyCrafted, nextGroove, efficient, verboseLogging);
+            int currentValue = getValueForCurrent(day, previouslyCrafted, nextGroove, efficient, verboseLogging);
+
+            if((strongRatio62>0 || strongRatio63 >0) && day == 1 && completedCraft.peak == PeakCycle.Cycle2Unknown)
+            {
+                double ratio = 0;
+                if(completedCraft.item.ordinal() < 50)
+                    ratio = strongRatio62;
+                else if(completedCraft.item.ordinal() < 60)
+                    ratio = strongRatio63;
+
+
+                double newSupplyMult = (160 * ratio + 130 * (1-ratio));
+                int weightedValue = (int)(currentValue * newSupplyMult / 130);
+                int diff  = weightedValue - currentValue;
+                if(verboseLogging)
+                {
+                    LOG.info("Value of current craft {}, times new supply mult {} (from ratio {}) is {}. Diff: {}", currentValue, newSupplyMult, ratio, weightedValue, diff);
+                }
+                prepeakBonus += diff;
+            }
+
+            workshopValue += currentValue;
             currentIndex++;
             int amountCrafted = efficient? NUM_WORKSHOPS*2 : NUM_WORKSHOPS;
             numCrafted.put(completedCraft.item, previouslyCrafted + amountCrafted);
@@ -229,20 +254,21 @@ public class WorkshopSchedule
             for(var kvp : reservedHelpers.entrySet())
             {
                 if(verboseLogging)
-                    LOG.info("Checking helper {} for main item {}", kvp.getValue(), kvp.getKey());
-                ItemInfo mainItem = Solver.items[kvp.getKey().ordinal()];
+                    LOG.info("Checking helper {} for main item {}", kvp.getValue().item, kvp.getKey());
+                if(!items.contains(kvp.getValue().item)) //We aren't using the helper so it's fine
+                    continue;
+                if(verboseLogging)
+                    LOG.info("We're using helper {}", kvp.getValue().item);
                 if(items.contains(kvp.getKey())) //We're using the main item so it's fine
                     continue;
                 if(verboseLogging)
                     LOG.info("We're not using main item {}", kvp.getKey());
+                ItemInfo mainItem = Solver.items[kvp.getKey().ordinal()];
                 if(mainItem.peaksOnOrBeforeDay(day, null)) //Item has peaked already so it's fine
                     continue;
                 if(verboseLogging)
                     LOG.info("Main item {} hasn't peaked yet", kvp.getKey());
-                if(!items.contains(kvp.getValue().item)) //We aren't using the helper so it's fine
-                    continue;
-                if(verboseLogging)
-                    LOG.info("We're using helper {}", kvp.getValue());
+
 
                 //None of the above conditions are true so it's not fine.
                 //apply a penalty for x usages (2x if efficient)
@@ -251,14 +277,13 @@ public class WorkshopSchedule
                     if(items.get(i) == kvp.getValue().item)
                     {
                         if(verboseLogging)
-                            LOG.info("We're using helper {} in position {}, so that's {}x the penalty of {}", kvp.getValue(), i, i==0?1:2, kvp.getValue().penalty);
+                            LOG.info("We're using helper {} in position {}, so that's {}x the penalty of {}", kvp.getValue().item, i, i==0?1:2, kvp.getValue().penalty);
                         helperPenalty+=kvp.getValue().penalty*(i==0?1:2);
                     }
                 }
             }
         }
 
-        int prepeakBonus = 0;
         for(int i=0;i<crafts.size();i++)
         {
             if(crafts.get(i).couldPrePeak(day))

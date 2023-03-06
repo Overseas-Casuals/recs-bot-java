@@ -192,6 +192,9 @@ public class Solver
     public int crimeTimeValue = 0;
     public int totalValue = 0;
 
+    public static double strongRatio62 = 0;
+    public static double strongRatio63 = 0;
+
 
     private boolean autocompletePeaks = false;
     private boolean allC3Set = false;
@@ -367,6 +370,9 @@ public class Solver
                 if(rested == dayToSolve)
                     rested = -1;
 
+                if(day==0 && !testC2Imposters)
+                    setStrongRatios();
+
                 var recs = getRecForSingleDay(dayToSolve, rank, null, true);
 
                 if(recs == null || recs.size() == 0 || recs.get(0) == null)
@@ -502,6 +508,23 @@ public class Solver
     private boolean restedAlready()
     {
         return rested >0 && rested <= day;
+    }
+
+    private void setStrongRatios()
+    {
+        int weak=0;
+        int strong=0;
+
+        for(int i=0;i<50;i++)
+        {
+            if(items[i].peak == Cycle2Strong)
+                strong++;
+            else if(items[i].peak == Cycle2Weak)
+                weak++;
+        }
+        strongRatio62 = (4.0-strong)/(8.0-weak-strong);
+        strongRatio63 = 0.5;
+        LOG.info("Setting C2 strong ratios to {} ({}/4 strong and {}/4 weak) and {}", strongRatio62, strong, weak, strongRatio63);
     }
 
     private void setCraftedFromHistory()
