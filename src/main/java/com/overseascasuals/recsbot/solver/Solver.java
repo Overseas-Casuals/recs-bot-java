@@ -187,7 +187,8 @@ public class Solver
     private final Map<Integer, List<Entry<WorkshopSchedule, WorkshopValue>>> restOfDay = new HashMap<>();
     private final Map<Integer, Integer> hoursLeftInDay = new HashMap<>();
     private final Map<String, List<DailyRecommendation>> cachedAltRecs = new HashMap<>();
-    public final List<List<DailyRecommendation>> crimeTimeRecs = new ArrayList<>();
+    public RestOfWeekRec fortuneTellerRecs;
+    public List<List<DailyRecommendation>> crimeTimeRecs = new ArrayList<>();
     public int crimeTimeValue = 0;
     public int totalValue = 0;
 
@@ -373,6 +374,23 @@ public class Solver
                 }
                 var rec = recs.get(0);
 
+                if(day == 1 && rank == maxIslandRank)
+                {
+                    //Get crime recs
+                    addCraftedFromCycle(1, null, maxIslandRank, false);
+                    var c3 = getBestBruteForceSchedules(dayToSolve, startingGroovePerDay.get(dayToSolve),
+                            null, dayToSolve, 1, rank);
+                    CycleSchedule schedule = new CycleSchedule(dayToSolve, startingGroovePerDay.get(dayToSolve));
+                    schedule.setForAllWorkshops(c3.get(0).getKey().getItems());
+                    addCraftedFromCycle(2, schedule, rank, false);
+                    List<List<Item>> schedules = new ArrayList<>();
+                    schedules.add(c3.get(0).getKey().getItems());
+                    RestOfWeekRec restOfWeek = getRestOfWeekRecs(maxIslandRank, true);
+                    schedules.addAll(restOfWeek.getRecs());
+                    fortuneTellerRecs = new RestOfWeekRec(schedules, -1, true);
+                    setCraftedFromHistory();
+                }
+
                 listOfRecs.add(rec);
                 if(rec.isRestRecommended())
                     rested = dayToSolve;
@@ -389,7 +407,6 @@ public class Solver
             {
                 generateCrimeTimeRecs(rank);
                 setCraftedFromHistory();
-
                 //Try days 5-7
                 listOfRecs = getRecForSingleDay(dayToSolve, rank, null, true);
                 for(var rec : listOfRecs)
@@ -1564,12 +1581,12 @@ public class Solver
         return restOfDayRank;
     }
 
-    public RestOfWeekRec getRestOfWeekRecs(int rank)
+    public RestOfWeekRec getRestOfWeekRecs(int rank, boolean bypassCache)
     {
         if(rank > maxIslandRank)
             rank = maxIslandRank;
 
-        if(restOfWeek.containsKey(rank))
+        if(!bypassCache && restOfWeek.containsKey(rank))
         {
             LOG.info("Returning rest of week from cache");
             return restOfWeek.get(rank);
@@ -1620,7 +1637,8 @@ public class Solver
             LOG.info("rest of week ({}): {}", rank, list);
         }
         var rec = new RestOfWeekRec(restOfWeekRank, worstIndex, rested > 0 && rested <= day + 1);
-        restOfWeek.put(rank, rec);
+        if(!bypassCache)
+            restOfWeek.put(rank, rec);
 
         return rec;
     }

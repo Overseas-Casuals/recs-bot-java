@@ -175,12 +175,8 @@ public class OCUtils
         return builder.build();
     }
 
-    public static MessageCreateSpec createCrimeTimePost(int season, List<DailyRecommendation> recs, List<DailyRecommendation> crimeRecs, String crimeTimeRole, int crimeTotal)
+    public static EmbedCreateSpec createCrimeTimePost(int season, List<DailyRecommendation> recs, List<DailyRecommendation> crimeRecs, String crimeTimeRole, int crimeTotal)
     {
-        if(recs == null || recs.size() == 0)
-        {
-            return MessageCreateSpec.builder().content("No recs returned").build();
-        }
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Crime Time Recommendations");
         builder.timestamp(Instant.now());
         var messageSpec = MessageCreateSpec.builder();
@@ -222,16 +218,11 @@ public class OCUtils
 
         builder.addField("Total Weekly Value", crimeTotal+cowriesEmoji, false);
 
-        messageSpec.addEmbed(builder.build());
-        return messageSpec.build();
+        return builder.build();
     }
 
-    public static MessageCreateSpec createCombinedC4Post(int season, List<DailyRecommendation> recs, String squawkboxRole, int total)
+    public static EmbedCreateSpec createCombinedC4Post(int season, List<DailyRecommendation> recs, String squawkboxRole, int total)
     {
-        if(recs == null || recs.size() == 0)
-        {
-            return MessageCreateSpec.builder().content("No recs returned").build();
-        }
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Cycle 5-7 Recommendations");
         builder.timestamp(Instant.now());
         var messageSpec = MessageCreateSpec.builder();
@@ -269,9 +260,7 @@ public class OCUtils
         builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
                 "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);
 
-        messageSpec.content("<@&"+squawkboxRole+">");
-        messageSpec.addEmbed(builder.build());
-        return messageSpec.build();
+        return builder.build();
     }
 
     public static EmbedCreateSpec generateNextWeekEmbed(int season, List<List<Item>> recs, int rank)
@@ -300,6 +289,8 @@ public class OCUtils
     public static EmbedCreateSpec generateThisWeekEmbed(int season, RestOfWeekRec recs, int rank)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations for Rank "+rank);
+        if(rank<0)
+            builder.title("Season "+season+" ("+getDateStr(season)+") Fortune-Telling Recommendations");
         builder.timestamp(Instant.now());
 
         builder.color(Color.SUMMER_SKY);

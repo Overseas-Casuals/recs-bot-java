@@ -14,6 +14,8 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.spec.EmbedCreateSpec;
+import discord4j.core.spec.MessageCreateSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
@@ -317,10 +319,18 @@ public class GetPeaksTask implements ScheduledTask
                     {
                         var crimes = solver.crimeTimeRecs.get(i);
 
-                        LOG.info("Posting combined C4 post, total {}", solver.totalValue);
-                        channel.createMessage(OCUtils.createCombinedC4Post(week, list, squawkboxRole, solver.totalValue)).flatMap(Message::publish).subscribe();
-                        LOG.info("Posting crime time post, total {}", solver.crimeTimeValue);
-                        channel.createMessage(OCUtils.createCrimeTimePost(week, list, crimes, crimeTimeRole, solver.crimeTimeValue)).flatMap(Message::publish).subscribe();
+                        var combinedC4Post = MessageCreateSpec.builder().content("<@&"+squawkboxRole+"> <@&"+crimeTimeRole+">");
+
+                        var c4Message = OCUtils.createCombinedC4Post(week, list, squawkboxRole, solver.totalValue);
+
+                        var crimeMessage = OCUtils.createCrimeTimePost(week, list, crimes, crimeTimeRole, solver.crimeTimeValue);
+
+                        List<EmbedCreateSpec> embeds = List.of(c4Message, crimeMessage);
+                        combinedC4Post.addAllEmbeds(embeds);
+
+                        //combinedC4Post.addEmbed(c4Message);
+
+                        channel.createMessage(combinedC4Post.build()).flatMap(Message::publish).subscribe();
 
                         for(int d=0;d<3;d++)
                         {
@@ -336,6 +346,10 @@ public class GetPeaksTask implements ScheduledTask
                 }
                 else
                 {
+                    if(recDay == 1)
+                    {
+                        archiveChannel.createMessage(OCUtils.generateThisWeekEmbed(week, solver.fortuneTellerRecs, -1)).subscribe();
+                    }
                     for(var recs : list)
                     {
                         channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).flatMap(Message::publish).subscribe();

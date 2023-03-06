@@ -412,7 +412,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             solver.getDailyRecommendations(week, day, true);
         }
 
-        var recs = solver.getRestOfWeekRecs(rank);
+        var recs = solver.getRestOfWeekRecs(rank, false);
 
 
         if(recs == null || recs.getRecs() == null || recs.getRecs().size() == 0)
