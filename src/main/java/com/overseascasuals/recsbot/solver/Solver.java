@@ -231,7 +231,6 @@ public class Solver
         isRunningRecs = true;
         LOG.info("Getting recommendations for week {} day {}, hardrefresh? {}. update threshold {}", week, day, hardRefresh, middayUpdateThreshold);
 
-
         if(peaks == null)
         {
             LOG.info("No peaks passed in, grabbing from DB");
@@ -293,7 +292,10 @@ public class Solver
             }
 
             //Load previous crafts from db
-            for(int i=1; i<=6; i++)
+            int maxDay=day+1;
+            if(day >= 3)
+                maxDay = 6;
+            for(int i=1; i<=maxDay; i++)
             {
                 CycleCraft crafts = craftRepository.findCraftsByDay(week, i, maxIslandRank);
                 if(crafts == null)
