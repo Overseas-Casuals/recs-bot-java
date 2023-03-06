@@ -190,8 +190,9 @@ public class GetPeaksTask implements ScheduledTask
                 List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
 
                 validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, chinaDays, week, recDay, true);
-                if(!validTCPeaks)
+                if(!validTCPeaks && recDay != 1) //C2 is too important to just use 6.3 peaks. We need that china data
                 {
+                    LOG.info("China peaks were invalid, trying from global data");
                     if(recDay > 0)
                         peaksByDay = peakRepository.findPeaksByDay(week, recDay-1);
                     else
