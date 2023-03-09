@@ -307,6 +307,9 @@ public class OCUtils
                 builder.addField("Cycle "+(startDay+i), recString, true);
         }
 
+        if(rank<0)
+            builder.addField("Info", "This is a _predictive_ schedule. It's an educated guess, but still a guess at the rest of the season. If you want optimal recommendations, check daily in <#1034941158993952809>.", false);
+
         return builder.build();
     }
     public static EmbedCreateSpec generateTodayEmbed(int season, int cycle, int hours, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs, int rank)

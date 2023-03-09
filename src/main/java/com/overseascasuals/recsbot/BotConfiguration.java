@@ -413,6 +413,8 @@ public class BotConfiguration implements CommandLineRunner
 
         LOG.info("Ran taskList {}", taskList);
 
+        Thread.sleep(5000); //Idk, just make sure things have a chance to finish running?
+
         //solver.getRestOfDayRecs(3, 20, 11, Item.GrowthFormula);
         //solver.getRestOfDayRecs(5, 22, 11, null);
         //solver.getRecForSingleDay(5, 11, List.of(Item.GarnetRapier), true);

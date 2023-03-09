@@ -444,8 +444,11 @@ public class Solver
 
                 int lastDaySolved = day+1;
                 LOG.info("Rechecking day {}'s rank {} recs starting at {} groove with craft {}", day+1, rank, startingGroove, currentCrafts.get(0));
-                List<Item> nextCycleCraft = craftRepository.findCraftsByDay(week, lastDaySolved, rank).getCrafts();
-                if(day==3)
+                List<Item> nextCycleCraft = new ArrayList<>();
+                var nextCycle = craftRepository.findCraftsByDay(week, lastDaySolved, rank);
+                if(nextCycle!= null)
+                    nextCycleCraft = nextCycle.getCrafts();
+                if(nextCycle!= null && day==3)
                 {
                     nextCycleCraft.addAll(craftRepository.findCraftsByDay(week, 5, rank).getCrafts());
                     nextCycleCraft.addAll(craftRepository.findCraftsByDay(week, 6, rank).getCrafts());

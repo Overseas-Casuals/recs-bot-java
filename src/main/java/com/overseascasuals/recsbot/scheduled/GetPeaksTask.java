@@ -46,6 +46,9 @@ public class GetPeaksTask implements ScheduledTask
 
     @Value("${discord.archiveChannel}")
     private String archiveChannelID;
+
+    @Value("${discord.fortunetellerChannelID}")
+    private String fortuneChannelID;
     @Value("${tcUrl}")
     private String tcURL;
 
@@ -57,6 +60,8 @@ public class GetPeaksTask implements ScheduledTask
 
     @Value("${discord.archiveRole}")
     private String archiveRole;
+    @Value("${discord.clairvoyantRole}")
+    private String clairvoyantRole;
 
     @Value("${discord.c1HelperRole}")
     String c1PeakRole;
@@ -97,6 +102,7 @@ public class GetPeaksTask implements ScheduledTask
     private MessageChannel channel;
     private MessageChannel peakChannel;
     private MessageChannel archiveChannel;
+    private MessageChannel fortuneChannel;
 
     @Override
     public String getCron()
@@ -113,6 +119,7 @@ public class GetPeaksTask implements ScheduledTask
                 .cast(MessageChannel.class).block();
         archiveChannel = client.getChannelById(Snowflake.of(archiveChannelID))
                 .cast(MessageChannel.class).block();
+        fortuneChannel = client.getChannelById(Snowflake.of(fortuneChannelID)).cast(MessageChannel.class).block();
         this.local = local;
     }
 
@@ -163,7 +170,7 @@ public class GetPeaksTask implements ScheduledTask
                     if(response != null)
                         tcDays = objectMapper.readValue(response, new TypeReference<>(){});
 
-                    validTCPeaks = tcDays != null && tcDays.size() > recDay && tcDays.get(recDay).getObjects() != null && tcDays.get(recDay).getObjects().size() > 0;
+                    validTCPeaks = tcDays != null && tcDays.size() > recDay && tcDays.get(recDay) != null && tcDays.get(recDay).getObjects() != null && tcDays.get(recDay).getObjects().size() > 0;
                     if(validTCPeaks)
                     {
                         response = restService.getURLResponse(tcChinaURL);
@@ -171,7 +178,7 @@ public class GetPeaksTask implements ScheduledTask
                         if(response != null)
                             chinaDays = objectMapper.readValue(response, new TypeReference<>(){});
 
-                        validTCPeaks = chinaDays != null && chinaDays.size() > recDay && chinaDays.get(recDay).getObjects() != null && chinaDays.get(recDay).getObjects().size() > 0;
+                        validTCPeaks = chinaDays != null && chinaDays.size() > recDay && chinaDays.get(recDay) != null && chinaDays.get(recDay).getObjects() != null && chinaDays.get(recDay).getObjects().size() > 0;
                     }
                 }
                 catch(Exception e)
@@ -303,11 +310,11 @@ public class GetPeaksTask implements ScheduledTask
                     var recs = list.get(0);
                     if(recs.getOldRec().getItems().equals(recs.getBestRec().getItems()))
                     {
-                        archiveChannel.createMessage("<@&"+archiveRole+"> Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue()+" ("+recs.getGroovelessValue()+" grooveless)").subscribe();
+                        archiveChannel.createMessage("<@&"+archiveRole+"> Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue()+" ("+recs.getGroovelessValue()+" grooveless)").subscribe(message -> {LOG.info("Successfully posted final value: {}", message.getContent());}, error -> { LOG.error("Error posting updated cycle value:",error); });
                     }
                     else
                     {
-                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).subscribe();
+                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).subscribe(message -> {LOG.info("Successfully posted day-of update: {}", message.getEmbeds());}, error -> { LOG.error("Error posting updated cycle schedule:",error); });;
                         trySendTweet(week, recs);
                     }
 
@@ -331,8 +338,11 @@ public class GetPeaksTask implements ScheduledTask
 
                         //combinedC4Post.addEmbed(c4Message);
 
-                        channel.createMessage(combinedC4Post.build()).flatMap(Message::publish).subscribe();
+                        channel.createMessage(combinedC4Post.build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted C4 recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting C4 combined post:",error); });
 
+                        channel.createMessage(MessageCreateSpec.builder().content( "<@&"+crimeTimeRole+">").addEmbed(crimeMessage).build())
+                                .flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted crime recs: {}", message.getEmbeds());},
+                                        error -> { LOG.error("Error posting crime post:",error); });
                         for(int d=0;d<3;d++)
                         {
                             trySendTweet(week, list.get(d));
@@ -349,11 +359,13 @@ public class GetPeaksTask implements ScheduledTask
                 {
                     if(recDay == 1)
                     {
-                        archiveChannel.createMessage(OCUtils.generateThisWeekEmbed(week, solver.fortuneTellerRecs, -1)).subscribe();
+                        var embed = OCUtils.generateThisWeekEmbed(week, solver.fortuneTellerRecs, -1);
+
+                        fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&"+clairvoyantRole+">").addEmbed(embed).build()).subscribe(message -> {LOG.info("Successfully posted fortune teller recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting fortune-teller recs:",error);});
                     }
                     for(var recs : list)
                     {
-                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).flatMap(Message::publish).subscribe();
+                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting recs:",error); });
                         trySendTweet(week, recs);
                     }
                 }
