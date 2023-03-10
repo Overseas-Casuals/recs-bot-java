@@ -413,8 +413,8 @@ public class Solver
             }
             else if(day == 3)
             {
-                generateCrimeTimeRecs(rank);
-                setCraftedFromHistory();
+                /*generateCrimeTimeRecs(rank);
+                setCraftedFromHistory();*/
                 //Try days 5-7
                 listOfRecs = getRecForSingleDay(dayToSolve, rank, null, true);
                 for(var rec : listOfRecs)
@@ -627,10 +627,14 @@ public class Solver
                         shouldRest = true;
                     else if(guaranteeRestD5)
                     {
-                        LOG.debug("Guaranteed resting D5 so recalculating D4");
+                        LOG.info("Guaranteed resting D5 so recalculating D4");
                         todayRecs = getBestBruteForceSchedules(dayToSolve, startingGroovePerDay.get(dayToSolve),  limitedUse, dayToSolve + 1, alternatives, rank);
                         bestSchedule = todayRecs.get(0);
                         schedule.setForAllWorkshops(bestSchedule.getKey().getItems());
+                    }
+                    else
+                    {
+                        LOG.info("Can't guarantee resting C5, but not resting C4");
                     }
                 }
             }

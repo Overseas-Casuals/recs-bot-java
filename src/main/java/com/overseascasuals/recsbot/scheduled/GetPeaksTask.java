@@ -325,24 +325,13 @@ public class GetPeaksTask implements ScheduledTask
                     int numDays = list.size()/3;
                     for(int i=0; i<numDays;i++)
                     {
-                        var crimes = solver.crimeTimeRecs.get(i);
-
                         var combinedC4Post = MessageCreateSpec.builder().content("<@&"+squawkboxRole+"> <@&"+crimeTimeRole+">");
 
                         var c4Message = OCUtils.createCombinedC4Post(week, list, squawkboxRole, solver.totalValue);
 
-                        var crimeMessage = OCUtils.createCrimeTimePost(week, list, crimes, crimeTimeRole, solver.crimeTimeValue);
-
-                        List<EmbedCreateSpec> embeds = List.of(c4Message, crimeMessage);
-                        combinedC4Post.addAllEmbeds(embeds);
-
-                        //combinedC4Post.addEmbed(c4Message);
+                        combinedC4Post.addEmbed(c4Message);
 
                         channel.createMessage(combinedC4Post.build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted C4 recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting C4 combined post:",error); });
-
-                        channel.createMessage(MessageCreateSpec.builder().content( "<@&"+crimeTimeRole+">").addEmbed(crimeMessage).build())
-                                .flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted crime recs: {}", message.getEmbeds());},
-                                        error -> { LOG.error("Error posting crime post:",error); });
                         for(int d=0;d<3;d++)
                         {
                             trySendTweet(week, list.get(d));
