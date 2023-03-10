@@ -350,7 +350,7 @@ public class GetPeaksTask implements ScheduledTask
                     {
                         var embed = OCUtils.generateThisWeekEmbed(week, solver.fortuneTellerRecs, -1);
 
-                        fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&"+clairvoyantRole+">").addEmbed(embed).build()).subscribe(message -> {LOG.info("Successfully posted fortune teller recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting fortune-teller recs:",error);});
+                        fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&"+clairvoyantRole+">").addEmbed(embed).build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted fortune teller recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting fortune-teller recs:",error);});
                     }
                     for(var recs : list)
                     {
