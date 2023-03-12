@@ -510,7 +510,12 @@ public class Solver
 
     private boolean restedAlready()
     {
-        return rested >0 && rested <= day;
+        return restedAlready(day);
+    }
+
+    private boolean restedAlready(int today)
+    {
+        return rested > 0 && rested <= today;
     }
 
     private void setStrongRatios()
@@ -615,7 +620,7 @@ public class Solver
             CycleSchedule schedule = new CycleSchedule(dayToSolve, startingGroovePerDay.get(dayToSolve));
             schedule.setForAllWorkshops(bestSchedule.getKey().getItems());
 
-            if(!restedAlready()) //If we haven't already rested, check to see if we should now
+            if(!restedAlready(dayToSolve - 1)) //If we haven't already rested, check to see if we should now
             {
                 if(day < 2 && isWorseThanAllFollowing(bestSchedule, dayToSolve, false, rank, limitedUse))
                     shouldRest = true;
@@ -1056,7 +1061,7 @@ public class Solver
         var cycle6Sched = getBestBruteForceSchedules(5, startingGroove, limitedUse, 6, alternatives, rank);
         var cycle7Sched = getBestBruteForceSchedules(6, startingGroove, limitedUse, 6, alternatives, rank);
 
-        if(restedAlready())
+        if(restedAlready(4))
         {
             CycleSchedule best6 = new CycleSchedule(5, startingGroove);
             best6.setForAllWorkshops(cycle6Sched.get(0).getKey().getItems());
