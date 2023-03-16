@@ -34,7 +34,7 @@ public enum Item
     Ribbon("Ribbon","<:OC_Ribbon:1035399558294933584>"),
     Rope("Rope","<:OC_Rope:1035399559351894107>"),
     CavaliersHat("Cavalier's Hat","<:OC_CavaliersHat:1035379562919510017>"),
-    Horn("Horn","<:OC_Horn:1035379589846933514>"),
+    Horn("Horn","<:OC_HornCraft:1035379590748713140>"),
     SaltCod("Salt Cod","<:OC_SaltCod:1035399561914622023>"),
     SquidInk("Squid Ink","<:OC_SquidInk:1035399578704433222>"),
     EssentialDraught("Essential Draught","<:OC_EssentialDraught:1035379572281200660>"),
