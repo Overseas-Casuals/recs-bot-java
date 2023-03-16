@@ -192,6 +192,8 @@ public class Solver
     public int crimeTimeValue = 0;
     public int totalValue = 0;
 
+    Map<Integer,List<Item>> dailySchedules = new HashMap<>();
+
     public static double strongRatio62 = 0;
     public static double strongRatio63 = 0;
 
@@ -265,6 +267,7 @@ public class Solver
             crimeTimeRecs.clear();
             crimeTimeValue = 0;
             totalValue = 0;
+            dailySchedules.clear();
 
             int currentPop = generateVacationRecs(week);
 
@@ -312,6 +315,7 @@ public class Solver
                 {
                     LOG.info("Found rest day on day {}", i+1);
                     rested = i;
+                    dailySchedules.put(i, new ArrayList<Item>());
                 }
                 else
                 {
@@ -333,6 +337,7 @@ public class Solver
 
                     }
                     groove = Math.min(groove, GROOVE_MAX);
+                    dailySchedules.put(i, craftsAsItems);
                 }
                 LOG.info("groove after day {}: {}", i+1, groove);
                 startingGroovePerDay.put(i+1, groove);
@@ -432,7 +437,7 @@ public class Solver
 
             for(int rank = maxIslandRank; rank <= maxIslandRank; rank++)
             {
-                List<Item> currentCrafts = craftRepository.findCraftsByDay(week, day, rank).getCrafts();
+                List<Item> currentCrafts = dailySchedules.get(day);//craftRepository.findCraftsByDay(week, day, rank).getCrafts();
                 if(currentCrafts == null || currentCrafts.size() == 0)
                     continue;
 
@@ -444,14 +449,14 @@ public class Solver
 
                 int lastDaySolved = day+1;
                 LOG.info("Rechecking day {}'s rank {} recs starting at {} groove with craft {}", day+1, rank, startingGroove, currentCrafts.get(0));
-                List<Item> nextCycleCraft = new ArrayList<>();
-                var nextCycle = craftRepository.findCraftsByDay(week, lastDaySolved, rank);
-                if(nextCycle!= null)
-                    nextCycleCraft = nextCycle.getCrafts();
-                if(nextCycle!= null && day==3)
+                List<Item> nextCycleCraft = dailySchedules.get(lastDaySolved);//new ArrayList<>();
+                //var nextCycle = craftRepository.findCraftsByDay(week, lastDaySolved, rank);
+                /*if(nextCycle!= null)
+                    nextCycleCraft = nextCycle.getCrafts();*/
+                if(nextCycleCraft != null && day==3)
                 {
-                    nextCycleCraft.addAll(craftRepository.findCraftsByDay(week, 5, rank).getCrafts());
-                    nextCycleCraft.addAll(craftRepository.findCraftsByDay(week, 6, rank).getCrafts());
+                    nextCycleCraft.addAll(dailySchedules.get(5));
+                    nextCycleCraft.addAll(dailySchedules.get(6));
                     lastDaySolved = 6;
 
                 }
@@ -539,16 +544,11 @@ public class Solver
     {
         for(int i=1; i<=day; i++)
         {
-            CycleCraft crafts = craftRepository.findCraftsByDay(week, i, maxIslandRank);
-            if(crafts == null)
-                continue;
-
-            clearDayUsage(List.of(i));
-
-            if(crafts.getCraft1() != null && !crafts.getCraft1().isEmpty())
+            List<ItemInfo> todaysItems = new ArrayList<>();
+            List<Item> craftsAsItems = dailySchedules.get(i);
+            if(craftsAsItems != null && craftsAsItems.size() > 0)
             {
-                List<ItemInfo> todaysItems = new ArrayList<>();
-                var craftsAsItems = crafts.getCrafts();
+                clearDayUsage(List.of(i));
                 for(int c=0; c<craftsAsItems.size(); c++)
                 {
                     Item item = craftsAsItems.get(c);
@@ -741,9 +741,9 @@ public class Solver
         int total = 0;
         for(int day = 1; day < 4; day++)
         {
-            var crafts = craftRepository.findCraftsByDay(week, day, maxIslandRank);
+            //var crafts = craftRepository.findCraftsByDay(week, day, maxIslandRank);
             CycleSchedule sched = new CycleSchedule(day, startingGroovePerDay.get(day));
-            sched.setForAllWorkshops(crafts.getCrafts());
+            sched.setForAllWorkshops(dailySchedules.get(day));
             int today = sched.getValue();
             LOG.info("Getting total for day {}, crafts {}: {} cowries", day+1, sched.getItems(), today);
             total += today;
@@ -766,7 +766,7 @@ public class Solver
         {
             for(int i=1;i<day; i++)
             {
-                grooveSoFar+= getGrooveMadeWithSchedule(craftRepository.findCraftsByDay(week, i, rank).getCrafts());
+                grooveSoFar+= getGrooveMadeWithSchedule(dailySchedules.get(i));
                 startingGroovePerDay.put(i+1, grooveSoFar);
             }
         }
@@ -810,21 +810,28 @@ public class Solver
             startingGroovePerDay.put(day+1, startingGroovePerDay.get(day));
         }
 
-        if(real && "live".equals(activeProfile))
+        if(real)
         {
-            CycleCraft crafts = new CycleCraft();
-            crafts.setCraftID(new CraftID(week, day, rank));
             List<Item> items;
             if(schedule!=null)
                 items = schedule.getItems();
             else
                 items = new ArrayList<>();
-            crafts.setCrafts(items);
-            craftRepository.save(crafts);
-            LOG.info("Saving crafts {} to db for week {}, day {}, and rank {}", items, week, day, rank);
+            dailySchedules.put(day, items);
+
+            if("live".equals(activeProfile))
+            {
+                CycleCraft crafts = new CycleCraft();
+                crafts.setCraftID(new CraftID(week, day, rank));
+                crafts.setCrafts(items);
+                craftRepository.save(crafts);
+                LOG.info("Saving crafts {} to db for week {}, day {}, and rank {}", items, week, day, rank);
+            }
+            else
+                LOG.info("Not saving crafts because we're running locally");
         }
         else
-            LOG.info("Not saving crafts because {}", real?"we're running locally":"we're just trying out values");
+            LOG.info("Not saving crafts because we're just trying out values");
     }
 
     public boolean updatePeak(Item item, PeakCycle peak)
@@ -1578,19 +1585,12 @@ public class Solver
 
         for(int i=day+1; i<=lastDaySet; i++)
         {
-            var futureCrafts = craftRepository.findCraftsByDay(week, i, rank);
-            if(futureCrafts == null)
+            var crafts = dailySchedules.get(i);
+            if(crafts == null)
             {
-                if(rank != maxIslandRank)
-                    futureCrafts = craftRepository.findCraftsByDay(week, i, maxIslandRank);
-
-                if(futureCrafts == null)
-                {
-                    lastDaySet = i-1;
-                    break;
-                }
+                lastDaySet = i-1;
+                break;
             }
-            var crafts = futureCrafts.getCrafts();
             LOG.info("Reserving future crafts for day {}: {}", i+1, crafts);
             limitedItems = new WorkshopSchedule(crafts).getLimitedUses(limitedItems);
         }

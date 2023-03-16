@@ -569,7 +569,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             solver.getDailyRecommendations(week, day, true);
         }
 
-        if(Math.min(3,day) > solver.getDay())
+        if(Math.min(3,day) > solver.getDay() || week != solver.getWeek())
             return event.editReply("Don't have peak info for the current day. Wait until recs get run!");
 
         String content = "";
