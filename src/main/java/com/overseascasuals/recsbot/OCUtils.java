@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 public class OCUtils
 {
-    private static String cowriesEmoji = " <:OC_BlueShell:1035493003655127071>";
+    public static String cowriesEmoji = " <:OC_BlueShell:1035493003655127071>";
     private static String getDateStr(int season)
     {
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d");

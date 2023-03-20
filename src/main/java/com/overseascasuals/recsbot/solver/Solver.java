@@ -191,6 +191,7 @@ public class Solver
     public List<List<DailyRecommendation>> crimeTimeRecs = new ArrayList<>();
     public int crimeTimeValue = 0;
     public int totalValue = 0;
+    public int fortuneValue = 0;
 
     Map<Integer,List<Item>> dailySchedules = new HashMap<>();
 
@@ -401,6 +402,21 @@ public class Solver
                     RestOfWeekRec restOfWeek = getRestOfWeekRecs(maxIslandRank, true);
                     schedules.addAll(restOfWeek.getRecs());
                     fortuneTellerRecs = new RestOfWeekRec(schedules, -1, true);
+
+                    if("live".equals(activeProfile))
+                    {
+                        int index = 2;
+                        for(var sched : schedules)
+                        {
+                            CycleCraft crafts = new CycleCraft();
+                            crafts.setCraftID(new CraftID(week, index, -1));
+                            crafts.setCrafts(sched);
+                            craftRepository.save(crafts);
+                            LOG.info("Saving fortuneteller rec {} to db for week {}, day {}, and rank {}", sched, week, index, -1);
+                            index++;
+                        }
+                    }
+
                     setCraftedFromHistory();
                 }
 
@@ -427,8 +443,7 @@ public class Solver
                     addCraftedFromCycle(rec.getDay(), rec.getBestRec(), rec.getMaxRank(), true);
                 }
 
-                if(rank==maxIslandRank)
-                    totalValue = generateTotalValue(listOfRecs);
+
             }
         }
 
@@ -509,6 +524,9 @@ public class Solver
 
             }
         }
+
+
+        totalValue = generateTotalValue(listOfRecs);
 
         hasRunRecs = true;
         isRunningRecs = false;
@@ -741,7 +759,7 @@ public class Solver
     public int generateTotalValue(List<DailyRecommendation> lateWeekRecs)
     {
         int total = 0;
-        for(int day = 1; day < 4; day++)
+        for(int day = 1; day < 7 - lateWeekRecs.size(); day++)
         {
             //var crafts = craftRepository.findCraftsByDay(week, day, maxIslandRank);
             CycleSchedule sched = new CycleSchedule(day, startingGroovePerDay.get(day));
@@ -752,12 +770,32 @@ public class Solver
         }
         for(var rec : lateWeekRecs)
         {
-            if(!rec.isRestRecommended())
+            if(rec.getMaxRank() == maxIslandRank && !rec.isRestRecommended())
             {
                 LOG.info("Getting total for day {}, crafts {}: {} cowries", rec.getDay()+1, rec.getBestRec().getItems(), rec.getDailyValue());
                 total+=rec.getDailyValue();
             }
         }
+
+        fortuneValue = 0;
+        try
+        {
+            for(int day=2; day<7; day++)
+            {
+                var crafts = craftRepository.findCraftsByDay(week, day, -1);
+                CycleSchedule sched = new CycleSchedule(day, startingGroovePerDay.get(day));
+                sched.setForAllWorkshops(crafts.getCrafts());
+                int today = sched.getValue();
+                LOG.info("Getting FT total for day {}, crafts {}: {} cowries", day+1, sched.getItems(), today);
+                fortuneValue += today;
+            }
+        }
+        catch(Exception e)
+        {
+            fortuneValue = -1;
+            LOG.error("Exception determining value of FT recs for week: ",e);
+        }
+
         return total;
     }
     public void setScheduleCommand(int day, int rank, List<Item> newItems)

@@ -341,7 +341,10 @@ public class GetPeaksTask implements ScheduledTask
                         list.remove(0);
                         list.remove(0);
                         list.remove(0);
-
+                    }
+                    if(solver.fortuneValue > 0)
+                    {
+                        fortuneChannel.createMessage("Season total: "+solver.fortuneValue+OCUtils.cowriesEmoji).subscribe(message -> {LOG.info("Successfully posted fortune teller total: {}", message.getContent());}, error -> { LOG.error("Error posting fortune-teller total:",error);});
                     }
                 }
                 else
