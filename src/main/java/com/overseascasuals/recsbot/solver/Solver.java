@@ -526,7 +526,8 @@ public class Solver
         }
 
 
-        totalValue = generateTotalValue(listOfRecs);
+        if(day==3)
+            totalValue = generateTotalValue(listOfRecs);
 
         hasRunRecs = true;
         isRunningRecs = false;
