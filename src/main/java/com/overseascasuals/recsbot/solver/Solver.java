@@ -781,13 +781,18 @@ public class Solver
         fortuneValue = 0;
         try
         {
+            CycleSchedule crime2 = new CycleSchedule(1, 0);
+            crime2.setForAllWorkshops(new ArrayList<>());
+            addCraftedFromCycle(1, crime2, maxIslandRank, false);
             for(int day=2; day<7; day++)
             {
                 var crafts = craftRepository.findCraftsByDay(week, day, -1);
-                CycleSchedule sched = new CycleSchedule(day, startingGroovePerDay.get(day));
+                CycleSchedule sched = new CycleSchedule(day, groove);
                 sched.setForAllWorkshops(crafts.getCrafts());
+                addCraftedFromCycle(day, sched, maxIslandRank, false);
+
                 int today = sched.getValue();
-                LOG.info("Getting FT total for day {}, crafts {}: {} cowries", day+1, sched.getItems(), today);
+                LOG.info("Getting FT total for day {}, starting groove {} crafts {}: {} cowries", day+1, sched.getStartingGroove(), sched.getItems(), today);
                 fortuneValue += today;
             }
         }
@@ -796,6 +801,7 @@ public class Solver
             fortuneValue = -1;
             LOG.error("Exception determining value of FT recs for week: ",e);
         }
+        setCraftedFromHistory();
 
         return total;
     }

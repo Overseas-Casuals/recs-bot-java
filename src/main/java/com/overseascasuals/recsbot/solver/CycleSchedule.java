@@ -41,8 +41,12 @@ public class CycleSchedule
     {
         return workshops[0].getItems();
     }
-    
-    public int getValue() 
+
+    public int getValue()
+    {
+        return getValue(false);
+    }
+    public int getValue(boolean verbose)
     {
        numCrafted = new HashMap<>();
        
@@ -64,17 +68,16 @@ public class CycleSchedule
                    ItemInfo completedCraft = workshops[i].getCurrentCraft();
                    boolean efficient = workshops[i].currentCraftIsEfficient();
                    craftsToAdd.put(completedCraft.item, craftsToAdd.getOrDefault(completedCraft.item, 0) + (efficient? 2 : 1));
-                   
-                   //System.out.println("Found completed "+completedCraft.item+" at hour "+hour+". Efficient? "+efficient);
-                   
-                   cowriesThisHour += workshops[i].getValueForCurrent(day, numCrafted.getOrDefault(completedCraft.item, 0), currentGroove, efficient, false);
+
+                   cowriesThisHour += workshops[i].getValueForCurrent(day, numCrafted.getOrDefault(completedCraft.item, 0), currentGroove, efficient, verbose);
                    
                    workshops[i].currentIndex++;
                    if(workshops[i].currentCraftIsEfficient())
                        grooveToAdd++;
                }
            }
-           LOG.trace("hour "+hour+": "+cowriesThisHour);
+           if(verbose && cowriesThisHour > 0)
+                LOG.info("hour "+hour+": "+cowriesThisHour);
            
            totalCowries += cowriesThisHour;
            currentGroove += grooveToAdd;
