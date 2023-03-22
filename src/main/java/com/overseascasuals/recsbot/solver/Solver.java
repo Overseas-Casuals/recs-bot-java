@@ -391,10 +391,10 @@ public class Solver
                 if(day == 1 && rank == maxIslandRank)
                 {
                     //Get crime recs
-                    addCraftedFromCycle(1, null, maxIslandRank, false);
-                    var c3 = getBestBruteForceSchedules(dayToSolve, startingGroovePerDay.get(dayToSolve),
+                    clearDayUsage(List.of(1));
+                    var c3 = getBestBruteForceSchedules(dayToSolve, 0,
                             null, dayToSolve, 1, rank);
-                    CycleSchedule schedule = new CycleSchedule(dayToSolve, startingGroovePerDay.get(dayToSolve));
+                    CycleSchedule schedule = new CycleSchedule(dayToSolve, 0);
                     schedule.setForAllWorkshops(c3.get(0).getKey().getItems());
                     addCraftedFromCycle(2, schedule, rank, false);
                     List<List<Item>> schedules = new ArrayList<>();
@@ -403,19 +403,20 @@ public class Solver
                     schedules.addAll(restOfWeek.getRecs());
                     fortuneTellerRecs = new RestOfWeekRec(schedules, -1, true);
 
-                    if("live".equals(activeProfile))
+
+                    int index = 2;
+                    for(var sched : schedules)
                     {
-                        int index = 2;
-                        for(var sched : schedules)
-                        {
+                        if("live".equals(activeProfile)) {
                             CycleCraft crafts = new CycleCraft();
                             crafts.setCraftID(new CraftID(week, index, -1));
                             crafts.setCrafts(sched);
                             craftRepository.save(crafts);
-                            LOG.info("Saving fortuneteller rec {} to db for week {}, day {}, and rank {}", sched, week, index, -1);
-                            index++;
                         }
+                        LOG.info("Fortuneteller rec for week {}, day {}: {}", week, index+1, sched);
+                        index++;
                     }
+
 
                     setCraftedFromHistory();
                 }
