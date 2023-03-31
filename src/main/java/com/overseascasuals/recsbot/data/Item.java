@@ -76,5 +76,6 @@ public enum Item
     public String getDisplayName() { return displayName; }
 
     public String getDisplayNameWithTime() { return displayName + " ("+Solver.getHoursForItem(this)+"h)";}
-    public String getDisplayWithEmoji() { return emoji + " " + displayName + " ("+Solver.getHoursForItem(this)+"h)"; }
+    public String getDisplayNameWithEmoji() { return emoji + " " + displayName; }
+    public String getDisplayWithEmojiAndTime() { return emoji + " " + displayName + " ("+Solver.getHoursForItem(this)+"h)"; }
 }

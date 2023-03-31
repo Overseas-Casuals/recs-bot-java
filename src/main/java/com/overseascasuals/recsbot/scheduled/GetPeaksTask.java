@@ -16,6 +16,7 @@ import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.MessageCreateSpec;
+import discord4j.core.spec.MessageEditSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
@@ -307,7 +308,7 @@ public class GetPeaksTask implements ScheduledTask
                     var recs = list.get(0);
                     if(recs.getOldRec().getItems().equals(recs.getBestRec().getItems()))
                     {
-                        archiveChannel.createMessage("<@&"+archiveRole+"> Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue()+" ("+recs.getGroovelessValue()+" grooveless)").subscribe(message -> {LOG.info("Successfully posted final value: {}", message.getContent());}, error -> { LOG.error("Error posting updated cycle value:",error); });
+                        //archiveChannel.createMessage("<@&"+archiveRole+"> Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue()+" ("+recs.getGroovelessValue()+" grooveless)").subscribe(message -> {LOG.info("Successfully posted final value: {}", message.getContent());}, error -> { LOG.error("Error posting updated cycle value:",error); });
                     }
                     else
                     {
@@ -316,6 +317,10 @@ public class GetPeaksTask implements ScheduledTask
                     }
 
                     list.remove(0);
+
+                    //Add to archive
+                    var archive = archiveChannel.getLastMessage().block();
+                    archive.edit(OCUtils.addCurrentDay(recDay, recs, archive)).subscribe(message -> {LOG.info("Successfully posted new day to archive: {}", message.getContent());}, error -> { LOG.error("Error posting new archive day:",error);});
                 }
                 if(recDay == 3)
                 {
@@ -335,14 +340,24 @@ public class GetPeaksTask implements ScheduledTask
                         }
                         //Pop the first 3 recs and start again
                         //Note: Like, test this before we do multiple ranks again
+                        if(i==numDays-1)
+                        {
+                            var archive = archiveChannel.getLastMessage().block();
+                            archive.edit(OCUtils.addFinalTotal(list, week, solver.totalValue, archive)).subscribe(message -> {LOG.info("Successfully posted final total to archive: {}", message.getContent());}, error -> { LOG.error("Error posting final total to archive:",error);});
+                        }
+
                         list.remove(0);
                         list.remove(0);
                         list.remove(0);
+
+
                     }
                     if(solver.fortuneValue > 0)
                     {
                         fortuneChannel.createMessage("Season total: "+solver.fortuneValue+OCUtils.cowriesEmoji).subscribe(message -> {LOG.info("Successfully posted fortune teller total: {}", message.getContent());}, error -> { LOG.error("Error posting fortune-teller total:",error);});
                     }
+                    var newArchive = OCUtils.postNewArchive(week+1);
+                    archiveChannel.createMessage(newArchive).subscribe(message -> {LOG.info("Successfully posted new archive post: {}", message.getContent());}, error -> { LOG.error("Error posting new archive post:",error);});
                 }
                 else
                 {
@@ -356,7 +371,13 @@ public class GetPeaksTask implements ScheduledTask
                     {
                         channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting recs:",error); });
                         trySendTweet(week, recs);
+                        if(recs.isRestRecommended())
+                        {
+                            var archive = archiveChannel.getLastMessage().block();
+                            archive.edit(OCUtils.addCurrentDay(recDay+1, recs, archive)).subscribe(message -> {LOG.info("Successfully posted new rest day to archive: {}", message.getContent());}, error -> { LOG.error("Error posting new rest day to archive:",error);});
+                        }
                     }
+
                 }
             }
         }

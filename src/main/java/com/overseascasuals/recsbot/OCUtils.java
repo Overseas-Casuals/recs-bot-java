@@ -6,8 +6,10 @@ import com.overseascasuals.recsbot.data.RestOfWeekRec;
 import com.overseascasuals.recsbot.data.WorkshopValue;
 import com.overseascasuals.recsbot.solver.CycleSchedule;
 import com.overseascasuals.recsbot.solver.WorkshopSchedule;
+import discord4j.core.object.entity.Message;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.MessageCreateSpec;
+import discord4j.core.spec.MessageEditSpec;
 import discord4j.rest.util.Color;
 
 import java.text.SimpleDateFormat;
@@ -58,7 +60,7 @@ public class OCUtils
             else
             {
                 boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.get(0).getValue().getGroove() > 0);
-                builder.addField("Tentative Recommendation", rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")), inline)
+                builder.addField("Tentative Recommendation", rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), inline)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
 
                 if(rec.getBestRec().getStartingGroove() != 0)
@@ -107,7 +109,7 @@ public class OCUtils
             }
 
             boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.get(0).getValue().getGroove() > 0);
-            builder.addField(title, rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")), inline)
+            builder.addField(title, rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), inline)
                     .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
 
             if(rec.getBestRec().getStartingGroove() != 0)
@@ -121,7 +123,7 @@ public class OCUtils
                 builder.addField("", "", false);
                 boolean oldInline = !(rec.getBestRec().getStartingGroove() != 0 && rec.getOldValue().getGroove() > 0);
 
-                builder.addField("Original Recommendation", rec.getOldRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")), oldInline)
+                builder.addField("Original Recommendation", rec.getOldRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), oldInline)
                         .addField("Grooveless Value", String.valueOf(rec.getOldGrooveless())+(rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
 
                 if(rec.getBestRec().getStartingGroove() != 0)
@@ -165,7 +167,7 @@ public class OCUtils
                     sched.setForAllWorkshops(rec.get(0).getKey().getItems());
 
                     //Show one alt
-                    builder.addField("If You Can't Rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n"))+"||", true)
+                    builder.addField("If You Can't Rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true)
                             .addField("Grooveless Value","||"+sched.getValue()+"||", true);
                 }
                 builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
@@ -192,7 +194,7 @@ public class OCUtils
             var crimeRec = crimeRecs.get(i);
             if (rec.isRestRecommended() || !crimeRec.getBestRec().getItems().equals(rec.getBestRec().getItems())) {
                 crimeDiff = true;
-                builder.addField("Crime Time Cycle "+(i+5),  crimeRec.getBestRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")) , true)
+                builder.addField("Crime Time Cycle "+(i+5),  crimeRec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")) , true)
                         .addField("Grooveless Value",  String.valueOf(crimeRec.getGroovelessValue()), true)
                         .addField("With " + crimeRec.getBestRec().getStartingGroove() + " Groove",  crimeRec.getDailyValue() + cowriesEmoji , true);
             }
@@ -244,12 +246,12 @@ public class OCUtils
                 sched.setForAllWorkshops(rec.get(0).getKey().getItems());
 
                 //Show one alt
-                builder.addField("If You Can't Rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n"))+"||", true)
+                builder.addField("If You Can't Rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true)
                         .addField("Grooveless Value","||"+sched.getValue()+"||", true);
             }
             else
             {
-                builder.addField("Cycle "+(i+5), rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")), true)
+                builder.addField("Cycle "+(i+5), rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
                         .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue()+ cowriesEmoji, true);
             }
@@ -272,11 +274,11 @@ public class OCUtils
         //var messageSpec = MessageCreateSpec.builder();
 
         builder.color(Color.SUMMER_SKY);
-        builder.addField("Cycle 2", recs.get(1).stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")),true)
-                .addField("Cycle 3", recs.get(4).stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")),true)
-                .addField("Cycle 4", recs.get(2).stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")),true)
-                .addField("Cycle 5", recs.get(3).stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")),true)
-                .addField("Cycle 6", recs.get(0).stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n")),true)
+        builder.addField("Cycle 2", recs.get(1).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
+                .addField("Cycle 3", recs.get(4).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
+                .addField("Cycle 4", recs.get(2).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
+                .addField("Cycle 5", recs.get(3).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
+                .addField("Cycle 6", recs.get(0).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
                 .addField("Cycle 7", getRestText(),true);
 
         //messageSpec.addEmbed(builder.build());
@@ -300,7 +302,7 @@ public class OCUtils
 
         for(int i=0; i<recs.getRecs().size(); i++)
         {
-            String recString = recs.getRecs().get(i).stream().map(Item::getDisplayWithEmoji).collect(Collectors.joining("\n"));
+            String recString = recs.getRecs().get(i).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"));
             if(!recs.isRested() && i==recs.getWorstIndex())
                 builder.addField("Cycle "+(startDay+i)+" - Rest", "||"+recString+"||", true);
             else
@@ -342,5 +344,49 @@ public class OCUtils
 
 
         return builder.build();
+    }
+
+    public static MessageEditSpec addCurrentDay(int day, DailyRecommendation rec, Message origMessage)
+    {
+        String content = origMessage.getContent();
+        content += getArchiveContent(day, rec);
+        MessageEditSpec messageEditSpec = MessageEditSpec.builder().contentOrNull(content).build();
+        return messageEditSpec;
+    }
+
+    public static MessageEditSpec addFinalTotal(List<DailyRecommendation> recs, int week, int total, Message origMessage)
+    {
+        String content = origMessage.getContent();
+        for(int i=0; i<3; i++)
+        {
+            content += getArchiveContent(4+i, recs.get(i));
+        }
+        content+="\n**Season "+week+" Total:** "+ total+cowriesEmoji;
+        MessageEditSpec messageEditSpec = MessageEditSpec.builder().contentOrNull(content).build();
+        return messageEditSpec;
+    }
+
+    private static String getArchiveContent(int day, DailyRecommendation rec)
+    {
+        String content="\n**• C"+(day+1)+":** ";
+        if(rec.isRestRecommended())
+        {
+            content += "Rest";
+            return content;
+        }
+
+        content+=rec.getGroovelessValue()+cowriesEmoji;
+        if(rec.getBestRec().getStartingGroove() > 0)
+            content+=" ("+rec.getDailyValue()+cowriesEmoji+" "+rec.getBestRec().getStartingGroove()+" Groove)";
+        content+=": " + rec.getBestRec().getItems().stream().map(Item::getDisplayNameWithEmoji)
+                .collect(Collectors.joining(" - "));
+
+        return content;
+    }
+
+    public static MessageCreateSpec postNewArchive(int nextWeek)
+    {
+        String content = "**__Season "+nextWeek+" ("+getDateStr(nextWeek)+")__**";
+        return MessageCreateSpec.builder().content(content).build();
     }
 }
