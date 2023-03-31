@@ -145,7 +145,7 @@ public class GetPeaksTask implements ScheduledTask
         }
 
         LOG.info("Getting info on day {} with start day {}, end day {}, and week {}\nOverrides: start {} end {} week {}", actualDay, startDay, endDay, week, startDayOverride, endDayOverride, weekOverride);
-        for(int recDay= startDay; recDay<= endDay; recDay++)
+        for(int recDay = startDay; recDay<= endDay; recDay++)
         {
             boolean validTCPeaks = false;
             List<TCDay> tcDays = null;
@@ -177,8 +177,6 @@ public class GetPeaksTask implements ScheduledTask
                         //Parse data from JSON
                         if(response != null)
                             chinaDays = objectMapper.readValue(response, new TypeReference<>(){});
-
-                        validTCPeaks = chinaDays != null && chinaDays.size() > recDay && chinaDays.get(recDay) != null && chinaDays.get(recDay).getObjects() != null && chinaDays.get(recDay).getObjects().size() > 0;
                     }
                 }
                 catch(Exception e)
@@ -215,7 +213,6 @@ public class GetPeaksTask implements ScheduledTask
                 LOG.error("Invalid info gotten from TC: {}", response);
                 if(tcDays!=null)
                 {
-
                     LOG.error("TC days size: {}", tcDays.size());
                     if(tcDays.size() > recDay)
                         LOG.error("Current TC data for day {}: {}", recDay, tcDays.get(recDay));
@@ -381,6 +378,9 @@ public class GetPeaksTask implements ScheduledTask
     private boolean validate62Peaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<TCDay> tcDays, int week, int day, boolean china)
     {
         day = Math.min(day, 3);
+        if(tcDays == null)
+            return false;
+
         boolean valid;
 
         LOG.info("Validating TC peaks from day {} for items 1-50", day+1);
@@ -401,7 +401,7 @@ public class GetPeaksTask implements ScheduledTask
         int num67 = 0;
         int num5 = 0;
 
-        if(day >= tcDays.size())
+        if(day >= tcDays.size() || tcDays.get(day) == null)
         {
             LOG.warn("Could not find today's data in TC data. Only found "+tcDays.size()+" days. Needed day "+(day+1));
             return false;
