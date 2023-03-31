@@ -354,7 +354,7 @@ public class GetPeaksTask implements ScheduledTask
                     }
                     if(solver.fortuneValue > 0)
                     {
-                        fortuneChannel.createMessage("Season total: "+solver.fortuneValue+OCUtils.cowriesEmoji).subscribe(message -> {LOG.info("Successfully posted fortune teller total: {}", message.getContent());}, error -> { LOG.error("Error posting fortune-teller total:",error);});
+                        fortuneChannel.createMessage("Season total: "+String.format("%,d", solver.fortuneValue)+OCUtils.cowriesEmoji).subscribe(message -> {LOG.info("Successfully posted fortune teller total: {}", message.getContent());}, error -> { LOG.error("Error posting fortune-teller total:",error);});
                     }
                     var newArchive = OCUtils.postNewArchive(week+1);
                     archiveChannel.createMessage(newArchive).subscribe(message -> {LOG.info("Successfully posted new archive post: {}", message.getContent());}, error -> { LOG.error("Error posting new archive post:",error);});

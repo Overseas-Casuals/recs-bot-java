@@ -259,7 +259,7 @@ public class OCUtils
 
         //builder.addField("\u200B", "\u200B", false);
         builder.addField("","",false);
-        builder.addField("Total Weekly Value", total+cowriesEmoji, false);
+        builder.addField("Total Weekly Value", String.format("%,d", total)+cowriesEmoji, false);
         builder.addField("","",false);
         builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
                 "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);
@@ -361,7 +361,7 @@ public class OCUtils
         {
             content += getArchiveContent(4+i, recs.get(i));
         }
-        content+="\n**Season "+week+" Total:** "+ total+cowriesEmoji;
+        content+="\n**Season "+week+" Total:** "+ String.format("%,d", total)+cowriesEmoji;
         MessageEditSpec messageEditSpec = MessageEditSpec.builder().contentOrNull(content).build();
         return messageEditSpec;
     }
