@@ -65,7 +65,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
     //Crafting around really annoying materials exclusion list
     private Map<Material, List<Item>> caramelMap = Map.of(
-            Material.Laver, List.of(Item.SharkOil, Item.EssentialDraught, Item.VegetableJuice, Item.CawlCennin, Item.Dressing),
+            Material.Laver, List.of(Item.SharkOil, Item.EssentialDraught, Item.VegetableJuice, Item.CawlCennin, Item.Dressing, Item.BoiledEgg),
             Material.Sap, List.of(Item.SharkOil, Item.SweetPopoto, Item.ParsnipSalad, Item.Jam, Item.Honey, Item.DriedFlowers, Item.Dressing),
             Material.Copper, List.of(Item.Barbut, Item.BronzeSheep, Item.GarnetRapier, Item.SpruceRoundShield, Item.Ribbon),
             Material.RockSalt, List.of(Item.Sauerkraut, Item.Butter, Item.SaltCod, Item.SquidInk, Item.OnionSoup, Item.Isloaf),
@@ -412,7 +412,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             solver.getDailyRecommendations(week, day, true);
         }
 
-        var recs = solver.getRestOfWeekRecs(rank);
+        var recs = solver.getRestOfWeekRecs(rank, false);
 
 
         if(recs == null || recs.getRecs() == null || recs.getRecs().size() == 0)
@@ -569,7 +569,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             solver.getDailyRecommendations(week, day, true);
         }
 
-        if(Math.min(3,day) > solver.getDay())
+        if(Math.min(3,day) > solver.getDay() || week != solver.getWeek())
             return event.editReply("Don't have peak info for the current day. Wait until recs get run!");
 
         String content = "";

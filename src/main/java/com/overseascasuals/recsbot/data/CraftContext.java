@@ -35,6 +35,8 @@ public class CraftContext
     private final Set<Item> reservedItems = new HashSet<>();
     private final Map<Item, ReservedHelper> reservedHelpers = new HashMap<>();
 
+    public Map<Integer, List<Item>> dailySchedules = new HashMap<>();
+
     private static Logger LOG = LoggerFactory.getLogger(CraftContext.class);
     private final Map<Integer, Integer> startingGroovePerDay = new HashMap<>();
     private List<PeakCycle> peaks;

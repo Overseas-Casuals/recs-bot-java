@@ -13,7 +13,10 @@ import com.overseascasuals.recsbot.twitter.RecsTweet;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.Message;
+import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.MessageChannel;
+import discord4j.core.spec.MessageCreateSpec;
+import discord4j.discordjson.json.ChannelData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
@@ -21,7 +24,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
-import reactor.core.publisher.Mono;
 
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -44,6 +46,9 @@ public class GetPeaksTask implements ScheduledTask
 
     @Value("${discord.archiveChannel}")
     private String archiveChannelID;
+
+    @Value("${discord.fortunetellerChannelID}")
+    private String fortuneChannelID;
     @Value("${tcUrl}")
     private String tcURL;
 
@@ -53,8 +58,8 @@ public class GetPeaksTask implements ScheduledTask
     @Value("${mienna}")
     private String miennaID;
 
-    @Value("${discord.archiveRole}")
-    private String archiveRole;
+    @Value("${discord.clairvoyantRole}")
+    private String clairvoyantRole;
 
     @Value("${discord.c1HelperRole}")
     String c1PeakRole;
@@ -94,7 +99,8 @@ public class GetPeaksTask implements ScheduledTask
 
     private MessageChannel channel;
     private MessageChannel peakChannel;
-    private MessageChannel archiveChannel;
+    private Channel archiveChannel;
+    private MessageChannel fortuneChannel;
 
     @Override
     public String getCron()
@@ -110,7 +116,8 @@ public class GetPeaksTask implements ScheduledTask
         peakChannel = client.getChannelById(Snowflake.of(peaksChannel))
                 .cast(MessageChannel.class).block();
         archiveChannel = client.getChannelById(Snowflake.of(archiveChannelID))
-                .cast(MessageChannel.class).block();
+                /*.cast(MessageChannel.class)*/.block();
+        fortuneChannel = client.getChannelById(Snowflake.of(fortuneChannelID)).cast(MessageChannel.class).block();
         this.local = local;
     }
 
@@ -136,7 +143,7 @@ public class GetPeaksTask implements ScheduledTask
         }
 
         LOG.info("Getting info on day {} with start day {}, end day {}, and week {}\nOverrides: start {} end {} week {}", actualDay, startDay, endDay, week, startDayOverride, endDayOverride, weekOverride);
-        for(int recDay= startDay; recDay<= endDay; recDay++)
+        for(int recDay = startDay; recDay<= endDay; recDay++)
         {
             boolean validTCPeaks = false;
             List<TCDay> tcDays = null;
@@ -161,15 +168,13 @@ public class GetPeaksTask implements ScheduledTask
                     if(response != null)
                         tcDays = objectMapper.readValue(response, new TypeReference<>(){});
 
-                    validTCPeaks = tcDays != null && tcDays.size() > recDay && tcDays.get(recDay).getObjects() != null && tcDays.get(recDay).getObjects().size() > 0;
+                    validTCPeaks = tcDays != null && tcDays.size() > recDay && tcDays.get(recDay) != null && tcDays.get(recDay).getObjects() != null && tcDays.get(recDay).getObjects().size() > 0;
                     if(validTCPeaks)
                     {
                         response = restService.getURLResponse(tcChinaURL);
                         //Parse data from JSON
                         if(response != null)
                             chinaDays = objectMapper.readValue(response, new TypeReference<>(){});
-
-                        validTCPeaks = chinaDays != null && chinaDays.size() > recDay && chinaDays.get(recDay).getObjects() != null && chinaDays.get(recDay).getObjects().size() > 0;
                     }
                 }
                 catch(Exception e)
@@ -188,8 +193,9 @@ public class GetPeaksTask implements ScheduledTask
                 List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
 
                 validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, chinaDays, week, recDay, true);
-                if(!validTCPeaks)
+                if(!validTCPeaks && recDay != 1) //C2 is too important to just use 6.3 peaks. We need that china data
                 {
+                    LOG.info("China peaks were invalid, trying from global data");
                     if(recDay > 0)
                         peaksByDay = peakRepository.findPeaksByDay(week, recDay-1);
                     else
@@ -205,7 +211,6 @@ public class GetPeaksTask implements ScheduledTask
                 LOG.error("Invalid info gotten from TC: {}", response);
                 if(tcDays!=null)
                 {
-
                     LOG.error("TC days size: {}", tcDays.size());
                     if(tcDays.size() > recDay)
                         LOG.error("Current TC data for day {}: {}", recDay, tcDays.get(recDay));
@@ -295,52 +300,82 @@ public class GetPeaksTask implements ScheduledTask
             }
             else
             {
+                var lastArchiveMessageID = archiveChannel.getRestChannel().getData().map(ChannelData::lastMessageId).block().get().orElseThrow();
+
                 if(list.get(0).getOldRec() != null)
                 {
                     var recs = list.get(0);
                     if(recs.getOldRec().getItems().equals(recs.getBestRec().getItems()))
                     {
-                        archiveChannel.createMessage("<@&"+archiveRole+"> Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue()+" ("+recs.getGroovelessValue()+" grooveless)").subscribe();
+                        //archiveChannel.createMessage("<@&"+archiveRole+"> Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue()+" ("+recs.getGroovelessValue()+" grooveless)").subscribe(message -> {LOG.info("Successfully posted final value: {}", message.getContent());}, error -> { LOG.error("Error posting updated cycle value:",error); });
                     }
                     else
                     {
-                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).subscribe();
+                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).subscribe(message -> {LOG.info("Successfully posted day-of update: {}", message.getEmbeds());}, error -> { LOG.error("Error posting updated cycle schedule:",error); });;
                         trySendTweet(week, recs);
                     }
 
                     list.remove(0);
+
+                    //Add to archive
+                    var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
+                    archive.edit(OCUtils.addCurrentDay(recDay, recs, archive)).subscribe(message -> {LOG.info("Successfully posted new day to archive: {}", message.getContent());}, error -> { LOG.error("Error posting new archive day:",error);});
                 }
                 if(recDay == 3)
                 {
                     int numDays = list.size()/3;
                     for(int i=0; i<numDays;i++)
                     {
-                        var crimes = solver.crimeTimeRecs.get(i);
+                        var combinedC4Post = MessageCreateSpec.builder().content("<@&"+squawkboxRole+"> <@&"+crimeTimeRole+">");
 
-                        LOG.info("Posting combined C4 post, total {}", solver.totalValue);
-                        channel.createMessage(OCUtils.createCombinedC4Post(week, list, squawkboxRole, solver.totalValue)).flatMap(Message::publish).subscribe();
-                        LOG.info("Posting crime time post, total {}", solver.crimeTimeValue);
-                        channel.createMessage(OCUtils.createCrimeTimePost(week, list, crimes, crimeTimeRole, solver.crimeTimeValue)).flatMap(Message::publish).subscribe();
+                        var c4Message = OCUtils.createCombinedC4Post(week, list, squawkboxRole, solver.totalValue);
 
+                        combinedC4Post.addEmbed(c4Message);
+
+                        channel.createMessage(combinedC4Post.build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted C4 recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting C4 combined post:",error); });
                         for(int d=0;d<3;d++)
                         {
                             trySendTweet(week, list.get(d));
                         }
                         //Pop the first 3 recs and start again
                         //Note: Like, test this before we do multiple ranks again
+                        if(i==numDays-1)
+                        {
+                            var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
+                            archive.edit(OCUtils.addFinalTotal(list, week, solver.totalValue, archive)).subscribe(message -> {LOG.info("Successfully posted final total to archive: {}", message.getContent());}, error -> { LOG.error("Error posting final total to archive:",error);});
+                        }
+
                         list.remove(0);
                         list.remove(0);
                         list.remove(0);
 
+
                     }
+                    if(solver.fortuneValue > 0)
+                    {
+                        fortuneChannel.createMessage("Season total: "+String.format("%,d", solver.fortuneValue)+OCUtils.cowriesEmoji).subscribe(message -> {LOG.info("Successfully posted fortune teller total: {}", message.getContent());}, error -> { LOG.error("Error posting fortune-teller total:",error);});
+                    }
+                    archiveChannel.getRestChannel().createMessage(OCUtils.newArchiveContent(week+1)).subscribe(message -> {LOG.info("Successfully posted new archive post: {}", message.content());}, error -> { LOG.error("Error posting new archive post:",error);});
                 }
                 else
                 {
+                    if(recDay == 1)
+                    {
+                        var embed = OCUtils.generateThisWeekEmbed(week, solver.fortuneTellerRecs, -1);
+
+                        fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&"+clairvoyantRole+">").addEmbed(embed).build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted fortune teller recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting fortune-teller recs:",error);});
+                    }
                     for(var recs : list)
                     {
-                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).flatMap(Message::publish).subscribe();
+                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting recs:",error); });
                         trySendTweet(week, recs);
+                        if(recs.isRestRecommended())
+                        {
+                            var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
+                            archive.edit(OCUtils.addCurrentDay(recDay+1, recs, archive)).subscribe(message -> {LOG.info("Successfully posted new rest day to archive: {}", message.getContent());}, error -> { LOG.error("Error posting new rest day to archive:",error);});
+                        }
                     }
+
                 }
             }
         }
@@ -362,6 +397,9 @@ public class GetPeaksTask implements ScheduledTask
     private boolean validate62Peaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<TCDay> tcDays, int week, int day, boolean china)
     {
         day = Math.min(day, 3);
+        if(tcDays == null)
+            return false;
+
         boolean valid;
 
         LOG.info("Validating TC peaks from day {} for items 1-50", day+1);
@@ -382,7 +420,7 @@ public class GetPeaksTask implements ScheduledTask
         int num67 = 0;
         int num5 = 0;
 
-        if(day >= tcDays.size())
+        if(day >= tcDays.size() || tcDays.get(day) == null)
         {
             LOG.warn("Could not find today's data in TC data. Only found "+tcDays.size()+" days. Needed day "+(day+1));
             return false;
