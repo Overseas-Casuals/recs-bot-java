@@ -13,10 +13,13 @@ import com.overseascasuals.recsbot.twitter.RecsTweet;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.Message;
+import discord4j.core.object.entity.channel.Channel;
+import discord4j.core.object.entity.channel.GuildChannel;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.MessageCreateSpec;
 import discord4j.core.spec.MessageEditSpec;
+import discord4j.discordjson.json.ChannelData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
@@ -59,8 +62,6 @@ public class GetPeaksTask implements ScheduledTask
     @Value("${mienna}")
     private String miennaID;
 
-    @Value("${discord.archiveRole}")
-    private String archiveRole;
     @Value("${discord.clairvoyantRole}")
     private String clairvoyantRole;
 
@@ -102,7 +103,7 @@ public class GetPeaksTask implements ScheduledTask
 
     private MessageChannel channel;
     private MessageChannel peakChannel;
-    private MessageChannel archiveChannel;
+    private Channel archiveChannel;
     private MessageChannel fortuneChannel;
 
     @Override
@@ -119,7 +120,7 @@ public class GetPeaksTask implements ScheduledTask
         peakChannel = client.getChannelById(Snowflake.of(peaksChannel))
                 .cast(MessageChannel.class).block();
         archiveChannel = client.getChannelById(Snowflake.of(archiveChannelID))
-                .cast(MessageChannel.class).block();
+                /*.cast(MessageChannel.class)*/.block();
         fortuneChannel = client.getChannelById(Snowflake.of(fortuneChannelID)).cast(MessageChannel.class).block();
         this.local = local;
     }
@@ -303,6 +304,8 @@ public class GetPeaksTask implements ScheduledTask
             }
             else
             {
+                var lastArchiveMessageID = archiveChannel.getRestChannel().getData().map(ChannelData::lastMessageId).block().get().orElseThrow();
+
                 if(list.get(0).getOldRec() != null)
                 {
                     var recs = list.get(0);
@@ -319,7 +322,7 @@ public class GetPeaksTask implements ScheduledTask
                     list.remove(0);
 
                     //Add to archive
-                    var archive = archiveChannel.getLastMessage().block();
+                    var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
                     archive.edit(OCUtils.addCurrentDay(recDay, recs, archive)).subscribe(message -> {LOG.info("Successfully posted new day to archive: {}", message.getContent());}, error -> { LOG.error("Error posting new archive day:",error);});
                 }
                 if(recDay == 3)
@@ -342,7 +345,7 @@ public class GetPeaksTask implements ScheduledTask
                         //Note: Like, test this before we do multiple ranks again
                         if(i==numDays-1)
                         {
-                            var archive = archiveChannel.getLastMessage().block();
+                            var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
                             archive.edit(OCUtils.addFinalTotal(list, week, solver.totalValue, archive)).subscribe(message -> {LOG.info("Successfully posted final total to archive: {}", message.getContent());}, error -> { LOG.error("Error posting final total to archive:",error);});
                         }
 
@@ -356,8 +359,7 @@ public class GetPeaksTask implements ScheduledTask
                     {
                         fortuneChannel.createMessage("Season total: "+String.format("%,d", solver.fortuneValue)+OCUtils.cowriesEmoji).subscribe(message -> {LOG.info("Successfully posted fortune teller total: {}", message.getContent());}, error -> { LOG.error("Error posting fortune-teller total:",error);});
                     }
-                    var newArchive = OCUtils.postNewArchive(week+1);
-                    archiveChannel.createMessage(newArchive).subscribe(message -> {LOG.info("Successfully posted new archive post: {}", message.getContent());}, error -> { LOG.error("Error posting new archive post:",error);});
+                    archiveChannel.getRestChannel().createMessage(OCUtils.newArchiveContent(week+1)).subscribe(message -> {LOG.info("Successfully posted new archive post: {}", message.content());}, error -> { LOG.error("Error posting new archive post:",error);});
                 }
                 else
                 {
@@ -373,7 +375,7 @@ public class GetPeaksTask implements ScheduledTask
                         trySendTweet(week, recs);
                         if(recs.isRestRecommended())
                         {
-                            var archive = archiveChannel.getLastMessage().block();
+                            var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
                             archive.edit(OCUtils.addCurrentDay(recDay+1, recs, archive)).subscribe(message -> {LOG.info("Successfully posted new rest day to archive: {}", message.getContent());}, error -> { LOG.error("Error posting new rest day to archive:",error);});
                         }
                     }

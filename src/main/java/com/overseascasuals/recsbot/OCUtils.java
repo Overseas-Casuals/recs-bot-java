@@ -384,9 +384,8 @@ public class OCUtils
         return content;
     }
 
-    public static MessageCreateSpec postNewArchive(int nextWeek)
+    public static String newArchiveContent(int nextWeek)
     {
-        String content = "**__Season "+nextWeek+" ("+getDateStr(nextWeek)+")__**";
-        return MessageCreateSpec.builder().content(content).build();
+        return "**__Season "+nextWeek+" ("+getDateStr(nextWeek)+")__**";
     }
 }
