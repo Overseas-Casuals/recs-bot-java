@@ -502,18 +502,24 @@ public class Solver
                     CycleSchedule newSched = new CycleSchedule(day, startingGroove);
                     newSched.setForAllWorkshops(newCrafts);
                     oldSched.setForAllWorkshops(currentCrafts);
-                    listOfRecs.add(0, new DailyRecommendation(day, rank, newBest, newSched, oldSched, oldValue));
 
-                    if(newValue > oldValue.getWeighted())
+                    if(newValue > oldValue.getWeighted() + 10)
                     {
                         LOG.info("Schedule updated detected for day {}! Now crafting {}", day+1,
                                 Arrays.toString(newBest.get(0).getKey().getItems().toArray()));
                         addCraftedFromCycle(day, newSched, rank, true);
+
+                        listOfRecs.add(0, new DailyRecommendation(day, rank, newBest, newSched, oldSched, oldValue));
                     }
                     else if(newValue < oldValue.getWeighted())
                     {
                         LOG.error("Value is worse somehow??");
                         return null;
+                    }
+                    else
+                    {
+                        LOG.info("Value is the same or negligible");
+                        listOfRecs.add(0, new DailyRecommendation(day, rank, new ArrayList<>(), oldSched, oldSched, oldValue));
                     }
                 }
                 else
