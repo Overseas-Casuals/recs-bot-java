@@ -7,7 +7,8 @@ public enum Supply
     Insufficient(130),
     Sufficient(100),
     Surplus(80),
-    Overflowing (60);
+    Overflowing (60),
+    InvalidSupply(0);
     
     public final int multiplier;
     
