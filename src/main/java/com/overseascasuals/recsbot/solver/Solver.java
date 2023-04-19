@@ -1074,6 +1074,7 @@ public class Solver
             {
                 int penalty = Math.min(swap, stepDown);
                 int finalPenalty = penalty / Math.max(i, 1) + 1;
+                finalPenalty*=.3; //Nerfing this hard since it doesn't seem to help
                 LOG.info("Reserving helper " + bestHelper + " to go with main item " + itemEnum + " (#" + (i + 1) + "), difference between " + bestHelper + " and " + secondHelper + "? " + swap + " cost of stepping down? " + stepDown + " Penalty: " + finalPenalty);
 
                 reservedHelpers.put(itemEnum, new ReservedHelper(bestHelper, finalPenalty));
