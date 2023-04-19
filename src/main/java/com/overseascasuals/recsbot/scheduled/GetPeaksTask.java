@@ -166,7 +166,10 @@ public class GetPeaksTask implements ScheduledTask
                     response = restService.getURLResponse(tcURL);
                     //Parse data from JSON
                     if(response != null)
-                        tcDays = objectMapper.readValue(response, new TypeReference<>(){});
+                    {
+                        response = response.replaceAll("(?<=demand|supply)\":([5-9]\\d*|\\d\\d+)", "\":5");
+                        tcDays = objectMapper.readValue(response, new TypeReference<>() {});
+                    }
 
                     validTCPeaks = tcDays != null && tcDays.size() > recDay && tcDays.get(recDay) != null && tcDays.get(recDay).getObjects() != null && tcDays.get(recDay).getObjects().size() > 0;
                     if(validTCPeaks)
@@ -174,7 +177,10 @@ public class GetPeaksTask implements ScheduledTask
                         response = restService.getURLResponse(tcChinaURL);
                         //Parse data from JSON
                         if(response != null)
+                        {
+                            response = response.replaceAll("(?<=demand|supply)\":([5-9]\\d*|\\d\\d+)", "\":5");
                             chinaDays = objectMapper.readValue(response, new TypeReference<>(){});
+                        }
                     }
                 }
                 catch(Exception e)
@@ -425,6 +431,17 @@ public class GetPeaksTask implements ScheduledTask
             LOG.warn("Could not find today's data in TC data. Only found "+tcDays.size()+" days. Needed day "+(day+1));
             return false;
         }
+        for(int i=0; i<50; i++)
+        {
+            int itemID = oldPeaks.get(i).getPeakID().getItemID();
+            var observed = tcDays.get(day).getObjects().get(itemID);
+            if(observed.getSupply() == InvalidSupply || observed.getDemand() == InvalidDemand)
+            {
+                LOG.warn("Invalid supply/demand found for item {}: {} {}", itemID, observed.getSupply(), observed.getDemand());
+                return false;
+            }
+
+        }
 
         //Day 1
         if(day==0)
@@ -656,6 +673,16 @@ public class GetPeaksTask implements ScheduledTask
         {
             LOG.warn("Could not find today's data in TC data. Only found "+tcDays.size()+" days. Needed day "+(day+1));
             return false;
+        }
+        for(int i=50; i<60; i++)
+        {
+            int itemID = oldPeaks.get(i).getPeakID().getItemID();
+            var observed = tcDays.get(day).getObjects().get(itemID);
+            if(observed.getSupply() == InvalidSupply || observed.getDemand() == InvalidDemand)
+            {
+                LOG.warn("Invalid supply/demand found for item {}: {} {}", itemID, observed.getSupply(), observed.getDemand());
+                return false;
+            }
         }
 
         //Day 1
