@@ -678,12 +678,12 @@ public class GetPeaksTask implements ScheduledTask
                         num2Strong++;
                         peakString = "2S";
                     }
-                    else if (supply.getDemand() == Increasing || supply.getDemand() == Decreasing)
+                    else if (supply.getDemand() == Increasing)
                     {
                         num2Weak++;
                         peakString = "2W";
                     }
-                    else if (supply.getDemand() == None) {
+                    else if (supply.getDemand() == None) { //This will never happen. RIP.
                         num2Strong++;
                         peakString = "2S";
                     }
@@ -741,7 +741,7 @@ public class GetPeaksTask implements ScheduledTask
                     num2Strong++;
                     currentPeak.setPeak("2S");
                 }
-                else if (supply.getSupply() == Insufficient && (currentPeak.getPeak().equals("2U") || currentPeak.getPeak().equals("2W")))
+                else if (supply.getSupply() == Insufficient && (currentPeak.getPeak().equals("2U") || currentPeak.getPeak().equals("2W")|| currentPeak.getPeak().equals("2S")))
                 {
                     num2Weak++;
                     currentPeak.setPeak("2W");
