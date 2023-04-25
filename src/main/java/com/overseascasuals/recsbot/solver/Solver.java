@@ -192,7 +192,6 @@ public class Solver
     public int crimeTimeValue = 0;
     public int totalValue = 0;
     public int fortuneValue = 0;
-
     Map<Integer,List<Item>> dailySchedules = new HashMap<>();
 
     public static double strongRatio62 = 0;
@@ -390,7 +389,7 @@ public class Solver
 
                 if(day == 1 && rank == maxIslandRank)
                 {
-                    //Get crime recs
+                    //Get FT recs
                     clearDayUsage(List.of(1));
                     var c3 = getBestBruteForceSchedules(dayToSolve, 0,
                             null, dayToSolve, 1, rank);
@@ -416,8 +415,6 @@ public class Solver
                         LOG.info("Fortuneteller rec for week {}, day {}: {}", week, index+1, sched);
                         index++;
                     }
-
-
                     setCraftedFromHistory();
                 }
 
@@ -468,8 +465,8 @@ public class Solver
 
                 List<Item> nextCycleCraft = new ArrayList<>(dailySchedules.get(lastDaySolved));
                 //var nextCycle = craftRepository.findCraftsByDay(week, lastDaySolved, rank);
-                /*if(nextCycle!= null)
-                    nextCycleCraft = nextCycle.getCrafts();*/
+                //if(nextCycle!= null)
+                    //nextCycleCraft = nextCycle.getCrafts();
                 if(day==3)
                 {
                     LOG.info("Checking c4 schedule and daily schedule for C5: {}", nextCycleCraft);
@@ -793,9 +790,17 @@ public class Solver
             addCraftedFromCycle(1, crime2, maxIslandRank, false);
             for(int day=2; day<7; day++)
             {
-                var crafts = craftRepository.findCraftsByDay(week, day, -1);
                 CycleSchedule sched = new CycleSchedule(day, groove);
-                sched.setForAllWorkshops(crafts.getCrafts());
+                if(fortuneTellerRecs == null)
+                {
+                    var crafts = craftRepository.findCraftsByDay(week, day, -1);
+                    sched.setForAllWorkshops(crafts.getCrafts());
+                }
+                else
+                {
+                    sched.setForAllWorkshops(fortuneTellerRecs.getRecs().get(day-2));
+                }
+
                 addCraftedFromCycle(day, sched, maxIslandRank, false);
 
                 int today = sched.getValue();
@@ -1991,12 +1996,8 @@ public class Solver
         return getBestBruteForceSchedules(day, groove, limitedUse, allowUpToDay, numToReturn, null, 24, islandRank);
     }
 
-    private List<Map.Entry<WorkshopSchedule, WorkshopValue>> getBestBruteForceSchedules(int day, int groove,
-            Map<Item,Integer> limitedUse, int allowUpToDay, int numToReturn, Item startingItem, int hoursLeft, int islandRank)
+    private Collection<List<Item>> getBruteForceSchedules(int day, int allowUpToDay, int islandRank)
     {
-        /*LOG.info("Getting best schedule for day {}. groove {}. limitedUse {}, allowUpToDay {}, startingItem {}, hoursLeft {} and chains {}",
-                day+1, groove, limitedUse, allowUpToDay, startingItem, hoursLeft, csvImporter.allEfficientChains.size());*/
-        HashMap<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
         Collection<List<Item>> filteredItemLists;
 
         if(csvImporter.allEfficientChains.size() == 0)
@@ -2029,52 +2030,416 @@ public class Solver
         //If it's a 6-craft, *something* has to peak today to make it worthwhile.
         if(day > 3)
             filteredItemLists = filteredItemLists.stream()
-                .filter(list -> list.size() < 6 || list.stream().anyMatch(
-                        item -> items[item.ordinal()].peaksOnDay(day)))
-                .collect(Collectors.toList());
-
+                    .filter(list -> list.size() < 6 || list.stream().anyMatch(
+                            item -> items[item.ordinal()].peaksOnDay(day)))
+                    .collect(Collectors.toList());
         //LOG.info("Removed {} 6-crafts from list for not having any items that peak today", numAfterFilter-filteredItemLists.size());
 
-        if(filteredItemLists.size() == 0)
+        return filteredItemLists;
+    }
+
+    private Collection<List<Item>> getGeneratedSchedules(int day, int allowUpToDay, int islandRank, Map<Item,Integer> limitedUse)
+    {
+        Set<List<Item>> allEfficientChains = new HashSet<>();
+        var fourHour = new ArrayList<ItemInfo>();
+        var eightHour = new ArrayList<ItemInfo>();
+        var sixHour = new ArrayList<ItemInfo>();
+
+        int topEightsAllowed=5;
+        int topSixesAllowed=4;
+        int topFoursAllowed=3;
+
+        int eightMatchesAllowed = 3;
+        int sixMatchesAllowed = 4;
+        int fourMatchesAllowed = 5;
+
+        for (ItemInfo item : items)
         {
-            LOG.error("No valid schedules found after filtering by rank {} and peak day {}", islandRank, allowUpToDay+1);
-            return null;
+            List<ItemInfo> bucket = null;
+
+
+            if (item.time == 4)
+                bucket = fourHour;
+            else if (item.time == 6)
+                bucket = sixHour;
+            else if (item.time == 8)
+                bucket = eightHour;
+
+            if(!item.peaksOnOrBeforeDay(allowUpToDay, reservedItems) || item.rankUnlocked > islandRank)
+                bucket = null;
+            else if(limitedUse != null && limitedUse.containsKey(item.item) && limitedUse.get(item.item) == 0)
+                bucket = null;
+
+            if(bucket != null)
+                bucket.add(item);
         }
+        Comparator<ItemInfo> compareByValue = Comparator.comparingInt(o -> -1 * o.getValueWithSupply(o.getSupplyBucketOnDay(day)));
+        fourHour.sort(compareByValue);
+        sixHour.sort(compareByValue);
+        eightHour.sort(compareByValue);
 
-        if(startingItem != null)
-            filteredItemLists = filteredItemLists.stream().filter (list -> list.stream().limit(1)
-                    .allMatch(item -> item == startingItem)).collect(Collectors.toList());
-
-        if(filteredItemLists.size() == 0)
+        List<Item> four = new ArrayList<>();
+        List<Item> eight = new ArrayList<>();
+        //Find schedules based on 8-hour crafts
+        for (int i=0; i<topEightsAllowed && i < eightHour.size(); i++)
         {
-            LOG.error("No valid schedules found after filtering by starting item {}",startingItem);
-            return null;
-        }
+            var topItem = eightHour.get(i);
+            List<ItemInfo> eightMatches = new ArrayList<>();
+            //8-8-8
 
-
-        if(hoursLeft < 24)
-        {
-            Set<List<Item>> smallLists = new HashSet<>();
-            for (List<Item> schedule : filteredItemLists)
-            {
-                List<Item> newSchedule = new ArrayList<>(schedule);
-                while (getHoursUsed(newSchedule) > hoursLeft && newSchedule.size() > 0)
-                {
-                    newSchedule.remove(newSchedule.size() - 1);
-                }
-                if(newSchedule.size() > 0)
-                    smallLists.add(newSchedule);
+            for (ItemInfo eightMatchMatch : eightHour) {
+                if (!eightMatchMatch.getsEfficiencyBonus(topItem))
+                    continue;
+                eightMatches.add(eightMatchMatch);
+                allEfficientChains.add(List.of(topItem.item, eightMatchMatch.item, topItem.item));
             }
 
-            filteredItemLists = smallLists;
+            //4-8-4-8 and 4-4-4-4-8
+            int firstFourMatchCount = 0;
+            for (ItemInfo firstFourMatch : fourHour)
+            {
+                if(firstFourMatchCount > fourMatchesAllowed)
+                    break;
+                if (!firstFourMatch.getsEfficiencyBonus(topItem))
+                    continue;
+
+                firstFourMatchCount++;
+                //Add all efficient 4-8 pairs to parallel lists. We'll deal with them later
+                four.add(firstFourMatch.item);
+                eight.add(topItem.item);
+
+                int secondFourMatchCount = 0;
+                for (ItemInfo secondFourMatch : fourHour) {
+                    if(secondFourMatchCount > fourMatchesAllowed)
+                        break;
+                    if (!secondFourMatch.getsEfficiencyBonus(firstFourMatch))
+                        continue;
+
+                    secondFourMatchCount++;
+
+                    //4-4-8-8
+                    for (var eightMatch : eightMatches)
+                        allEfficientChains.add(List.of(secondFourMatch.item, firstFourMatch.item, topItem.item, eightMatch.item));
+
+                    //4-4-4-4-8
+                    int thirdFourMatchCount=0;
+                    for (ItemInfo thirdFourMatch : fourHour) {
+                        if(thirdFourMatchCount > fourMatchesAllowed)
+                            break;
+                        if (!secondFourMatch.getsEfficiencyBonus(thirdFourMatch))
+                            continue;
+
+                        thirdFourMatchCount++;
+
+                        int fourthFourMatchCount = 0;
+                        for (ItemInfo fourthFourMatch : fourHour)
+                        {
+                            if(fourthFourMatchCount > fourMatchesAllowed)
+                                break;
+
+                            if (fourthFourMatch.getsEfficiencyBonus(thirdFourMatch))
+                            {
+                                fourthFourMatchCount++;
+                                allEfficientChains.add(List.of(fourthFourMatch.item, thirdFourMatch.item, secondFourMatch.item, firstFourMatch.item, topItem.item));
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            int sixHourMatchCount = 0;
+            for (ItemInfo sixHourMatch : sixHour)
+            {
+                if(sixHourMatchCount > sixMatchesAllowed)
+                    break;
+                if (!sixHourMatch.getsEfficiencyBonus(topItem))
+                    continue;
+                sixHourMatchCount++;
+
+                //4-6-6-8
+                int sixSixMatchCount = 0;
+                for (ItemInfo sixSixMatch : sixHour)
+                {
+                    if(sixSixMatchCount > sixMatchesAllowed)
+                        break;
+                    if (!sixSixMatch.getsEfficiencyBonus(sixHourMatch))
+                        continue;
+                    sixSixMatchCount++;
+
+                    int fourSixMatchCount = 0;
+                    for(var fourSixMatch : fourHour)
+                    {
+                        if(fourSixMatchCount > fourMatchesAllowed)
+                            break;
+                        if(fourSixMatch.getsEfficiencyBonus(sixSixMatch))
+                        {
+                            fourSixMatchCount++;
+                            allEfficientChains.add(List.of(fourSixMatch.item, sixSixMatch.item, sixHourMatch.item, topItem.item));
+                        }
+                    }
+                    int fourEightMatchCount = 0;
+                    for(var fourEightMatch : fourHour)
+                    {
+                        if(fourEightMatchCount > fourMatchesAllowed)
+                            break;
+                        if(fourEightMatch.getsEfficiencyBonus(topItem))
+                        {
+                            fourEightMatchCount++;
+                            allEfficientChains.add(List.of(fourEightMatch.item, topItem.item, sixHourMatch.item, sixSixMatch.item));
+                        }
+                    }
+                }
+
+                //4-6-8-6
+                int fourMatchCount = 0;
+                for (ItemInfo fourMatch : fourHour)
+                {
+                    if(fourMatchCount > fourMatchesAllowed)
+                        break;
+                    if (!fourMatch.getsEfficiencyBonus(sixHourMatch))
+                        continue;
+                    fourMatchCount++;
+                    int other6MatchCount = 0;
+                    for(var other6Match : sixHour)
+                    {
+                        if(other6MatchCount > sixMatchesAllowed)
+                            break;
+                        if(other6Match.getsEfficiencyBonus(topItem))
+                        {
+                            other6MatchCount++;
+                            allEfficientChains.add(List.of(fourMatch.item, sixHourMatch.item, topItem.item, other6Match.item));
+                        }
+                    }
+                }
+            }
         }
 
-        if(filteredItemLists.size() == 0)
+        for(int i=0; i<four.size(); i++)
         {
-            LOG.warn("No valid schedules found after filtering by hours left {}", hoursLeft);
-            return null;
+            for(int j=0; j<four.size(); j++)
+            {
+                allEfficientChains.add(List.of(four.get(i), eight.get(i), four.get(j), eight.get(j)));
+            }
         }
 
+        //Find schedules based on 6-hour crafts
+        for (int i=0; i<topSixesAllowed && i < sixHour.size(); i++)
+        {
+            var topItem = sixHour.get(i);
+            //6-6-6-6
+
+            HashSet<ItemInfo> sixMatches = new HashSet<>();
+            int sixMatchCount = 0;
+            for (ItemInfo sixMatch : sixHour) {
+                if(sixMatchCount > sixMatchesAllowed)
+                    break;
+                if (!sixMatch.getsEfficiencyBonus(topItem))
+                    continue;
+                sixMatchCount++;
+                sixMatches.add(sixMatch);
+            }
+            for (ItemInfo firstSix : sixMatches)
+            {
+                for (ItemInfo secondSix : sixMatches)
+                {
+                    allEfficientChains.add(List.of( secondSix.item, topItem.item, firstSix.item, topItem.item ));
+                }
+            }
+
+
+            for (ItemInfo firstFourMatch : fourHour)
+            {
+                if (!firstFourMatch.getsEfficiencyBonus(topItem))
+                    continue;
+                for(var sixMatch : sixHour)
+                {
+                    if(!sixMatch.getsEfficiencyBonus(firstFourMatch))
+                        continue;
+
+                    for (ItemInfo secondFourMatch : fourHour)
+                    {
+                        if (!secondFourMatch.getsEfficiencyBonus(sixMatch))
+                            continue;
+
+                        for (ItemInfo thirdFourMatch : fourHour)
+                        {
+                            //4-4-6-4-6
+                            if(!thirdFourMatch.getsEfficiencyBonus(secondFourMatch))
+                                continue;
+
+                            allEfficientChains.add(List.of(thirdFourMatch.item, secondFourMatch.item, sixMatch.item, firstFourMatch.item, topItem.item));
+                        }
+
+                    }
+                }
+            }
+
+            //4-6-6-8
+            int eightMatchCount = 0;
+            for(var eightMatch : eightHour)
+            {
+                if(eightMatchCount > eightMatchesAllowed)
+                    break;
+                if(!eightMatch.getsEfficiencyBonus(topItem))
+                    continue;
+                eightMatchCount++;
+                for (ItemInfo sixSixMatch : sixMatches)
+                {
+                    int fourSixMatchCount = 0;
+                    for(var fourSixMatch : fourHour)
+                    {
+                        if(fourSixMatchCount > fourMatchesAllowed)
+                            break;
+                        if(fourSixMatch.getsEfficiencyBonus(sixSixMatch))
+                        {
+                            fourSixMatchCount++;
+                            allEfficientChains.add(List.of(fourSixMatch.item, sixSixMatch.item, topItem.item, eightMatch.item));
+                        }
+                    }
+                }
+            }
+
+
+            //4-6-8-6
+            eightMatchCount = 0;
+            for(var eightMatch : eightHour)
+            {
+                if(eightMatchCount > eightMatchesAllowed)
+                    break;
+                if(!eightMatch.getsEfficiencyBonus(topItem))
+                    continue;
+                eightMatchCount++;
+
+                int sixEightMatchCount = 0;
+                for(var sixEightMatch : sixHour)
+                {
+                    if(sixEightMatchCount > sixMatchesAllowed)
+                        break;
+                    if(!sixEightMatch.getsEfficiencyBonus(eightMatch))
+                        continue;
+                    sixEightMatchCount++;
+                    int fourMatchCount = 0;
+                    for (ItemInfo fourMatch : fourHour)
+                    {
+                        if(fourMatchCount > fourMatchesAllowed)
+                            break;
+                        if (fourMatch.getsEfficiencyBonus(sixEightMatch)) {
+                            allEfficientChains.add(List.of(fourMatch.item, sixEightMatch.item, eightMatch.item, topItem.item));
+                            fourMatchCount++;
+                        }
+                    }
+                }
+            }
+        }
+
+        for (int i=0; i<topFoursAllowed && i < fourHour.size(); i++)
+        {
+            var topItem = fourHour.get(i);
+            int fourMatchCount = 0;
+            for(var fourMatch : fourHour)
+            {
+                if(fourMatchCount > fourMatchesAllowed)
+                    break;
+                if(!fourMatch.getsEfficiencyBonus(topItem))
+                    continue;
+                fourMatchCount++;
+                int secondFourMatchCount = 0;
+                for(var secondFourMatch : fourHour)
+                {
+                    if(secondFourMatchCount > fourMatchesAllowed)
+                        break;
+                    if(!secondFourMatch.getsEfficiencyBonus(fourMatch))
+                        continue;
+                    secondFourMatchCount++;
+                    int thirdFourMatchCount = 0;
+                    for(var thirdFourMatch : fourHour)
+                    {
+                        if(thirdFourMatchCount > fourMatchesAllowed)
+                            break;
+                        if(!secondFourMatch.getsEfficiencyBonus(thirdFourMatch))
+                            continue;
+                        thirdFourMatchCount++;
+                        int fourthFourMatchCount = 0;
+                        for(var fourthFourMatch : fourHour)
+                        {
+                            if(fourthFourMatchCount > fourMatchesAllowed)
+                                break;
+                            if(fourthFourMatch.getsEfficiencyBonus(topItem))
+                            {
+                                fourthFourMatchCount++;
+                                allEfficientChains.add(List.of(thirdFourMatch.item, secondFourMatch.item, fourMatch.item,
+                                    topItem.item, fourthFourMatch.item, topItem.item));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return allEfficientChains;
+    }
+
+    private List<Map.Entry<WorkshopSchedule, WorkshopValue>> getBestBruteForceSchedules(int day, int groove,
+            Map<Item,Integer> limitedUse, int allowUpToDay, int numToReturn, Item startingItem, int hoursLeft, int islandRank)
+    {
+        /*LOG.info("Getting best schedule for day {}. groove {}. limitedUse {}, allowUpToDay {}, startingItem {}, hoursLeft {} and chains {}",
+                day+1, groove, limitedUse, allowUpToDay, startingItem, hoursLeft, csvImporter.allEfficientChains.size());*/
+        HashMap<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
+
+        Collection<List<Item>> filteredItemLists;
+
+        if(startingItem != null || hoursLeft < 24)
+        {
+            filteredItemLists = getBruteForceSchedules(day, allowUpToDay, islandRank);
+
+            if(filteredItemLists == null || filteredItemLists.size() == 0)
+            {
+                LOG.error("No valid schedules found after filtering by rank {} and peak day {}", islandRank, allowUpToDay+1);
+                return null;
+            }
+
+            if(startingItem != null)
+                filteredItemLists = filteredItemLists.stream().filter (list -> list.stream().limit(1)
+                        .allMatch(item -> item == startingItem)).collect(Collectors.toList());
+
+            if(filteredItemLists.size() == 0)
+            {
+                LOG.error("No valid schedules found after filtering by starting item {}",startingItem);
+                return null;
+            }
+
+
+            if(hoursLeft < 24)
+            {
+                Set<List<Item>> smallLists = new HashSet<>();
+                for (List<Item> schedule : filteredItemLists)
+                {
+                    List<Item> newSchedule = new ArrayList<>(schedule);
+                    while (getHoursUsed(newSchedule) > hoursLeft && newSchedule.size() > 0)
+                    {
+                        newSchedule.remove(newSchedule.size() - 1);
+                    }
+                    if(newSchedule.size() > 0)
+                        smallLists.add(newSchedule);
+                }
+
+                filteredItemLists = smallLists;
+            }
+
+            if(filteredItemLists.size() == 0)
+            {
+                LOG.warn("No valid schedules found after filtering by hours left {}", hoursLeft);
+                return null;
+            }
+        }
+        else
+        {
+            filteredItemLists = getGeneratedSchedules(day, allowUpToDay, islandRank, limitedUse);
+        }
+
+
+        LOG.info("Evaluating {} schedules for day {}", filteredItemLists.size(), day+1);
         for (List<Item> list : filteredItemLists)
         {
             addToScheduleMap(list, day, groove, limitedUse, safeSchedules, false);
