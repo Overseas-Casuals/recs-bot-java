@@ -367,6 +367,11 @@ public class Solver
         populateReservedItems(day+1);
         crimeTimeRecs.clear();
         int dayToSolve = day+1;
+
+        //If we're on live and we already have a schedule for this day, just move on
+        if("live".equals(activeProfile) && dailySchedules.containsKey(dayToSolve))
+            return listOfRecs;
+
         for(int rank = maxIslandRank; rank <= maxIslandRank; rank++)
         {
             groove = startingGroovePerDay.get(dayToSolve);
