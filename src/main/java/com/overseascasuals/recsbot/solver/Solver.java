@@ -500,13 +500,30 @@ public class Solver
                     newSched.setForAllWorkshops(newCrafts);
                     oldSched.setForAllWorkshops(currentCrafts);
 
-                    if(newValue > oldValue.getWeighted() + 10)
+                    if(newValue > oldValue.getWeighted() + 40)
                     {
                         LOG.info("Schedule updated detected for day {}! Now crafting {}", day+1,
                                 Arrays.toString(newBest.get(0).getKey().getItems().toArray()));
                         addCraftedFromCycle(day, newSched, rank, true);
 
                         listOfRecs.add(0, new DailyRecommendation(day, rank, newBest, newSched, oldSched, oldValue));
+
+                        int oldGroove = getGrooveMadeWithSchedule(currentCrafts);
+                        int newGroove = getGrooveMadeWithSchedule(newCrafts);
+                        int grooveDiff = newGroove - oldGroove;
+                        if(grooveDiff != 0)
+                        {
+                            LOG.info("Updated schedule for day changes the groove value! {}->{}", oldGroove, newGroove);
+                            for(int i=day+2; i<7; i++)
+                            {
+                                if(startingGroovePerDay.containsKey(i))
+                                {
+                                    int adjusted = Math.min(startingGroovePerDay.get(i) + grooveDiff, GROOVE_MAX);
+                                    LOG.info("Changing day {}'s groove from {} to {}", i+1, startingGroovePerDay.get(i), adjusted);
+                                    startingGroovePerDay.put(i, adjusted );
+                                }
+                            }
+                        }
                     }
                     else if(newValue < oldValue.getWeighted())
                     {
