@@ -522,7 +522,7 @@ public class GetPeaksTask implements ScheduledTask
                     num2Strong++;
                     currentPeak.setPeak("2S");
                 }
-                else if (supply.getSupply() == Insufficient && (currentPeak.getPeak().equals("2U") || currentPeak.getPeak().equals("2W")))
+                else if (supply.getSupply() == Insufficient && (currentPeak.getPeak().equals("2U") || currentPeak.getPeak().equals("2W")) || currentPeak.getPeak().equals("2S"))
                 {
                     num2Weak++;
                     currentPeak.setPeak("2W");
