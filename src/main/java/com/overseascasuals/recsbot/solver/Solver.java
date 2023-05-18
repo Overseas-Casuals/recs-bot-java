@@ -2269,30 +2269,37 @@ public class Solver
                 }
             }
 
-
+            int firstFourMatchCount = 0;
             for (ItemInfo firstFourMatch : fourHour)
             {
+                if(firstFourMatchCount > fourMatchesAllowed)
+                    break;
                 if (!firstFourMatch.getsEfficiencyBonus(topItem))
                     continue;
+                firstFourMatchCount++;
                 for(var sixMatch : sixHour)
                 {
                     if(!sixMatch.getsEfficiencyBonus(firstFourMatch))
                         continue;
-
+                    int secondFourMatchCount = 0;
                     for (ItemInfo secondFourMatch : fourHour)
                     {
+                        if(secondFourMatchCount > fourMatchesAllowed)
+                            break;
                         if (!secondFourMatch.getsEfficiencyBonus(sixMatch))
                             continue;
+                        secondFourMatchCount++;
 
+                        //We'll let this one just go
                         for (ItemInfo thirdFourMatch : fourHour)
                         {
                             //4-4-6-4-6
-                            if(!thirdFourMatch.getsEfficiencyBonus(secondFourMatch))
-                                continue;
-
-                            allEfficientChains.add(List.of(thirdFourMatch.item, secondFourMatch.item, sixMatch.item, firstFourMatch.item, topItem.item));
+                            if(thirdFourMatch.getsEfficiencyBonus(secondFourMatch))
+                                allEfficientChains.add(List.of(thirdFourMatch.item, secondFourMatch.item, sixMatch.item, firstFourMatch.item, topItem.item));
+                            //4-6-4-6-4
+                            if(thirdFourMatch.getsEfficiencyBonus(topItem))
+                                allEfficientChains.add(List.of(secondFourMatch.item, sixMatch.item, firstFourMatch.item, topItem.item, thirdFourMatch.item));
                         }
-
                     }
                 }
             }
