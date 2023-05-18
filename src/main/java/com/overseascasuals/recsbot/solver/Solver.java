@@ -2077,8 +2077,8 @@ public class Solver
         int topFoursAllowed=3;
 
         int eightMatchesAllowed = 3;
-        int sixMatchesAllowed = 4;
-        int fourMatchesAllowed = 5;
+        int sixMatchesAllowed = 3;
+        int fourMatchesAllowed = 3;
 
         for (ItemInfo item : items)
         {
@@ -2399,11 +2399,21 @@ public class Solver
                         {
                             if(fourthFourMatchCount > fourMatchesAllowed)
                                 break;
-                            if(fourthFourMatch.getsEfficiencyBonus(topItem))
+                            if(!fourthFourMatch.getsEfficiencyBonus(thirdFourMatch))
+                                continue;
+
+                            fourthFourMatchCount++;
+                            int fifthFourMatchCount = 0;
+                            for(var fifthFourMatch : fourHour)
                             {
-                                fourthFourMatchCount++;
-                                allEfficientChains.add(List.of(thirdFourMatch.item, secondFourMatch.item, fourMatch.item,
-                                    topItem.item, fourthFourMatch.item, topItem.item));
+                                if (fifthFourMatchCount > fourMatchesAllowed)
+                                    break;
+                                if (fourthFourMatch.getsEfficiencyBonus(fifthFourMatch))
+                                {
+                                    fifthFourMatchCount++;
+                                    allEfficientChains.add(List.of(fifthFourMatch.item, fourthFourMatch.item, thirdFourMatch.item, secondFourMatch.item, fourMatch.item,
+                                            topItem.item));
+                                }
                             }
                         }
                     }
