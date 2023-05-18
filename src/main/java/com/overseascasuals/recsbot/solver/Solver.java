@@ -168,7 +168,8 @@ public class Solver
 
     private final static ObjectMapper objectMapper = new ObjectMapper();
     public int rested = -1;
-    private boolean guaranteeRestD5 = false;
+    private boolean c5WorstFuture = false;
+    private int c5AverageValue = 0;
     private final Set<Item> reservedItems = new HashSet<>();
     private final Map<Item, ReservedHelper> reservedHelpers = new HashMap<>();
     private Map<Item, Boolean> d2Troublemakers = null;
@@ -256,7 +257,7 @@ public class Solver
             allC3Set = false;
             rested = -1;
             groove = 0;
-            guaranteeRestD5 = false;
+            c5WorstFuture = false;
             reservedItems.clear();
             reservedHelpers.clear();
             d2Troublemakers = null;
@@ -673,20 +674,29 @@ public class Solver
                     shouldRest = true;
                 else if(day == 2)
                 {
-                    guaranteeRestD5 = false;
                     boolean worst = isWorseThanAllFollowing(bestSchedule,  dayToSolve, true, rank, limitedUse);
-                    if(worst)
-                        shouldRest = true;
-                    else if(guaranteeRestD5)
+                    if(c5WorstFuture)
                     {
-                        LOG.info("Guaranteed resting D5 so recalculating D4");
-                        todayRecs = getBestBruteForceSchedules(dayToSolve, startingGroovePerDay.get(dayToSolve),  limitedUse, dayToSolve + 1, alternatives, rank);
-                        bestSchedule = todayRecs.get(0);
-                        schedule.setForAllWorkshops(bestSchedule.getKey().getItems());
+                        LOG.info("C5 is the worst future day, so seeing if C4+C5 is better than C4 alone");
+                        var possibleRecs = getBestBruteForceSchedules(dayToSolve, startingGroovePerDay.get(dayToSolve),  limitedUse, dayToSolve + 1, alternatives, rank);
+                        if(possibleRecs.get(0).getValue().getWeighted() > c5AverageValue)
+                        {
+                            todayRecs = possibleRecs;
+                            bestSchedule = todayRecs.get(0);
+                            LOG.info("It is! Using C4 schedule {} ({})", Arrays.toString(bestSchedule.getKey().getItems().toArray()), bestSchedule.getValue().getWeighted());
+                            schedule.setForAllWorkshops(bestSchedule.getKey().getItems());
+                        }
+                        else
+                        {
+                            LOG.info("Recalced C4 schedule {} ({}) is still worse. Resting.", Arrays.toString(bestSchedule.getKey().getItems().toArray()), bestSchedule.getValue().getWeighted());
+                            shouldRest = true;
+                        }
                     }
+                    else if(worst)
+                        shouldRest = true;
                     else
                     {
-                        LOG.info("Can't guarantee resting C5, but not resting C4");
+                        LOG.info("Can't guarantee resting C5 or C4");
                     }
                 }
             }
@@ -1530,12 +1540,12 @@ public class Solver
     }
 
     private boolean isWorseThanAllFollowing(Entry<WorkshopSchedule, WorkshopValue> rec,
-            int day, boolean checkD5, int rank, Map<Item,Integer> limitedUse)
+            int day, boolean checkC5, int rank, Map<Item,Integer> limitedUse)
     {
         int groove = startingGroovePerDay.get(day);
         int worstInFuture = 99999;
-        boolean bestD5IsWorst = true;
-        int bestD5 = 0;
+        c5WorstFuture = checkC5;
+        c5AverageValue = 0;
         int weightedValue = rec.getValue().getWeighted();
         LOG.info("Comparing d{} rank {}: {} ({}) to worst-case future days", (day + 1), rank, rec.getKey().getItems(), weightedValue);
 
@@ -1556,8 +1566,8 @@ public class Solver
                     LOG.error("Failed to get D5 EV. Abandoning rest checks.");
                     return false;
                 }
-
-                bestD5 = solution.getValue().getWeighted();
+                c5AverageValue = solution.getValue().getWeighted();
+                LOG.info("We're on C4, so compare to average value for C5 (instead of worst): "+c5AverageValue);
             }
             else
                 solution = getBestSchedule(d, groove, reservedSet, rank);
@@ -1567,22 +1577,17 @@ public class Solver
                 return false;
             }
 
-            LOG.debug("Day " + (d + 1) + ", crafts: "
-                        + Arrays.toString(solution.getKey().getItems().toArray())
-                        + " value: " + solution.getValue());
             worstInFuture = Math.min(worstInFuture, solution.getValue().getWeighted());
             reservedSet = solution.getKey().getLimitedUses(reservedSet);
             
-            if (bestD5 > 0 && d > 4 && solution.getValue().getWeighted() < bestD5) //If we're checking a later day and it's worse than our best D5
-                bestD5IsWorst = false;
+            if (checkC5 && solution.getValue().getWeighted() < c5AverageValue) //If we're checking a later day and it's worse than our best D5
+            {
+                LOG.info("C{} ({}) worse than our C5 estimate ({}), so not guaranteed resting C5.", d+1, solution.getValue().getWeighted(), c5AverageValue);
+                c5WorstFuture = false;
+            }
+
         }
-        //System.out.println("Best D5 "+bestD5+". Worst? "+bestD5IsWorst);
-        if (checkD5 && day == 3 && bestD5IsWorst && rec.getValue().getWeighted() >= bestD5)
-        {
-            guaranteeRestD5 = true;
-            LOG.debug("Best D5 "+bestD5+" is the worst value I can find, so recalcing D4 with its crafts too.");
-        }
-        
+        LOG.info("Worst future day: {}", worstInFuture);
            // System.out.println("Worst future day: " + worstInFuture);
 
         return weightedValue <= worstInFuture;
