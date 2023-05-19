@@ -370,8 +370,11 @@ public class Solver
         int dayToSolve = day+1;
 
         //If we're on live and we already have a schedule for this day, just move on
-        if("live".equals(activeProfile) && dailySchedules.containsKey(dayToSolve))
+        if("live".equals(activeProfile) && dailySchedules.containsKey(dayToSolve)){
+            hasRunRecs = true;
+            isRunningRecs = false;
             return listOfRecs;
+        }
 
         for(int rank = maxIslandRank; rank <= maxIslandRank; rank++)
         {
