@@ -38,7 +38,7 @@ public class Solver
     static int averageDayValue = 4044;
     public static int maxIslandRank = 14;
     public static double materialWeight = 0.5;
-    private static final int alternatives = 5;
+    private static final int alternatives = 10;
     private static final int itemsToReserve = 15;
 
     private static final int middayUpdateThreshold = 150;

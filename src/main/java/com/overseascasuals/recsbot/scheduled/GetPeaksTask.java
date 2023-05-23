@@ -147,7 +147,6 @@ public class GetPeaksTask implements ScheduledTask
         {
             boolean validTCPeaks = false;
             List<TCDay> tcDays = null;
-            List<TCDay> chinaDays = null;
             boolean alreadyHavePeaks = false;
             String response = null;
 
@@ -172,16 +171,6 @@ public class GetPeaksTask implements ScheduledTask
                     }
 
                     validTCPeaks = tcDays != null && tcDays.size() > recDay && tcDays.get(recDay) != null && tcDays.get(recDay).getObjects() != null && tcDays.get(recDay).getObjects().size() > 0;
-                    if(validTCPeaks)
-                    {
-                        response = restService.getURLResponse(tcChinaURL);
-                        //Parse data from JSON
-                        if(response != null)
-                        {
-                            response = response.replaceAll("(?<=demand|supply)\":([5-9]\\d*|\\d\\d+)", "\":5");
-                            chinaDays = objectMapper.readValue(response, new TypeReference<>(){});
-                        }
-                    }
                 }
                 catch(Exception e)
                 {
@@ -198,19 +187,13 @@ public class GetPeaksTask implements ScheduledTask
                     peaksByDay = new ArrayList<>();
                 List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
 
-                validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, chinaDays, week, recDay, recDay == 1);
-                if(!validTCPeaks)
-                {
-                    LOG.info("China peaks were invalid, trying from global data");
-                    if(recDay > 0)
-                        peaksByDay = peakRepository.findPeaksByDay(week, recDay-1);
-                    else
-                        peaksByDay = new ArrayList<>();
-                    validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay, false);
-                }
+
+                validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay, false);
 
                 if(validTCPeaks)
-                    validTCPeaks = validate63Peaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay);
+                    validTCPeaks = validate63PeaksOn(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,51,62);
+                if(validTCPeaks)
+                    validTCPeaks = validate63PeaksOn(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,63,74);
             }
             else if (!alreadyHavePeaks)
             {
@@ -275,8 +258,6 @@ public class GetPeaksTask implements ScheduledTask
                 scheduler.shutdown();
                 return;
             }
-            //Also send to Discord
-
 
             List<DailyRecommendation> list;
 
@@ -296,13 +277,37 @@ public class GetPeaksTask implements ScheduledTask
                 return;
             }
 
-            var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).toArray();
+            var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).limit(Solver.getNumItems(week)).toArray();
             peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
-            if(list == null || list.size() == 0)
+            if(true || list == null || list.size() == 0)
             {
-                if(list == null || recDay < 4)
+                if(list == null)
                     peakChannel.createMessage("<@" + miennaID + "> No recs returned").subscribe();
+                else
+                {
+                    if(recDay < 3)
+                    {
+                        for(var recs : list) {
+                            channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, miennaID, miennaID)).flatMap(Message::publish)
+                                    .subscribe(message -> LOG.info("Successfully posted recs: {}", message.getEmbeds()),
+                                            error -> LOG.error("Error posting recs:", error));
+                        }
+
+                    }
+                    else if(recDay == 3)
+                    {
+                        var combinedC4Post = MessageCreateSpec.builder();
+
+                        var c4Message = OCUtils.createCombinedC4Post(week, list, solver.totalValue);
+
+                        combinedC4Post.addEmbed(c4Message);
+
+                        peakChannel.createMessage(combinedC4Post.build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted C4 recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting C4 combined post:",error); });
+
+                    }
+                }
+
             }
             else
             {
@@ -336,7 +341,7 @@ public class GetPeaksTask implements ScheduledTask
                         var combinedC4Post = MessageCreateSpec.builder().content("<@&"+squawkboxRole+"> <@&"+crimeTimeRole+">");
 
 
-                        var c4Message = OCUtils.createCombinedC4Post(week, list, squawkboxRole, numRanks-1==i?solver.totalValue:-1);
+                        var c4Message = OCUtils.createCombinedC4Post(week, list, numRanks-1==i?solver.totalValue:-1);
 
                         combinedC4Post.addEmbed(c4Message);
 
@@ -493,15 +498,23 @@ public class GetPeaksTask implements ScheduledTask
             }
 
             if (num2Strong == 4)
+            {
+                LOG.info("4 strong peaks found on C1, setting the rest to weak");
                 for (int i = 0; i < 50; i++)
                     if (newPeaks.get(i).getPeak().equals("2U"))
                         newPeaks.get(i).setPeak("2W");
+            }
+
             if (num2Weak == 4)
+            {
+                LOG.info("4 weak peaks found on C1, setting the rest to strong");
                 for (int i = 0; i < 50; i++)
                     if (newPeaks.get(i).getPeak().equals("2U"))
                         newPeaks.get(i).setPeak("2S");
+            }
 
-            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::toString).collect(Collectors.joining(", "));
+
+            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::getPeak).collect(Collectors.joining(", "));
             valid = num2Unk+num2Strong+num2Weak==8 && num2Strong<=4 && num2Weak<=4;
             LOG.info(MessageFormatter.format("As of day 1, 1-50 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
 
@@ -555,7 +568,7 @@ public class GetPeaksTask implements ScheduledTask
             }
             valid = num2Strong == 4 && num2Weak == 4 && num3Strong == 4 && num45 == 16 && ((!china && num67 == 22) || (china && num67 == 18 && num3Weak == 4));
 
-            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::toString).collect(Collectors.joining(", "));
+            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::getPeak).collect(Collectors.joining(", "));
             LOG.info(MessageFormatter.format("As of day 2, 1-50 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
 
             LOG.info("peaks for 1-50 D2 "+", num2Strong = "+num2Strong+"/4"+", num2Weak = "+num2Weak+"/4"+", num3Strong = "+num3Strong+"/4"+", num3Weak = "+num3Weak+"/4"+", num45 = "+num45+"/16"+", num67 = "+num67+"/18");
@@ -604,7 +617,7 @@ public class GetPeaksTask implements ScheduledTask
             }
             valid = num3Weak == 4 && num4Weak == 4 && num4Strong == 4 && num5 == 8 && num6Weak == 4 && num67 == 14;
 
-            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::toString).collect(Collectors.joining(", "));
+            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::getPeak).collect(Collectors.joining(", "));
             LOG.info(MessageFormatter.format("As of day 3, 1-50 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
 
                 LOG.info("Peaks for 1-50 D3 "+ ", num3Weak = " + num3Weak + "/4"  + ", num4Weak = " + num4Weak + "/4" + ", num4Strong = " + num4Strong + "/4" + ", num5 = " + num5 + "/8" + ", num6Weak = " + num6Weak + "/4" + ", num67 = " + num67 + "/14");
@@ -655,7 +668,7 @@ public class GetPeaksTask implements ScheduledTask
         }
         valid = num5Weak == 4 && num5Strong == 4 && num6Strong == 4 && num7Weak == 5 && num7Strong == 5;
 
-        String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::toString).collect(Collectors.joining(", "));
+        String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::getPeak).collect(Collectors.joining(", "));
         LOG.info(MessageFormatter.format("As of day 4, 1-50 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
 
             LOG.info("peaks for 1-50 D4 "+", num5Weak = "+num5Weak+"/4"+", num5Strong = "+num5Strong+"/4"
@@ -664,19 +677,19 @@ public class GetPeaksTask implements ScheduledTask
         return valid;
     }
 
-    private boolean validate63Peaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<TCDay> tcDays, int week, int day)
+    private boolean validate63PeaksOn(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<TCDay> tcDays, int week, int day, int firstItem, int lastItem)
     {
         day = Math.min(day, 3);
         boolean valid;
 
-        LOG.info("Validating TC peaks from day {} for items 51-60", day+1);
+        LOG.info("Validating TC peaks from day {} for items {}-{}", day+1, firstItem, lastItem);
 
         if(day >= tcDays.size())
         {
             LOG.warn("Could not find today's data in TC data. Only found "+tcDays.size()+" days. Needed day "+(day+1));
             return false;
         }
-        for(int i=50; i<60; i++)
+        for(int i=firstItem-1; i<lastItem; i++)
         {
             int itemID = oldPeaks.get(i).getPeakID().getItemID();
             var observed = tcDays.get(day).getObjects().get(itemID);
@@ -693,7 +706,7 @@ public class GetPeaksTask implements ScheduledTask
             int num2Strong = 0;
             int num2Weak = 0;
             int num2Unk = 0;
-            for(int i=50; i<60; i++)
+            for(int i=firstItem-1; i<lastItem; i++)
             {
                 var lastWeekPeak = oldPeaks.get(i);
                 ItemSupply supply = tcDays.get(0).getObjects().get(lastWeekPeak.getPeakID().getItemID());
@@ -741,12 +754,12 @@ public class GetPeaksTask implements ScheduledTask
                     if (newPeaks.get(i).getPeak().equals("2U"))
                         newPeaks.get(i).setPeak("2S");
 
-            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>50 && peak.getPeakID().getItemID()<=60).map(CraftPeaks::toString).collect(Collectors.joining(", "));
-            valid = num2Unk + num2Strong + num2Weak <=2 && num2Strong <= 1 && num2Weak <= 1 && num2Unk <=2;
+            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>=firstItem && peak.getPeakID().getItemID()<=lastItem).map(CraftPeaks::getPeak).collect(Collectors.joining(", "));
+            valid = num2Unk + num2Strong + num2Weak == 2 && num2Strong <= 1 && num2Weak <= 1 && num2Unk <=2;
 
-            LOG.info(MessageFormatter.format("As of day 1, 51-60 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
+            LOG.info("As of day 1, {}-{} safe? {}, Peaks: {}, ", firstItem, lastItem,valid, peaks);
 
-            LOG.error("peaks for 51-60 C1: num2Strong={}/1?, num2Weak={}/1?, num2Unknown={}/0", num2Strong, num2Weak, num2Unk);
+            LOG.error("peaks for {}-{} C1: num2Strong={}/1?, num2Weak={}/1?, num2Unknown={}/0", firstItem, lastItem, num2Strong, num2Weak, num2Unk);
 
 
             return valid;
@@ -761,7 +774,7 @@ public class GetPeaksTask implements ScheduledTask
             int num3Strong = 0;
             int num67 = 0;
             int num45 = 0;
-            for (int i = 50; i < 60; i++)
+            for(int i=firstItem-1; i<lastItem; i++)
             {
                 CraftPeaks currentPeak = newPeaks.get(i);
                 currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
@@ -794,12 +807,12 @@ public class GetPeaksTask implements ScheduledTask
                     currentPeak.setPeak("45");;
                 }
             }
-            valid = num2Strong <= 1 && num2Weak <=1 && num3Strong <=1 && num45 <= 4 && num67 <= 5;
+            valid = num2Strong == 1 && num2Weak ==1 && num3Strong ==1 && num45 == 4 && num67 == 5;
 
-            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>50 && peak.getPeakID().getItemID()<=60).map(CraftPeaks::toString).collect(Collectors.joining(", "));
-            LOG.info(MessageFormatter.format("As of day 2, 51-60 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
+            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>=firstItem && peak.getPeakID().getItemID()<=lastItem).map(CraftPeaks::getPeak).collect(Collectors.joining(", "));
+            LOG.info("As of day 2, {}-{} safe? {}, Peaks: {}, ", firstItem, lastItem, valid, peaks);
 
-                LOG.info("Peaks for 51-60 D2 "+", num2Strong = "+num2Strong+"/1?"+", num2Weak = "+num2Weak+"/1?"+", num3Strong = "+num3Strong+"/1?"+", num45 = "+num45+"/4?"+", num67 = "+num67+"/5?");
+            LOG.info("Peaks for {}-{} D2, num2Strong = "+num2Strong+"/1"+", num2Weak = "+num2Weak+"/1"+", num3Strong = "+num3Strong+"/1"+", num45 = "+num45+"/4"+", num67 = "+num67+"/5", firstItem, lastItem);
 
             return valid;
         }
@@ -815,7 +828,8 @@ public class GetPeaksTask implements ScheduledTask
             int num6Weak = 0;
             int numEarlier = 0;
             //Day 3
-            for (int i = 50; i < 60; i++) {
+            for(int i=firstItem-1; i<lastItem; i++)
+            {
                 CraftPeaks currentPeak = newPeaks.get(i);
                 currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
                 ItemSupply supply = tcDays.get(2).getObjects().get(i + 1);
@@ -855,13 +869,13 @@ public class GetPeaksTask implements ScheduledTask
                 }
 
             }
-            valid = num3Weak <= 1 && num4Weak <= 1 && num4Strong <= 1 && num5 <= 2 && num6Weak <=1 && num67 <=3 && numEarlier+num3Weak+num4Weak+num4Strong+num5+num6Weak+num67 == 10;
+            valid = num3Weak == 1 && num4Weak == 1 && num4Strong == 1 && num5 == 2 && num6Weak ==1 && num67 ==3 && numEarlier == 3;
 
-            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>50 && peak.getPeakID().getItemID()<=60).map(CraftPeaks::toString).collect(Collectors.joining(", "));
-            LOG.info(MessageFormatter.format("As of day 3, 51-60 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
+            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>=firstItem && peak.getPeakID().getItemID()<=lastItem).map(CraftPeaks::getPeak).collect(Collectors.joining(", "));
+            LOG.info("As of day 3, {}-{} safe? {}, Peaks: {}, ", firstItem, lastItem, valid, peaks);
 
-                LOG.info("peaks for 51-60 C3 "+ ", num3Weak = " + num3Weak + "/1"  + ", num4Weak = " + num4Weak + "/1" + ", num4Strong = " + num4Strong + "/1" +
-                        ", num5 = " + num5 + "/2" + ", num6Weak = " + num6Weak + "/1" + ", num67 = " + num67 + "/3. Peaked earlier: {}",numEarlier);
+            LOG.info("peaks for {}-{} C3, num3Weak = " + num3Weak + "/1"  + ", num4Weak = " + num4Weak + "/1" + ", num4Strong = " + num4Strong + "/1" +
+                    ", num5 = " + num5 + "/2" + ", num6Weak = " + num6Weak + "/1" + ", num67 = " + num67 + "/3. Peaked earlier: {}",firstItem, lastItem, numEarlier);
 
             return valid;
         }
@@ -874,7 +888,7 @@ public class GetPeaksTask implements ScheduledTask
 
         int numEarlier = 0;
         //Day 4
-        for (int i = 50; i < 60; i++)
+        for(int i=firstItem-1; i<lastItem; i++)
         {
 
             CraftPeaks currentPeak = newPeaks.get(i);
@@ -922,15 +936,15 @@ public class GetPeaksTask implements ScheduledTask
                 numEarlier++;
             }
         }
-        valid = num5Weak <= 1 && num5Strong <=1 && num6Strong <=1 && num7Weak <=1 && num7Strong <= 1 && numEarlier + num5Weak + num5Strong + num6Strong + num7Weak + num7Strong == 10;
+        valid = num5Weak == 1 && num5Strong ==1 && num6Strong ==1 && num7Weak ==1 && num7Strong == 1 && numEarlier ==7;
 
-        String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>50 && peak.getPeakID().getItemID()<=60).map(CraftPeaks::toString).collect(Collectors.joining(", "));
+        String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>=firstItem && peak.getPeakID().getItemID()<=lastItem).map(CraftPeaks::getPeak).collect(Collectors.joining(", "));
 
-        LOG.info(MessageFormatter.format("As of day 4, 51-60 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
+        LOG.info("As of day 4, {}-{} safe? {}, Peaks: {}, ", firstItem, lastItem, valid, peaks);
 
-            LOG.info("peaks for 51-60 C4"+", num5Weak = "+num5Weak+"/1"+", num5Strong = "+num5Strong+"/1"
-                    +", num6Strong = "+num6Strong+"/1"+", num7Weak = "+num7Weak+"/1"
-                    +", num7Strong = "+num7Strong+"/1 Peaked earlier: {}",numEarlier);
+        LOG.info("peaks for {}-{} C4"+", num5Weak = "+num5Weak+"/1"+", num5Strong = "+num5Strong+"/1"
+                +", num6Strong = "+num6Strong+"/1"+", num7Weak = "+num7Weak+"/1"
+                +", num7Strong = "+num7Strong+"/1 Peaked earlier: {}",firstItem, lastItem, numEarlier);
         return valid;
     }
 }

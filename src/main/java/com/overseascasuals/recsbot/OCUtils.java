@@ -225,11 +225,10 @@ public class OCUtils
         return builder.build();
     }
 
-    public static EmbedCreateSpec createCombinedC4Post(int season, List<DailyRecommendation> recs, String squawkboxRole, int total)
+    public static EmbedCreateSpec createCombinedC4Post(int season, List<DailyRecommendation> recs, int total)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Cycle 5-7 Recommendations"/*+" for Rank "+recs.get(0).getMaxRank()*/);
         builder.timestamp(Instant.now());
-        var messageSpec = MessageCreateSpec.builder();
 
         builder.color(Color.SEA_GREEN);
 
