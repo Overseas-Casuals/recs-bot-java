@@ -17,6 +17,7 @@ public class CSVImporter
 {
     Logger LOG = LoggerFactory.getLogger(CSVImporter.class);
     public List<List<Item>> allEfficientChains;
+    public Integer[][] popularityRatios;
 
     public CSVImporter() throws IOException
     {
@@ -46,7 +47,29 @@ public class CSVImporter
         }
         catch(Exception e)
         {
-            System.out.println("Error importing csv: "+e.getMessage());
+            System.out.println("Error importing chain csv: "+e.getMessage());
         }
+        popularityRatios = new Integer[100][Solver.items.length];
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new ClassPathResource("popularityRatios.csv").getInputStream())))
+        {
+            int index = 0;
+            String line;
+            while ((line = br.readLine()) != null)
+            {
+
+                String[] values = line.split(",");
+                for(int item = 0; item < Solver.items.length; item++)
+                {
+                    popularityRatios[index][item] = Integer.parseInt(values[item]);
+                }
+                index++;
+            }
+        }
+        catch(Exception e)
+        {
+            System.out.println("Error importing popularity csv: "+e.getMessage());
+        }
+
     }
 }

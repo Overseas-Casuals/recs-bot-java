@@ -9,7 +9,7 @@ public class PopularityJson {
     PopularityInstance Popularity1;
     public PopularityJson()
     {
-        popularities = new PopularityInstance[60];
+        popularities = new PopularityInstance[72];
     }
 
     public PopularityInstance[] getPopularities()
@@ -320,5 +320,54 @@ public class PopularityJson {
     @JsonProperty("Popularity60")
     public void setPopularity60(PopularityInstance popularity60) {
         popularities[59] = popularity60;
+    }
+
+    @JsonProperty("Popularity61")
+    public void setPopularity61(PopularityInstance popularity60) {
+        popularities[60] = popularity60;
+    }
+    @JsonProperty("Popularity62")
+    public void setPopularity62(PopularityInstance popularity60) {
+        popularities[61] = popularity60;
+    }
+    @JsonProperty("Popularity63")
+    public void setPopularity63(PopularityInstance popularity60) {
+        popularities[62] = popularity60;
+    }
+    @JsonProperty("Popularity64")
+    public void setPopularity64(PopularityInstance popularity60) {
+        popularities[63] = popularity60;
+    }
+    @JsonProperty("Popularity65")
+    public void setPopularity65(PopularityInstance popularity60) {
+        popularities[64] = popularity60;
+    }
+    @JsonProperty("Popularity66")
+    public void setPopularity66(PopularityInstance popularity60) {
+        popularities[65] = popularity60;
+    }
+    @JsonProperty("Popularity67")
+    public void setPopularity67(PopularityInstance popularity60) {
+        popularities[66] = popularity60;
+    }
+    @JsonProperty("Popularity68")
+    public void setPopularity68(PopularityInstance popularity60) {
+        popularities[67] = popularity60;
+    }
+    @JsonProperty("Popularity69")
+    public void setPopularity69(PopularityInstance popularity60) {
+        popularities[68] = popularity60;
+    }
+    @JsonProperty("Popularity70")
+    public void setPopularity70(PopularityInstance popularity60) {
+        popularities[69] = popularity60;
+    }
+    @JsonProperty("Popularity71")
+    public void setPopularity71(PopularityInstance popularity60) {
+        popularities[70] = popularity60;
+    }
+    @JsonProperty("Popularity72")
+    public void setPopularity72(PopularityInstance popularity60) {
+        popularities[71] = popularity60;
     }
 }

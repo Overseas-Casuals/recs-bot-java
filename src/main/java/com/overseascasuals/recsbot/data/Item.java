@@ -63,7 +63,19 @@ public enum Item
     CawlCennin("Cawl Cennin","<:OC_CawlCennin:1062408571255525467>"),
     Isloaf("Isloaf","<:OC_Isloaf:1062408660329975818>"),
     PopotoSalad("Popoto Salad","<:OC_PopotoSalad:1062408751186980915>"),
-    Dressing("Dressing","<:OC_Dressing:1062408845265207366>");
+    Dressing("Dressing","<:OC_Dressing:1062408845265207366>"),
+    Stove ("Stove", "<:OC_Stove:1110495905741799544>"),
+    Lantern ("Lantern","<:OC_Lantern:1110495841342476320>"),
+    Natron ("Natron","<:OC_Natron:1110495854709719050>"),
+    Bouillabaisse("Bouillabaisse","<:OC_Bouillabaisse:1110495781414256677>"),
+    FossilDisplay("Fossil Display","<:OC_FossilDisplay:1110495810237509745>"),
+    Bathtub ("Bathtub","<:OC_Bathtub:1110495742847619123>"),
+    Spectacles("Spectacles","<:OC_Spectacles:1110495893444112394>"),
+    CoolingGlass("Cooling Glass","<:OC_CoolingGlass:1110495797017059389>"),
+    RunnerBeanSaute("Runner Bean Saute","<:OC_RunnerBeanSaute:1110495881402253392>"),
+    BeetSoup("Beet Soup","<:OC_BeetSoup:1110495769246572654>"),
+    ImamBayildi("Imam Bayildi","<:OC_ImamBayildi:1110495825127292958>"),
+    PickledZucchini("Pickled Zucchini","<:OC_PickledZucchini:1110495869024874509>");
     
     private String displayName;
     private String emoji;

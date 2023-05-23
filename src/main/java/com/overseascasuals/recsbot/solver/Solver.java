@@ -40,12 +40,12 @@ public class Solver
 
     @Autowired
     CraftRepository craftRepository;
-    static int WORKSHOP_BONUS = 120;
-    static int GROOVE_MAX = 35;
-    static int NUM_WORKSHOPS = 3;
+    static int WORKSHOP_BONUS = 130;
+    static int GROOVE_MAX = 45;
+    static int NUM_WORKSHOPS = 4;
 
-    static int averageDayValue = 4044;
-    public static int maxIslandRank = 11;
+    static int averageDayValue = 4381;
+    public static int maxIslandRank = 14;
     public static double materialWeight = 0.5;
     private static int alternatives = 5;
     private static int itemsToReserve = 15;
@@ -126,7 +126,20 @@ public class Solver
             new ItemInfo(CawlCennin,Concoctions,CreatureCreations,90,6,11,Map.of(Leek,3,Milk,1)),
             new ItemInfo(Isloaf,Foodstuffs,Concoctions,52,4,11,Map.of(Wheat,2)),
             new ItemInfo(PopotoSalad,Foodstuffs,Invalid,52,4,11,Map.of(Popoto,2)),
-            new ItemInfo(Dressing,Ingredients,Invalid,52,4,11,Map.of(Onion,2))};
+            new ItemInfo(Dressing,Ingredients,Invalid,52,4,11,Map.of(Onion,2)),
+            new ItemInfo(Stove, Furnishings, Metalworks, 54, 6, 12, null),
+            new ItemInfo(Lantern, Sundries, Invalid, 80, 8, 12, null),
+            new ItemInfo(Natron, Sundries, Concoctions, 36, 4,12,null),
+            new ItemInfo(Bouillabaisse, Foodstuffs, MarineMerchandise, 136, 8,12,Map.of(CaveShrimp, 2, Tomato, 2)),
+            new ItemInfo(FossilDisplay, CreatureCreations, UnburiedTreasures, 54,6,13,null),
+            new ItemInfo(Bathtub, Furnishings, UnburiedTreasures, 72, 8,13,null),
+            new ItemInfo(Spectacles, Attire, Sundries, 54, 6,13,null),
+            new ItemInfo(CoolingGlass, UnburiedTreasures, Invalid, 80, 8,13,null),
+            new ItemInfo(RunnerBeanSaute, Foodstuffs, Invalid, 52, 4, 14,Map.of(RunnerBean, 2)),
+            new ItemInfo(BeetSoup, Foodstuffs, Invalid, 78, 6, 14,Map.of(Beet, 3, Popoto, 1, Milk, 1)),
+            new ItemInfo(ImamBayildi, Foodstuffs, Invalid, 90, 6, 14,Map.of(Eggplant, 2, Onion, 2, Tomato, 2)),
+            new ItemInfo(PickledZucchini, PreservedFood, Invalid, 104, 8, 14,Map.of(Zucchini, 4)),
+    };
 
     public static int getNumItems(int week)
     {
@@ -248,27 +261,10 @@ public class Solver
 
             int currentPop = generateVacationRecs(week);
 
-            String popResponse;
-            try{
-                popResponse= restService.getURLResponse("https://xivapi.com/MJICraftworksPopularity/"+currentPop);
-            }
-            catch(RestClientException e)
-            {
-                LOG.error("Couldn't connect to XIV API to get popularity info. Abandoning ship", e);
-                return null;
-            }
-
-            PopularityJson popJson;
-            try {
-                popJson = objectMapper.readValue(popResponse, new TypeReference<>() {});
-            } catch (JsonProcessingException e) {
-                LOG.error("Couldn't read pop json from XIV API", e);
-                return null;
-            }
-
+            Integer[] popularities = csvImporter.popularityRatios[currentPop];
             for(int i=0;i<items.length&&i<peaks.size();i++)
             {
-                items[i].popularityRatio = popJson.getPopularities()[i].getRatio();
+                items[i].popularityRatio = popularities[i];
                 items[i].peak = peaks.get(i).getPeakEnum();
 
                 LOG.info("Setting item {} to ratio {} and peak {}", items[i].item, items[i].popularityRatio, items[i].peak);
@@ -1748,27 +1744,12 @@ public class Solver
         var popData = popularityRepository.findByWeek(currentWeek);
         LOG.info("Getting popularity data for next week: {}", popData.getNextPopularity());
         int nextPop = popData.getNextPopularity();
-        String popResponse;
-        try{
-            popResponse = restService.getURLResponse("https://xivapi.com/MJICraftworksPopularity/"+nextPop);
-        }
-        catch(RestClientException e)
-        {
-            LOG.error("Couldn't connect to XIV API to get popularity info. Abandoning ship", e);
-            return popData.getPopularity();
-        }
 
-        PopularityJson popJson;
-        try {
-            popJson = objectMapper.readValue(popResponse, new TypeReference<>() {});
-        } catch (JsonProcessingException e) {
-            LOG.error("Couldn't read pop json from XIV API", e);
-            return popData.getPopularity();
-        }
+        Integer[] popularities = csvImporter.popularityRatios[nextPop];
 
         for(int i=0;i<items.length;i++)
         {
-            int ratio = popJson.getPopularities()[i].getRatio();
+            int ratio = popularities[i];
             //LOG.info("Setting {} to initial data of {} and {}", items[i].item, ratio, Unknown);
             items[i].setInitialData(ratio, Unknown);
         }
