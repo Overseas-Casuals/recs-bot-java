@@ -12,7 +12,7 @@ public class CycleSchedule
     private int startingGroove;
 
     private int endingGroove;
-    WorkshopSchedule[] workshops = new WorkshopSchedule[3];
+    WorkshopSchedule[] workshops = new WorkshopSchedule[Solver.NUM_WORKSHOPS];
     HashMap<Item, Integer> numCrafted;
     
     public CycleSchedule(int day, int groove)
@@ -21,11 +21,15 @@ public class CycleSchedule
         startingGroove = groove;
     }
     
-    public void setForAllWorkshops(List<Item> crafts)
+    public void setForFirstThreeWorkshops(List<Item> crafts)
     {
         workshops[0] = new WorkshopSchedule(crafts);
         workshops[1] = new WorkshopSchedule(crafts);
         workshops[2] = new WorkshopSchedule(crafts);
+    }
+    public void setFourthWorkshop(List<Item> crafts)
+    {
+        workshops[3] = new WorkshopSchedule(crafts);
     }
     
     public void setWorkshop(int index, List<Item> crafts)
@@ -40,6 +44,7 @@ public class CycleSchedule
     {
         return workshops[0].getItems();
     }
+    public List<Item> getSubItems() { return workshops[3].getItems(); }
 
     public int getValue()
     {
@@ -105,7 +110,7 @@ public class CycleSchedule
     @Override
     public String toString()
     {
-        return "Day: "+(day+1)+", Items: " + workshops[0].toString() + ", Starting groove: "+startingGroove+", Ending groove: "+endingGroove;
+        return "Day: "+(day+1)+", Items: " + workshops[0].toString() + "Sub items: "+workshops[3].toString()+", Starting groove: "+startingGroove+", Ending groove: "+endingGroove;
     }
     public boolean equals(Object other)
     {

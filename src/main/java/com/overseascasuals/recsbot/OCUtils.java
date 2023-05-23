@@ -61,9 +61,9 @@ public class OCUtils
             {
                 boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.get(0).getValue().getGroove() > 0);
                 builder.addField("Tentative Recommendation", rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), inline)
-                        /*.addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true)*/;
+                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
 
-                if(false && rec.getBestRec().getStartingGroove() != 0)
+                if(rec.getBestRec().getStartingGroove() != 0)
                     builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue() + cowriesEmoji, true);
 
                 if(rec.get(0).getValue().getGroove() > 0)
@@ -100,7 +100,7 @@ public class OCUtils
         else
         {
 
-            String title = "Main Recommendation";
+            String title = "Workshops 1-3 Recommendation";
             builder.color(Color.SEA_GREEN);
             if(rec.getOldRec() != null)
             {
@@ -110,13 +110,15 @@ public class OCUtils
 
             boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.get(0).getValue().getGroove() > 0);
             builder.addField(title, rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), inline)
-                    /*.addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true)*/;
+                    .addField("Grooveless Value", rec.getGroovelessValue() + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
 
-            if(false && rec.getBestRec().getStartingGroove() != 0)
+            if(rec.getBestRec().getStartingGroove() != 0)
                     builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue() + cowriesEmoji, true);
 
             if(rec.get(0).getValue().getGroove() > 0)
                 builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
+
+            builder.addField("Workshop 4 Recommendation", rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), false);
 
             if(rec.getOldRec() != null)
             {
@@ -124,10 +126,10 @@ public class OCUtils
                 boolean oldInline = !(rec.getBestRec().getStartingGroove() != 0 && rec.getOldValue().getGroove() > 0);
 
                 builder.addField("Original Recommendation", rec.getOldRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), oldInline)
-                        /*.addField("Grooveless Value", String.valueOf(rec.getOldGrooveless())+(rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true)*/;
+                        .addField("Grooveless Value", String.valueOf(rec.getOldGrooveless())+(rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
 
-                if(false && rec.getBestRec().getStartingGroove() != 0)
-                        builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", String.valueOf(rec.getOldRec().getValue())+ cowriesEmoji, true);
+                if(rec.getBestRec().getStartingGroove() != 0)
+                        builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getOldRec().getValue()+ cowriesEmoji, true);
 
                 if(rec.getOldValue().getGroove() > 0)
                     builder.addField("Estimated Bonus", String.valueOf(rec.getOldValue().getGroove() * 3), true);
@@ -164,7 +166,7 @@ public class OCUtils
                 if(rec.isRestRecommended())
                 {
                     CycleSchedule sched = new CycleSchedule(rec.getDay(), 0);
-                    sched.setForAllWorkshops(rec.get(0).getKey().getItems());
+                    sched.setForFirstThreeWorkshops(rec.get(0).getKey().getItems());
 
                     //Show one alt
                     builder.addField("If You Can't Rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true)
@@ -217,9 +219,8 @@ public class OCUtils
         else
             builder.description("You use the same schedules as the normal squawkbox recommendations this season!");
 
-
-        /*builder.addField("Total Weekly Value", crimeTotal+cowriesEmoji, false);
-        builder.addField("","",false);*/
+        builder.addField("Total Weekly Value", crimeTotal+cowriesEmoji, false);
+        builder.addField("","",false);
         builder.addField("Info","Want to learn more? See Crime Time Information in <#1034953674100842516>",false);
 
         return builder.build();
@@ -242,22 +243,22 @@ public class OCUtils
             {
                 builder.addField("Cycle "+(i+5),getRestText(), false);
                 CycleSchedule sched = new CycleSchedule(rec.getDay(), 0);
-                sched.setForAllWorkshops(rec.get(0).getKey().getItems());
+                sched.setForFirstThreeWorkshops(rec.get(0).getKey().getItems());
 
                 //Show one alt
                 builder.addField("If You Can't Rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true)
-                        /*.addField("Grooveless Value","||"+sched.getValue()+"||", true)*/;
+                        .addField("Grooveless Value","||"+sched.getValue()+"||", true);
             }
             else
             {
                 builder.addField("Cycle "+(i+5), rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true)
-                       /* .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
-                        .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue()+ cowriesEmoji, true)*/;
+                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
+                        .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue()+ cowriesEmoji, true);
             }
         }
 
         //builder.addField("\u200B", "\u200B", false);
-        if(false && total > 0)
+        if(total > 0)
         {
             builder.addField("","",false);
             builder.addField("Total Weekly Value", String.format("%,d", total)+cowriesEmoji, false);

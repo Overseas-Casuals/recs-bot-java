@@ -223,7 +223,7 @@ public class WorkshopSchedule
                 double ratio = 0;
                 if(completedCraft.item.ordinal() < 50)
                     ratio = strongRatio62;
-                else if(completedCraft.item.ordinal() < 60)
+                else
                     ratio = strongRatio63;
 
 
@@ -239,7 +239,7 @@ public class WorkshopSchedule
 
             workshopValue += currentValue;
             currentIndex++;
-            int amountCrafted = efficient? NUM_WORKSHOPS*2 : NUM_WORKSHOPS;
+            int amountCrafted = efficient? 6 : 3; //Only assume we're making up to 6 crafts
             numCrafted.put(completedCraft.item, previouslyCrafted + amountCrafted);
 
             if (verboseLogging)
@@ -287,7 +287,7 @@ public class WorkshopSchedule
         for(int i=0;i<crafts.size();i++)
         {
             if(crafts.get(i).couldPrePeak(day))
-                prepeakBonus+= Solver.helperPenalty*(i==0?1:2);
+                prepeakBonus+= Solver.prepeakBonus *(i==0?1:2);
         }
 
 
@@ -302,7 +302,7 @@ public class WorkshopSchedule
         return value;
     }
     
-    public boolean usesTooMany(Map<Item,Integer> limitedUse, boolean verboseLogging)
+    public boolean usesTooMany(Map<Item,Integer> limitedUse, boolean subSchedule, boolean verboseLogging)
     {
         if(limitedUse == null || limitedUse.size() == 0)
             return false;
@@ -313,12 +313,15 @@ public class WorkshopSchedule
         /*if(limitedUse.size() == 9 && items.size() == 5 && items.get(0) == Item.CulinaryKnife && items.get(1) == Item.Butter && items.get(2) == Item.Jam
                 && items.get(3) == Item.Butter && items.get(4) == Item.Jam)
             verboseLogging = true;*/
+        int numWorkshops = 3;
+        if(subSchedule)
+            numWorkshops = 1;
 
         for(int i=0; i<items.size(); i++)
         {
-            int amountMade = NUM_WORKSHOPS;
+            int amountMade = numWorkshops;
             if(i > 0 && Solver.items[items.get(i-1).ordinal()].getsEfficiencyBonus(Solver.items[items.get(i).ordinal()]))
-                amountMade += NUM_WORKSHOPS;
+                amountMade += numWorkshops;
 
             used.put(items.get(i), used.getOrDefault(items.get(i), 0) + amountMade);
         }
@@ -336,14 +339,11 @@ public class WorkshopSchedule
         }
         return false;
     }
-
-    public Map<Item, Integer> getLimitedUses()
+    public Map<Item, Integer> getLimitedUses(Map<Item,Integer> previousLimitedUses, boolean subSchedule)
     {
-        return getLimitedUses(null);
-    }
-    
-    public Map<Item, Integer> getLimitedUses(Map<Item,Integer> previousLimitedUses)
-    {
+        int numWorkshops = 3;
+        if(subSchedule)
+            numWorkshops = 1;
         Map<Item,Integer> limitedUses;
         if(previousLimitedUses == null)
             limitedUses = new HashMap<>();
@@ -359,7 +359,7 @@ public class WorkshopSchedule
             if(i > 0)
                 isEfficient = Solver.items[items.get(i-1).ordinal()].getsEfficiencyBonus(Solver.items[items.get(i).ordinal()]);
             
-            limitedUses.put(items.get(i), limitedUses.get(items.get(i))-3 - (isEfficient?3:0));
+            limitedUses.put(items.get(i), limitedUses.get(items.get(i))-numWorkshops - (isEfficient?numWorkshops:0));
         }
         
         return limitedUses;
@@ -417,6 +417,36 @@ public class WorkshopSchedule
         }
         //If we made it through each set without returning true, we aren't a superset of anything
         return false;
+    }
+    public boolean interferesWithMe(List<Item> subSchedule, boolean verbose)
+    {
+        int currentHour = 0;
+        for(var item : subSchedule)
+        {
+            if(items.contains(item))
+            {
+                int lastStartingHour = lastStartingHourForItem(item);
+                if(verbose)
+                    LOG.info("Item {} is contained in both the workshop and the suggested subschedule. Current hour {}, last starting hour {}", item, currentHour, lastStartingHour);
+                if(currentHour < lastStartingHour)
+                    return true;
+            }
+            currentHour += Solver.items[item.ordinal()].time;
+        }
+        return false;
+    }
+
+    private int lastStartingHourForItem(Item item)
+    {
+        int currentHour = 24;
+        for(int i=items.size()-1; i>=0; i--)
+        {
+            var currentItem = items.get(i);
+            currentHour -= Solver.items[currentItem.ordinal()].time;
+            if(currentItem==item)
+                return currentHour;
+        }
+        return -1;
     }
     
     public int hashCode()

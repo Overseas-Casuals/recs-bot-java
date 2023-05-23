@@ -21,7 +21,7 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
     int oldGroovelessValue;
 
 
-    public DailyRecommendation(int day, int rank, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs)
+    public DailyRecommendation(int day, int rank, BruteForceSchedules recs)
     {
         super(recs);
         this.maxRank = rank;
@@ -30,32 +30,34 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         bestRec = null;
     }
 
-    public DailyRecommendation(int day, int rank, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs, CycleSchedule bestRec)
+    public DailyRecommendation(int day, int rank, BruteForceSchedules recs, CycleSchedule bestRec)
     {
         super(recs);
         this.maxRank = rank;
         this.day = day;
         restRecommended = false;
         this.bestRec = bestRec;
+        this.bestRec.setFourthWorkshop(recs.bestSubItems);
         int startingGroove = bestRec.getStartingGroove();
         bestRec.setStartingGroove(0);
         groovelessValue = bestRec.getValue();
         bestRec.setStartingGroove(startingGroove);
-        dailyValue = bestRec.getValue();
+        dailyValue = bestRec.getValue(true);
     }
 
-    public DailyRecommendation(int day, int rank, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs, CycleSchedule bestRec, CycleSchedule oldRec, WorkshopValue oldValue)
+    public DailyRecommendation(int day, int rank, BruteForceSchedules recs, CycleSchedule bestRec, CycleSchedule oldRec, WorkshopValue oldValue)
     {
         super(recs);
         this.maxRank = rank;
         this.day = day;
         restRecommended = false;
         this.bestRec = bestRec;
+        this.bestRec.setFourthWorkshop(recs.bestSubItems);
         int startingGroove = bestRec.getStartingGroove();
         bestRec.setStartingGroove(0);
         groovelessValue = bestRec.getValue();
         bestRec.setStartingGroove(startingGroove);
-        dailyValue = bestRec.getValue();
+        dailyValue = bestRec.getValue(true);
         this.oldRec = oldRec;
         oldRec.setStartingGroove(0);
         oldGroovelessValue = oldRec.getValue();
