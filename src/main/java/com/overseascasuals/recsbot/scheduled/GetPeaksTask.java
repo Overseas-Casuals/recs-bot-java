@@ -329,24 +329,28 @@ public class GetPeaksTask implements ScheduledTask
                 }
                 if(recDay == 3)
                 {
-                    int numDays = list.size()/3;
-                    for(int i=0; i<numDays;i++)
+                    int numRanks = list.size()/3;
+
+                    for(int i=0; i<numRanks;i++)
                     {
                         var combinedC4Post = MessageCreateSpec.builder().content("<@&"+squawkboxRole+"> <@&"+crimeTimeRole+">");
 
-                        var c4Message = OCUtils.createCombinedC4Post(week, list, squawkboxRole, solver.totalValue);
+
+                        var c4Message = OCUtils.createCombinedC4Post(week, list, squawkboxRole, numRanks-1==i?solver.totalValue:-1);
 
                         combinedC4Post.addEmbed(c4Message);
 
                         channel.createMessage(combinedC4Post.build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted C4 recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting C4 combined post:",error); });
-                        for(int d=0;d<3;d++)
-                        {
-                            trySendTweet(week, list.get(d));
-                        }
+
                         //Pop the first 3 recs and start again
                         //Note: Like, test this before we do multiple ranks again
-                        if(i==numDays-1)
+                        if(i==numRanks-1)
                         {
+                            for(int d=0;d<3;d++)
+                            {
+                                trySendTweet(week, list.get(d));
+                            }
+
                             var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
                             archive.edit(OCUtils.addFinalTotal(list, week, solver.totalValue, archive)).subscribe(message -> {LOG.info("Successfully posted final total to archive: {}", message.getContent());}, error -> { LOG.error("Error posting final total to archive:",error);});
                         }
@@ -354,8 +358,6 @@ public class GetPeaksTask implements ScheduledTask
                         list.remove(0);
                         list.remove(0);
                         list.remove(0);
-
-
                     }
                     if(solver.fortuneValue > 0)
                     {

@@ -227,7 +227,7 @@ public class OCUtils
 
     public static EmbedCreateSpec createCombinedC4Post(int season, List<DailyRecommendation> recs, String squawkboxRole, int total)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Cycle 5-7 Recommendations");
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Cycle 5-7 Recommendations"/*+" for Rank "+recs.get(0).getMaxRank()*/);
         builder.timestamp(Instant.now());
         var messageSpec = MessageCreateSpec.builder();
 
@@ -258,8 +258,11 @@ public class OCUtils
         }
 
         //builder.addField("\u200B", "\u200B", false);
-        builder.addField("","",false);
-        builder.addField("Total Weekly Value", String.format("%,d", total)+cowriesEmoji, false);
+        if(total > 0)
+        {
+            builder.addField("","",false);
+            builder.addField("Total Weekly Value", String.format("%,d", total)+cowriesEmoji, false);
+        }
         builder.addField("","",false);
         builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
                 "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);

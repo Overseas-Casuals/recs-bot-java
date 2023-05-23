@@ -45,8 +45,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
     @Value("${mienna}")
     private String miennaID;
 
-    @Value("${solver.island.rank}")
-    private int maxIslandRank;
+    private int maxIslandRank = Solver.maxIslandRank;
 
 
     @Autowired

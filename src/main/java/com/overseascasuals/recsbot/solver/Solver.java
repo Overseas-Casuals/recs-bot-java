@@ -40,41 +40,19 @@ public class Solver
 
     @Autowired
     CraftRepository craftRepository;
+    static int WORKSHOP_BONUS = 120;
+    static int GROOVE_MAX = 35;
+    static int NUM_WORKSHOPS = 3;
 
-    static int WORKSHOP_BONUS;
-    @Autowired
-    private void setWorkshopBonus(@Value("${solver.island.workshopBonus}")int bonus) {WORKSHOP_BONUS = bonus;}
-    static int GROOVE_MAX;
-    @Autowired
-    private void setMaxGroove(@Value("${solver.island.maxGroove}")int groove) {GROOVE_MAX = groove;}
+    static int averageDayValue = 4044;
+    public static int maxIslandRank = 11;
+    public static double materialWeight = 0.5;
+    private static int alternatives = 5;
+    private static int itemsToReserve = 15;
 
-    static int NUM_WORKSHOPS;
-    @Autowired
-    private void setNumWorkshops(@Value("${solver.island.workshops}")int numWorkshops) {NUM_WORKSHOPS = numWorkshops;}
-    static int averageDayValue;
-    @Autowired
-    private void setAverageDayValue(@Value("${solver.averageDayValue}")int dayValue) {averageDayValue = dayValue;}
-    private static int maxIslandRank;
+    private static int middayUpdateThreshold = 150;
 
-    @Autowired
-    private void setIslandRank(@Value("${solver.island.rank}")int rank) {maxIslandRank = rank;}
-    public static double materialWeight;
-    @Autowired
-    private void setMaterialWeight(@Value("${solver.materialWeight}")double weight) {materialWeight = weight;}
-    private static int alternatives;
-    @Autowired
-    private void setNumAlternatives(@Value("${solver.alternatives}")int numAlts) {alternatives = numAlts;}
-    private static int itemsToReserve;
-    @Autowired
-    private void setItemsToReserve(@Value("${solver.itemsToReserve}")int items) {itemsToReserve = items;}
-
-    private static int middayUpdateThreshold;
-    @Autowired
-    private void setMiddayUpdateThreshold(@Value("${solver.middayUpdateThreshold}")int threshold) {middayUpdateThreshold = threshold;}
-
-    private static int chinaUpdateThreshold;
-    @Autowired
-    private void setChinaUpdateThreshold(@Value("${solver.chinaUpdateThreshold}")int threshold) {chinaUpdateThreshold = threshold;}
+    private static int chinaUpdateThreshold = 25;
 
     private static boolean testC2Imposters;
     @Autowired
@@ -86,9 +64,7 @@ public class Solver
     @Value("${spring.profiles.active}")
     private String activeProfile;
 
-    static int helperPenalty;
-    @Autowired
-    private void setHelperPenalty(@Value("${solver.reservedHelperPenalty}")int penalty) {helperPenalty = penalty;}
+    static int helperPenalty = 5;
     
     final static ItemInfo[] items = {
             new ItemInfo(Potion,Concoctions,Invalid,28,4,1,null),
@@ -400,14 +376,15 @@ public class Solver
                 {
                     //Get FT recs
                     clearDayUsage(List.of(1));
+                    int ftRank = 1;
                     var c3 = getBestBruteForceSchedules(dayToSolve, 0,
-                            null, dayToSolve, 1, rank);
+                            null, dayToSolve, 1, ftRank);
                     CycleSchedule schedule = new CycleSchedule(dayToSolve, 0);
                     schedule.setForAllWorkshops(c3.get(0).getKey().getItems());
-                    addCraftedFromCycle(2, schedule, rank, false);
+                    addCraftedFromCycle(2, schedule, ftRank, false);
                     List<List<Item>> schedules = new ArrayList<>();
                     schedules.add(c3.get(0).getKey().getItems());
-                    RestOfWeekRec restOfWeek = getRestOfWeekRecs(maxIslandRank, true);
+                    RestOfWeekRec restOfWeek = getRestOfWeekRecs(ftRank, true);
                     schedules.addAll(restOfWeek.getRecs());
                     fortuneTellerRecs = new RestOfWeekRec(schedules, -1, true);
 
@@ -444,25 +421,20 @@ public class Solver
                 /*generateCrimeTimeRecs(rank);
                 setCraftedFromHistory();*/
                 //Try days 5-7
-                listOfRecs = getRecForSingleDay(dayToSolve, rank, null, true);
+                listOfRecs.addAll(getRecForSingleDay(dayToSolve, rank, null, true));
                 for(var rec : listOfRecs)
                 {
                     addCraftedFromCycle(rec.getDay(), rec.getBestRec(), rec.getMaxRank(), true);
                 }
-
-
             }
         }
 
         if((day == 1 || day == 2 || day == 3) && rested != day) //The only days when pre-peaks are unknown
         {
 
-            for(int rank = maxIslandRank; rank <= maxIslandRank; rank++)
+            List<Item> currentCrafts = dailySchedules.get(day);//craftRepository.findCraftsByDay(week, day, rank).getCrafts();
+            if(currentCrafts != null && currentCrafts.size() != 0)
             {
-                List<Item> currentCrafts = dailySchedules.get(day);//craftRepository.findCraftsByDay(week, day, rank).getCrafts();
-                if(currentCrafts == null || currentCrafts.size() == 0)
-                    continue;
-
                 int startingGroove =  groove - getGrooveMadeWithSchedule(currentCrafts);
                 if(startingGroovePerDay.containsKey(day))
                 {
@@ -470,12 +442,12 @@ public class Solver
                 }
 
                 int lastDaySolved = day+1;
-                LOG.info("Rechecking day {}'s rank {} recs starting at {} groove with craft {}", day+1, rank, startingGroove, currentCrafts.get(0));
+                LOG.info("Rechecking day {}'s rank {} recs starting at {} groove with craft {}", day+1, maxIslandRank, startingGroove, currentCrafts.get(0));
 
                 List<Item> nextCycleCraft = new ArrayList<>(dailySchedules.get(lastDaySolved));
                 //var nextCycle = craftRepository.findCraftsByDay(week, lastDaySolved, rank);
                 //if(nextCycle!= null)
-                    //nextCycleCraft = nextCycle.getCrafts();
+                //nextCycleCraft = nextCycle.getCrafts();
                 if(day==3)
                 {
                     LOG.info("Checking c4 schedule and daily schedule for C5: {}", nextCycleCraft);
@@ -495,7 +467,7 @@ public class Solver
 
                 WorkshopValue oldValue = new WorkshopSchedule(currentCrafts).getValueWithGrooveEstimate(day, startingGroove, restedAlready(), reservedHelpers);
                 var newBest = getBestBruteForceSchedules(day, startingGroove,
-                        limitedUse, lastDaySolved, 1, currentCrafts.get(0), 24, rank);
+                        limitedUse, lastDaySolved, 1, currentCrafts.get(0), 24, maxIslandRank);
 
 
                 if(newBest != null && newBest.size() > 0)
@@ -513,9 +485,9 @@ public class Solver
                     {
                         LOG.info("Schedule updated detected for day {}! Now crafting {}", day+1,
                                 Arrays.toString(newBest.get(0).getKey().getItems().toArray()));
-                        addCraftedFromCycle(day, newSched, rank, true);
+                        addCraftedFromCycle(day, newSched, maxIslandRank, true);
 
-                        listOfRecs.add(0, new DailyRecommendation(day, rank, newBest, newSched, oldSched, oldValue));
+                        listOfRecs.add(0, new DailyRecommendation(day, maxIslandRank, newBest, newSched, oldSched, oldValue));
 
                         int oldGroove = getGrooveMadeWithSchedule(currentCrafts);
                         int newGroove = getGrooveMadeWithSchedule(newCrafts);
@@ -542,7 +514,7 @@ public class Solver
                     else
                     {
                         LOG.info("Value is the same or negligible");
-                        listOfRecs.add(0, new DailyRecommendation(day, rank, new ArrayList<>(), oldSched, oldSched, oldValue));
+                        listOfRecs.add(0, new DailyRecommendation(day, maxIslandRank, new ArrayList<>(), oldSched, oldSched, oldValue));
                     }
                 }
                 else
@@ -550,8 +522,6 @@ public class Solver
                     LOG.error("Can't find updated recs? Very confusing");
                     return null;
                 }
-
-
             }
         }
 
@@ -799,7 +769,7 @@ public class Solver
     public int generateTotalValue(List<DailyRecommendation> lateWeekRecs)
     {
         int total = 0;
-        for(int day = 1; day < 7 - lateWeekRecs.size(); day++)
+        for(int day = 1; day < 4; day++)
         {
             //var crafts = craftRepository.findCraftsByDay(week, day, maxIslandRank);
             CycleSchedule sched = new CycleSchedule(day, startingGroovePerDay.get(day));
@@ -810,7 +780,7 @@ public class Solver
         }
         for(var rec : lateWeekRecs)
         {
-            if(rec.getMaxRank() == maxIslandRank && !rec.isRestRecommended())
+            if(rec.getMaxRank() == maxIslandRank && !rec.isRestRecommended() && rec.getDay() > 3)
             {
                 LOG.info("Getting total for day {}, crafts {}: {} cowries", rec.getDay()+1, rec.getBestRec().getItems(), rec.getDailyValue());
                 total+=rec.getDailyValue();
@@ -911,7 +881,8 @@ public class Solver
                 items = schedule.getItems();
             else
                 items = new ArrayList<>();
-            dailySchedules.put(day, items);
+            if(rank == maxIslandRank)
+                dailySchedules.put(day, items);
 
             if("live".equals(activeProfile))
             {
