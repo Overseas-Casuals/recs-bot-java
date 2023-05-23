@@ -2,7 +2,6 @@ package com.overseascasuals.recsbot.solver;
 import java.util.List;
 import java.util.HashMap;
 import com.overseascasuals.recsbot.data.*;
-import com.overseascasuals.recsbot.messages.MessageListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

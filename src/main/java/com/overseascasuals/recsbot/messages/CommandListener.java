@@ -3,12 +3,10 @@ package com.overseascasuals.recsbot.messages;
 import com.overseascasuals.recsbot.OCUtils;
 import com.overseascasuals.recsbot.data.DailyRecommendation;
 import com.overseascasuals.recsbot.data.Item;
-import com.overseascasuals.recsbot.data.PeakCycle;
 import com.overseascasuals.recsbot.json.RestService;
 import com.overseascasuals.recsbot.mysql.PeakRepository;
 import com.overseascasuals.recsbot.mysql.PopularityRepository;
 import com.overseascasuals.recsbot.solver.Solver;
-import com.overseascasuals.recsbot.twitter.RecsTweet;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
@@ -37,15 +35,13 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
     String c1PeakRole;
     @Value("${discord.squawkboxRole}")
     String squawkboxRole;
-    @Value("${discord.crimeRole}")
-    String crimeTimeRole;
     @Value("${discord.recsChannel}")
     String recsChannelID;
 
     @Value("${mienna}")
     private String miennaID;
 
-    private int maxIslandRank = Solver.maxIslandRank;
+    private final int maxIslandRank = Solver.maxIslandRank;
 
 
     @Autowired
@@ -60,10 +56,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
     @Autowired
     RestService restService;
 
-    public enum Material {Tinsand, Laver, Sap, Copper, RockSalt, Sugarcane, Cotton};
+    public enum Material {Tinsand, Laver, Sap, Copper, RockSalt, Sugarcane, Cotton}
 
     //Crafting around really annoying materials exclusion list
-    private Map<Material, List<Item>> caramelMap = Map.of(
+    private final Map<Material, List<Item>> caramelMap = Map.of(
             Material.Laver, List.of(Item.SharkOil, Item.EssentialDraught, Item.VegetableJuice, Item.CawlCennin, Item.Dressing, Item.BoiledEgg),
             Material.Sap, List.of(Item.SharkOil, Item.SweetPopoto, Item.ParsnipSalad, Item.Jam, Item.Honey, Item.DriedFlowers, Item.Dressing),
             Material.Copper, List.of(Item.Barbut, Item.BronzeSheep, Item.GarnetRapier, Item.SpruceRoundShield, Item.Ribbon),
@@ -89,9 +85,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             }
 
             switch (command) {
-                case "set_peak" -> {
-                    return processSetPeakCommand(event).then(Mono.defer(() -> deferredPeakResponse(event)));
-                }
                 case "set_schedule" -> {
                     return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredScheduleResponse(event)));
                 }
@@ -138,21 +131,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 .then(event.editReply("Error handling event./"+command+"<@"+miennaID+">"));
     }
 
-    private Mono<Void> processSetPeakCommand(ChatInputInteractionEvent event)
-    {
-        LOG.info("Processing set peak command. Options:");
-        var opts = event.getOptions();
-        for(var opt : opts)
-        {
-            if(opt.getValue().isPresent())
-                LOG.info(opt.getName()+": "+opt.getValue().get().asString());
-            else
-                LOG.info(opt.getName()+": absent");
-        }
-
-        return event.deferReply(/*InteractionCallbackSpec.builder().ephemeral(true).build()*/);
-    }
-
     private InteractionReplyEditMono deferredClearCache(ChatInputInteractionEvent event)
     {
         String cacheKey = event.getOption("key")
@@ -162,148 +140,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
         solver.clearCache(cacheKey);
         return event.editReply("Cleared");
-    }
-
-    private InteractionReplyEditMono deferredPeakResponse(ChatInputInteractionEvent event)
-    {
-        String itemName = event.getOption("item")
-                .flatMap(ApplicationCommandInteractionOption::getValue)
-                .map(ApplicationCommandInteractionOptionValue::asString)
-                .get();
-
-        Item item;
-        try{
-            item = Item.valueOf(itemName);
-        }
-        catch(IllegalArgumentException e)
-        {
-            return event.editReply(itemName+" is not a valid item");
-        }
-
-
-        var d1 = new Date(1661241600000L);
-        var d2 = new Date();
-
-        int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
-        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
-        if(!solver.hasRunRecs)
-        {
-            if(day==0 || day == 1)
-            {
-
-                LOG.info("Haven't run recs yet. Doing so now.");
-                solver.getDailyRecommendations(week, day, true);
-            }
-        }
-
-        if(solver.isSolvedD2() && solver.isSolvedD3()) //Really just doesn't have anything
-        {
-            return event.editReply("Current cycle doesn't need confirmation of any peaks.");
-        }
-        boolean valid = false;
-        String peakType = "";
-
-        if(day == 0 && event.getOption("c2_peak").isPresent())
-        {
-            peakType = event.getOption("c2_peak")
-                    .flatMap(ApplicationCommandInteractionOption::getValue)
-                    .map(ApplicationCommandInteractionOptionValue::asString)
-                    .get();
-
-
-            if(peakType.equals("strong"))
-            {
-                valid = solver.updatePeak(item, PeakCycle.Cycle2Strong);
-            }
-            else if(peakType.equals("weak"))
-            {
-                valid = solver.updatePeak(item, PeakCycle.Cycle2Weak);
-            }
-        }
-        else if(day == 1 && event.getOption("c3_peak").isPresent())
-        {
-            peakType = event.getOption("c3_peak")
-                    .flatMap(ApplicationCommandInteractionOption::getValue)
-                    .map(ApplicationCommandInteractionOptionValue::asString)
-                    .get();
-
-            if(peakType.equals("3W"))
-            {
-                valid = solver.updatePeak(item, PeakCycle.Cycle3Weak);
-            }
-            else if(peakType.equals("6/7"))
-            {
-                valid = solver.updatePeak(item, PeakCycle.Cycle67);
-            }
-        }
-
-        if(valid)
-        {
-            LOG.info("command is valid");
-            if(day == 0 && solver.allTentativeD2Set())
-            {
-                LOG.info("All troublemakers set. Running solver again");
-                var recs = solver.redoDay2Recs();
-
-                if(recs== null || recs.size() == 0)
-                {
-                    return event.editReply("Set C2 peak for item "+item.getDisplayName()+", but no recs returned. <@"+miennaID+">");
-                }
-
-                NewsChannel channel = event.getClient().getChannelById(Snowflake.of(recsChannelID))
-                        .cast(NewsChannel.class).block();
-
-                recs.forEach(
-                        rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec.withRank(-1), c1PeakRole, squawkboxRole))
-                                .subscribe()
-                );
-
-                try{
-                    RecsTweet.sendRec(week, recs.get(0), true);
-                }
-                catch(Exception e)
-                {
-                    LOG.error("Error tweeting non-tentative C2!!",e);
-                }
-
-                return event.editReply("Item "+item.getDisplayName()+" set to C2 "+peakType+" peak. Generating recs.");
-            }
-            else if(day == 1 && solver.allTentativeD3Set())
-            {
-                var recs = solver.getDailyRecommendations(week, 1, false);
-                if(recs == null || recs.size() == 0)
-                {
-                    return event.editReply("Set peak for item "+item.getDisplayName()+", but no recs returned. <@"+miennaID+">");
-                }
-
-                NewsChannel channel = event.getClient().getChannelById(Snowflake.of(recsChannelID))
-                        .cast(NewsChannel.class).block();
-
-                recs.forEach(
-                        rec -> channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec.withRank(-1), c1PeakRole, squawkboxRole))
-                                .subscribe()
-                );
-
-                try{
-                    RecsTweet.sendRec(week, recs.get(0), true);
-                }
-                catch(Exception e)
-                {
-                    LOG.error("Error tweeting non-tentative C3!!",e);
-                }
-
-                return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Generating recs.");
-            }
-            else
-            {
-                return event.editReply("Item "+item.getDisplayName()+" set to "+peakType+" peak. Still waiting on more required info.");
-            }
-        }
-        else
-        {
-            LOG.info("command is for item we don't need");
-            return event.editReply("No peak info needed for "+item.getDisplayName() +" or corresponding peak info not present.");
-        }
     }
 
     private InteractionReplyEditMono deferredScheduleResponse(ChatInputInteractionEvent event)
@@ -513,7 +349,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             {
                 String itemName = event.getOption("nocraft"+i).flatMap(ApplicationCommandInteractionOption::getValue)
                         .map(ApplicationCommandInteractionOptionValue::asString)
-                        .get().replace(" ","");;
+                        .get().replace(" ","");
                 try
                 {
                     items.add(Item.valueOf(itemName));
@@ -544,10 +380,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
         var calendar = Calendar.getInstance();
         calendar.setTime(new Date());
-        var hour = calendar.get(Calendar.HOUR_OF_DAY);
-        if(hour < 8)
-            hour += 24;
-        hour = (hour - 8) % 24;
 
         var d1 = new Date(1661241600000L);
         var d2 = new Date();
@@ -597,8 +429,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         {
             embeds.add(OCUtils.getGeneralRecEmbed(week, rec.withRank(rank)));
         }
-        if(embeds.size() == 0)
-            return event.editReply("Null embeds returned. <@"+miennaID+">");
 
         return event.editReply(content).withEmbedsOrNull(embeds);
     }

@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 import static com.overseascasuals.recsbot.data.Supply.*;
 import static com.overseascasuals.recsbot.data.DemandShift.*;
 
-//@Service
+@Service
 public class GetPeaksTask implements ScheduledTask
 {
     private static Logger LOG = LoggerFactory.getLogger(GetPeaksTask.class);

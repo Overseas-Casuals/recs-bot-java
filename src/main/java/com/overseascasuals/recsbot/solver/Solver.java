@@ -1,19 +1,12 @@
 package com.overseascasuals.recsbot.solver;
 
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.overseascasuals.recsbot.data.*;
-import com.overseascasuals.recsbot.json.PopularityJson;
-import com.overseascasuals.recsbot.json.RestService;
 import com.overseascasuals.recsbot.mysql.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
 
 import java.io.IOException;
 import java.util.*;
@@ -29,8 +22,6 @@ import static com.overseascasuals.recsbot.data.RareMaterial.*;
 public class Solver
 {
     Logger LOG = LoggerFactory.getLogger(Solver.class);
-    @Autowired
-    RestService restService;
 
     @Autowired
     PeakRepository peakRepository;
@@ -47,19 +38,10 @@ public class Solver
     static int averageDayValue = 4044;
     public static int maxIslandRank = 14;
     public static double materialWeight = 0.5;
-    private static int alternatives = 5;
-    private static int itemsToReserve = 15;
+    private static final int alternatives = 5;
+    private static final int itemsToReserve = 15;
 
-    private static int middayUpdateThreshold = 150;
-
-    private static int chinaUpdateThreshold = 25;
-
-    private static boolean testC2Imposters;
-    @Autowired
-    private void setTestC2Imposters(@Value("${solver.testC2Imposters}")boolean test) {testC2Imposters = test;}
-    private static boolean testC3Imposters;
-    @Autowired
-    private void setTestC3Imposters(@Value("${solver.testC3Imposters}")boolean test) {testC3Imposters = test;}
+    private static final int middayUpdateThreshold = 150;
 
     @Value("${spring.profiles.active}")
     private String activeProfile;
@@ -154,18 +136,11 @@ public class Solver
     }
     
     private int groove = 0;
-
-    private final static ObjectMapper objectMapper = new ObjectMapper();
     public int rested = -1;
     private boolean c5WorstFuture = false;
     private int c5AverageValue = 0;
     private final Set<Item> reservedItems = new HashSet<>();
     private final Map<Item, ReservedHelper> reservedHelpers = new HashMap<>();
-    private Map<Item, Boolean> d2Troublemakers = null;
-    private Map<Item, Boolean> d3Troublemakers = null;
-    private int confirmedD2Strong = 0;
-    private int confirmedD2Weak = 0;
-    private Set<Item> d2Bystanders;
     private final Map<Integer, List<List<Item>>> vacationRecs = new HashMap<>();
 
     public List<List<Item>> getVacationRecs (int rank) { return vacationRecs.get(rank);}
@@ -186,10 +161,6 @@ public class Solver
 
     public static double strongRatio62 = 0;
     public static double strongRatio63 = 0;
-
-
-    private boolean autocompletePeaks = false;
-    private boolean allC3Set = false;
 
     private int week = 0;
     public int getWeek() {return week;}
@@ -242,17 +213,11 @@ public class Solver
             startingGroovePerDay.clear();
             startingGroovePerDay.put(0,0);
             startingGroovePerDay.put(1,0);
-            autocompletePeaks = false;
-            allC3Set = false;
             rested = -1;
             groove = 0;
             c5WorstFuture = false;
             reservedItems.clear();
             reservedHelpers.clear();
-            d2Troublemakers = null;
-            d2Bystanders = null;
-            confirmedD2Weak = 0;
-            confirmedD2Strong = 0;
             vacationRecs.clear();
             crimeTimeRecs.clear();
             crimeTimeValue = 0;
@@ -288,7 +253,7 @@ public class Solver
                 {
                     LOG.info("Found rest day on day {}", i+1);
                     rested = i;
-                    dailySchedules.put(i, new ArrayList<Item>());
+                    dailySchedules.put(i, new ArrayList<>());
                 }
                 else
                 {
@@ -356,7 +321,7 @@ public class Solver
                 if(rested == dayToSolve)
                     rested = -1;
 
-                if(day==0 && !testC2Imposters)
+                if(day==0)
                     setStrongRatios();
 
                 var recs = getRecForSingleDay(dayToSolve, rank, null, true);
@@ -404,18 +369,11 @@ public class Solver
                 if(rec.isRestRecommended())
                     rested = dayToSolve;
 
-                if(dayToSolve==1 && !autocompletePeaks && testC2Imposters)
-                    rec.setTroublemakers(getTentativeD2Items(), d2Bystanders);
-                else if(dayToSolve == 2 && !allC3Set && testC3Imposters)
-                    rec.setTroublemakers(getC3Troublemakers(), new HashSet<>());
-
                 LOG.info("{}", rec);
                 addCraftedFromCycle(rec.getDay(), rec.getBestRec(), rank, true);
             }
             else if(day == 3)
             {
-                /*generateCrimeTimeRecs(rank);
-                setCraftedFromHistory();*/
                 //Try days 5-7
                 listOfRecs.addAll(getRecForSingleDay(dayToSolve, rank, null, true));
                 for(var rec : listOfRecs)
@@ -441,9 +399,6 @@ public class Solver
                 LOG.info("Rechecking day {}'s rank {} recs starting at {} groove with craft {}", day+1, maxIslandRank, startingGroove, currentCrafts.get(0));
 
                 List<Item> nextCycleCraft = new ArrayList<>(dailySchedules.get(lastDaySolved));
-                //var nextCycle = craftRepository.findCraftsByDay(week, lastDaySolved, rank);
-                //if(nextCycle!= null)
-                //nextCycleCraft = nextCycle.getCrafts();
                 if(day==3)
                 {
                     LOG.info("Checking c4 schedule and daily schedule for C5: {}", nextCycleCraft);
@@ -453,7 +408,7 @@ public class Solver
 
                 }
                 Map<Item, Integer> limitedUse = new HashMap<>();
-                if(nextCycleCraft!=null && nextCycleCraft.size() > 0)
+                if(nextCycleCraft.size() > 0)
                 {
                     for(var item : nextCycleCraft)
                     {
@@ -710,58 +665,6 @@ public class Solver
     {
         cachedAltRecs.remove(key);
     }
-
-    public void generateCrimeTimeRecs(int rank)
-    {
-        List<int[]> crafted = new ArrayList<>();
-        for(var item : items)
-            crafted.add(item.craftedPerDay);
-        int oldRested = rested;
-        rested = 2;
-        List<Item> crimeCrafts1 = Arrays.asList(Potion, CoconutJuice, Honey, TomatoRelish, SquidInk, TomatoRelish);
-        List<Item> crimeCrafts2 = Arrays.asList(Firesand, PowderedPaprika, Isloaf, PopotoSalad, ParsnipSalad, PopotoSalad);
-        List<Item> crimeCrafts3 = Arrays.asList(Necklace, Brush, Rope, CulinaryKnife, Earrings, CulinaryKnife);
-
-        int totalCowries = 0;
-
-        CycleSchedule crime1 = new CycleSchedule(1, 0);
-        crime1.setWorkshop(0, crimeCrafts1);
-        crime1.setWorkshop(1, crimeCrafts2);
-        crime1.setWorkshop(2, crimeCrafts3);
-        addCraftedFromCycle(1, crime1, maxIslandRank, false);
-        int c1Value = crime1.getValue();
-        LOG.info("Crime time C2: "+c1Value);
-        totalCowries+=c1Value;
-
-        CycleSchedule crime2 = new CycleSchedule(2, groove);
-        crime2.setForAllWorkshops(new ArrayList<>());
-        addCraftedFromCycle(2, crime2, maxIslandRank, false);
-
-        CycleSchedule crime3 = new CycleSchedule(3, groove);
-        crime3.setWorkshop(0, crimeCrafts1);
-        crime3.setWorkshop(1, crimeCrafts2);
-        crime3.setWorkshop(2, crimeCrafts3);
-        addCraftedFromCycle(3, crime3, maxIslandRank, false);
-        int c3Value = crime3.getValue();
-        LOG.info("Crime time C4: "+c3Value);
-        totalCowries+=c3Value;
-
-
-        crimeTimeRecs.add(getLateDays(rank, null, 30));
-
-        for(var rec : crimeTimeRecs.get(crimeTimeRecs.size()-1))
-        {
-            int crimeValue = rec.getDailyValue();
-            LOG.info("Crime rec {}, crime value {}", rec.getBestRec().getItems(), crimeValue);
-            totalCowries+=crimeValue;
-        }
-
-        if(rank == maxIslandRank)
-            crimeTimeValue=totalCowries;
-
-        rested = oldRested;
-    }
-
     public int generateTotalValue(List<DailyRecommendation> lateWeekRecs)
     {
         int total = 0;
@@ -895,125 +798,6 @@ public class Solver
             LOG.info("Not saving crafts because we're just trying out values");
     }
 
-    public boolean updatePeak(Item item, PeakCycle peak)
-    {
-        if(day==0)
-        {
-            autocompletePeaks = false;
-            boolean changed = false;
-            if(d2Troublemakers.containsKey(item)) {
-                groove = 0;
-                d2Troublemakers.put(item, true);
-                changed = true;
-            }
-            else if(d2Bystanders.contains(item))
-            {
-                changed = true;
-            }
-
-            if(changed)
-            {
-                List<CraftPeaks> peaksToSave = new ArrayList<>();
-                items[item.ordinal()].peak = peak;
-
-                int strong = confirmedD2Strong;
-                int weak = confirmedD2Weak;
-                for(var kvp : d2Troublemakers.entrySet())
-                {
-                    if(kvp.getValue())
-                    {
-                        PeakCycle setPeak = items[kvp.getKey().ordinal()].peak;
-                        if(setPeak == Cycle2Strong)
-                            strong++;
-                        else if(setPeak == Cycle2Weak)
-                            weak++;
-                    }
-                }
-
-                for(var bystander : d2Bystanders)
-                {
-                    PeakCycle setPeak = items[bystander.ordinal()].peak;
-                    if(setPeak == Cycle2Strong)
-                        strong++;
-                    else if(setPeak == Cycle2Weak)
-                        weak++;
-                }
-
-                LOG.info("Currently have {}/5 strong peaks and {}/5 weak peaks", strong, weak);
-
-                if(strong == 5)
-                {
-                    setAllTentativePeaks(Cycle2Weak, peaksToSave);
-                }
-                else if(weak == 5)
-                {
-                    setAllTentativePeaks(Cycle2Strong, peaksToSave);
-                }
-
-
-                if("live".equals(activeProfile))
-                {
-                    CraftPeaks singlePeak = new CraftPeaks();
-                    singlePeak.setPeakFromEnum(peak);
-                    singlePeak.setPeakID(new PeakID(week, day, item.ordinal()+1));
-                    peaksToSave.add(singlePeak);
-                    peakRepository.saveAll(peaksToSave);
-                }
-
-            }
-
-            return changed;
-        }
-        else if(day==1 && d3Troublemakers.containsKey(item))
-        {
-            groove = startingGroovePerDay.get(2);
-            d3Troublemakers.put(item, true);
-            if(peak == Cycle3Weak && "live".equals(activeProfile))
-            {
-                CraftPeaks singlePeak = new CraftPeaks();
-                singlePeak.setPeakFromEnum(peak);
-                singlePeak.setPeakID(new PeakID(week, day, item.ordinal()+1));
-                List<CraftPeaks> peaksToSave = new ArrayList<>();
-                peaksToSave.add(singlePeak);
-                peakRepository.saveAll(peaksToSave);
-            }
-            return true;
-        }
-        return false;
-    }
-
-    private void setAllTentativePeaks(PeakCycle peak, List<CraftPeaks> peaksToSave)
-    {
-        LOG.info("Found 5 C2 peaks of a strength, setting the rest to "+peak);
-        for(var kvp : d2Troublemakers.entrySet())
-        {
-            if(!kvp.getValue())
-            {
-                LOG.info("Defaulting troublemaker {} to {} ", kvp.getKey(), peak);
-                items[kvp.getKey().ordinal()].peak = peak;
-                CraftPeaks singlePeak = new CraftPeaks();
-                singlePeak.setPeakFromEnum(peak);
-                singlePeak.setPeakID(new PeakID(week, day, kvp.getKey().ordinal()+1));
-                peaksToSave.add(singlePeak);
-            }
-
-        }
-
-        for(var bystander : d2Bystanders)
-        {
-            if(items[bystander.ordinal()].peak == Cycle2Unknown)
-            {
-                LOG.info("Defaulting bystander {} to {} ", bystander, peak);
-                items[bystander.ordinal()].peak = peak;
-                CraftPeaks singlePeak = new CraftPeaks();
-                singlePeak.setPeakFromEnum(peak);
-                singlePeak.setPeakID(new PeakID(week, day, bystander.ordinal()+1));
-                peaksToSave.add(singlePeak);
-            }
-        }
-
-        autocompletePeaks = true;
-    }
 
     private void populateReservedItems(int day)
     {
@@ -1185,48 +969,6 @@ public class Solver
         }
         return recs;
     }
-
-    /*public List<DailyRecommendation> getBestLateDays(int rank, Map<Item, Integer> limitedUse, List<Integer> daysToTest, int startingGroove, int daySet, WorkshopSchedule itemsSet)
-    {
-        LOG.info("Getting best late days for days {}. Previous day set: {}", daysToTest, daySet);
-        List<DailyRecommendation> recommendations = null;
-
-        for(Integer bestDay : daysToTest)
-        {
-            clearDayUsage(daysToTest);
-            groove = startingGroove;
-            Map<Item, Integer> realLimited = limitedUse;
-            if(daySet > bestDay)
-                realLimited = itemsSet.getLimitedUses(limitedUse);
-            List<DailyRecommendation> basedOnSingle = new ArrayList<>();
-            LOG.info("Getting best schedule for best day {} and groove {}. Limited items: {}", bestDay,startingGroove, realLimited);
-            var sched = getBestBruteForceSchedules(bestDay, startingGroove, realLimited, Math.min(6,bestDay + 1), alternatives, rank);
-            addDailyRecToList(sched, bestDay, startingGroove, rank, basedOnSingle);
-            List<Integer> newDays = new ArrayList<>();
-            for(int day : daysToTest)
-                if(day != bestDay)
-                    newDays.add(day);
-            if(newDays.size() > 1)
-            {
-                LOG.info("Having set day {}, now getting best of days {}", bestDay, newDays);
-                basedOnSingle.addAll(getBestLateDays(rank, realLimited, newDays, startingGroove, bestDay, sched.get(0).getKey()));
-            }
-            else
-            {
-                if(bestDay > newDays.get(0))
-                    realLimited = sched.get(0).getKey().getLimitedUses(realLimited);
-                LOG.info("Only one day left. Getting best schedule for best day {} and groove {}. Limited items: {}", newDays.get(0),startingGroove, realLimited);
-                addDailyRecToList(getBestBruteForceSchedules(newDays.get(0), startingGroove, realLimited, Math.min(6,newDays.get(0) + 1), alternatives, rank), newDays.get(0), startingGroove,rank,basedOnSingle);
-            }
-
-            if(recommendations == null || (getTotalForRecs(basedOnSingle) > getTotalForRecs(recommendations)))
-            {
-                LOG.info("New best day detected! Of {}, best is {}", daysToTest, bestDay);
-                recommendations = basedOnSingle;
-            }
-        }
-        return recommendations;
-    }*/
 
     private int getTotalForRecs(List<DailyRecommendation> recs)
     {
@@ -1502,12 +1244,6 @@ public class Solver
         LOG.info("Recs based on C7 are best");
         return c7Recs;
     }
-    
-    private boolean isWorseThanAllFollowing(Entry<WorkshopSchedule, WorkshopValue> rec,
-            int day, int rank)
-    {
-        return isWorseThanAllFollowing(rec, day, false, rank, null);
-    }
 
     private boolean isWorseThanAllFollowing(Entry<WorkshopSchedule, WorkshopValue> rec,
             int day, boolean checkC5, int rank, Map<Item,Integer> limitedUse)
@@ -1714,12 +1450,6 @@ public class Solver
             reservedSet = solution.getKey().getLimitedUses(reservedSet);
         }
 
-        /*if(rested == -1 && worstIndex>=0)
-        {
-            //If we haven't rested or scheduled to rest, rest the worst day
-            restOfWeekRank.remove(worstIndex);
-            restOfWeekRank.add(worstIndex, new ArrayList<>());
-        }*/
         if(restOfWeekRank.size() == 5) //If we're at day 1, we have no real idea, so put our best guess at C6, the second-best day to craft
         {
             var best = restOfWeekRank.set(0, restOfWeekRank.get(3));
@@ -1754,9 +1484,10 @@ public class Solver
             items[i].setInitialData(ratio, Unknown);
         }
 
-        vacationRecs.put(9, vacationRecsHelper(9));
-        vacationRecs.put(10, vacationRecsHelper(10));
-        vacationRecs.put(11, vacationRecsHelper(11));
+        for(int i=9; i<=maxIslandRank; i++)
+        {
+            vacationRecs.put(i, vacationRecsHelper(i));
+        }
         return popData.getPopularity();
     }
 
@@ -1777,186 +1508,6 @@ public class Solver
             reservedSet = solution.getLimitedUses(reservedSet);
         }
         return vacationRecs;
-    }
-
-
-
-    public boolean isSolvedD2()
-    {
-        //LOG.info("Day {} troublemakers: {}", day, d2Troublemakers==null?"null":String.valueOf(d2Troublemakers.size()));
-        return !testC2Imposters || day != 0 || d2Troublemakers == null || d2Troublemakers.size() == 0;
-    }
-
-    public boolean isSolvedD3()
-    {
-        return !testC3Imposters || day != 1 || d3Troublemakers == null || d3Troublemakers.size() == 0;
-    }
-
-    public boolean allTentativeD2Set()
-    {
-        if(isSolvedD2() || autocompletePeaks)
-            return true;
-
-        for(var value : d2Troublemakers.values())
-            if(!value)
-                return false;
-
-        return true;
-    }
-
-    public boolean allTentativeD3Set()
-    {
-        if(isSolvedD3())
-            return true;
-
-        for(var value : d3Troublemakers.values())
-            if(!value)
-                return false;
-
-        allC3Set = true;
-        return true;
-    }
-
-
-    public Map<Item, Boolean> getTentativeD2Items()
-    {
-        if(d2Troublemakers != null)
-            return d2Troublemakers;
-
-        d2Troublemakers = new HashMap<>();
-        d2Bystanders = new HashSet<>();
-        Map<Item, Integer> troubleValues = new HashMap<>();
-        List<ItemInfo> c2Unknowns = new ArrayList<>();
-        confirmedD2Strong = 0;
-        confirmedD2Weak = 0;
-        for (ItemInfo item : items)
-        {
-            if (item.peak == Cycle2Unknown)
-                c2Unknowns.add(item);
-            else if(item.peak == Cycle2Strong)
-                confirmedD2Strong++;
-            else if(item.peak == Cycle2Weak)
-                confirmedD2Weak++;
-        }
-
-        autocompletePeaks = false;
-
-        LOG.info("Checking {} unknown D2 peaks: {}", c2Unknowns.size(), c2Unknowns.stream().map(itemInfo -> itemInfo.item).collect(Collectors.toList()));
-
-        int permutations = (int) Math.pow(2, c2Unknowns.size());
-
-
-
-        for(int rank = 11; rank < 12; rank++)
-        {
-            Map<Integer, List<Item>> betterPermuts = new HashMap<>();
-            var schedule = getBestSchedule(1, 0, null, rank);
-            int value = 0;
-            if (schedule == null)
-            {
-                continue;
-            }
-
-            value = schedule.getValue().getWeighted();
-
-            boolean shouldRest =  isWorseThanAllFollowing(schedule, 1, rank);
-
-
-            for (int p = 1; p < permutations; p++)
-            {
-                for (int i = 0; i < c2Unknowns.size(); i++)
-                {
-                    boolean strong = ((p) & (1 << i)) != 0; // I can't believe I'm using a bitwise and
-                    if (strong)
-                        c2Unknowns.get(i).peak = Cycle2Strong;
-                    else
-                        c2Unknowns.get(i).peak = Cycle2Weak;
-                }
-
-                var newSchedule = getBestSchedule(1, 0, null, rank);
-
-                if (newSchedule == null)
-                    continue;
-
-                int newValue = newSchedule.getValue().getWeighted();
-
-                if(newValue > value + middayUpdateThreshold && (betterPermuts.size() > 0 || !newSchedule.getKey().getItems().equals(schedule.getKey().getItems())))
-                {
-                    if(shouldRest && isWorseThanAllFollowing(newSchedule, 1, rank))
-                        continue;
-                    CycleSchedule cycleSchedule = new CycleSchedule(1, 0);
-                    cycleSchedule.setForAllWorkshops(newSchedule.getKey().getItems());
-
-
-                    LOG.info("Schedule {} ({}) is better with permutation {} on rank {}. Value: {}", newSchedule.getKey().getItems(), newValue, p, rank, cycleSchedule.getValue());
-                    betterPermuts.put(p, newSchedule.getKey().getItems());
-                }
-            }
-
-            for(Integer p : betterPermuts.keySet())
-            {
-                for (int i = 0; i < c2Unknowns.size(); i++)
-                {
-                    boolean strong = ((p) & (1 << i)) != 0;
-                    if (strong && betterPermuts.get(p).contains(c2Unknowns.get(i).item))
-                        d2Troublemakers.put(c2Unknowns.get(i).item, false);
-                }
-            }
-        }
-
-        for (var c2Unknown: c2Unknowns)
-        {
-            if(!d2Troublemakers.containsKey(c2Unknown.item))
-                d2Bystanders.add(c2Unknown.item);
-            c2Unknown.peak = Cycle2Unknown;
-        }
-
-        return d2Troublemakers;
-    }
-
-    private Map<Item,Boolean> getC3Troublemakers()
-    {
-        d3Troublemakers = new HashMap<>();
-        allC3Set = false;
-        for(int rank = 11; rank < 12; rank++)
-        {
-            var schedule = getBestSchedule(2, groove, null, rank);
-            int baseValue = 0;
-            if (schedule == null)
-            {
-                continue;
-            }
-
-            baseValue = schedule.getValue().getWeighted();
-
-            boolean shouldRest =  isWorseThanAllFollowing(schedule, 2, rank);
-
-            for(int i=50; i<items.length; i++) //Only check imposters in post-6.3 items
-            {
-                var item = items[i];
-                if(item.peak == Cycle67)
-                {
-                    item.peak = Cycle3Weak;
-                    var newSchedule = getBestSchedule(2, groove, null, rank);
-                    if(newSchedule == null)
-                        continue;
-                    int newValue = newSchedule.getValue().getWeighted();
-                    boolean itemIsGoodEnough = newValue > baseValue + middayUpdateThreshold;
-                    if(itemIsGoodEnough && !newSchedule.getKey().getItems().equals(schedule.getKey().getItems()))
-                    {
-                        if (shouldRest && isWorseThanAllFollowing(newSchedule, 2, rank))
-                            continue;
-                        d3Troublemakers.put(item.item, false);
-                        CycleSchedule cycleSchedule = new CycleSchedule(2, groove);
-                        cycleSchedule.setForAllWorkshops(newSchedule.getKey().getItems());
-                        LOG.info("Schedule {} ({}) is better on C3 with weak {} on rank {}. Total value: {}", newSchedule.getKey().getItems(),newValue, item.item, rank, cycleSchedule.getValue());
-                    }
-                    item.peak = Cycle67;
-                }
-            }
-        }
-
-        return d3Troublemakers;
     }
 
     private Map.Entry<WorkshopSchedule, WorkshopValue> getBestSchedule(int day, int groove, Map<Item,Integer> limitedUse, int rank)
