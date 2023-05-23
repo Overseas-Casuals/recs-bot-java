@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 public class OCUtils
 {
-    public static String cowriesEmoji = " <:OC_BlueShell:1035493003655127071>";
+    public static String cowriesEmoji = " <:OC_SeafarerCowrie:1109399604203626536>";
     private static String getDateStr(int season)
     {
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d");
@@ -61,9 +61,9 @@ public class OCUtils
             {
                 boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.get(0).getValue().getGroove() > 0);
                 builder.addField("Tentative Recommendation", rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), inline)
-                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
+                        /*.addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true)*/;
 
-                if(rec.getBestRec().getStartingGroove() != 0)
+                if(false && rec.getBestRec().getStartingGroove() != 0)
                     builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue() + cowriesEmoji, true);
 
                 if(rec.get(0).getValue().getGroove() > 0)
@@ -110,9 +110,9 @@ public class OCUtils
 
             boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.get(0).getValue().getGroove() > 0);
             builder.addField(title, rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), inline)
-                    .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
+                    /*.addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true)*/;
 
-            if(rec.getBestRec().getStartingGroove() != 0)
+            if(false && rec.getBestRec().getStartingGroove() != 0)
                     builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue() + cowriesEmoji, true);
 
             if(rec.get(0).getValue().getGroove() > 0)
@@ -124,9 +124,9 @@ public class OCUtils
                 boolean oldInline = !(rec.getBestRec().getStartingGroove() != 0 && rec.getOldValue().getGroove() > 0);
 
                 builder.addField("Original Recommendation", rec.getOldRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), oldInline)
-                        .addField("Grooveless Value", String.valueOf(rec.getOldGrooveless())+(rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
+                        /*.addField("Grooveless Value", String.valueOf(rec.getOldGrooveless())+(rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true)*/;
 
-                if(rec.getBestRec().getStartingGroove() != 0)
+                if(false && rec.getBestRec().getStartingGroove() != 0)
                         builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", String.valueOf(rec.getOldRec().getValue())+ cowriesEmoji, true);
 
                 if(rec.getOldValue().getGroove() > 0)
@@ -218,8 +218,8 @@ public class OCUtils
             builder.description("You use the same schedules as the normal squawkbox recommendations this season!");
 
 
-        builder.addField("Total Weekly Value", crimeTotal+cowriesEmoji, false);
-        builder.addField("","",false);
+        /*builder.addField("Total Weekly Value", crimeTotal+cowriesEmoji, false);
+        builder.addField("","",false);*/
         builder.addField("Info","Want to learn more? See Crime Time Information in <#1034953674100842516>",false);
 
         return builder.build();
@@ -247,18 +247,18 @@ public class OCUtils
 
                 //Show one alt
                 builder.addField("If You Can't Rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true)
-                        .addField("Grooveless Value","||"+sched.getValue()+"||", true);
+                        /*.addField("Grooveless Value","||"+sched.getValue()+"||", true)*/;
             }
             else
             {
                 builder.addField("Cycle "+(i+5), rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true)
-                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
-                        .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue()+ cowriesEmoji, true);
+                       /* .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
+                        .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue()+ cowriesEmoji, true)*/;
             }
         }
 
         //builder.addField("\u200B", "\u200B", false);
-        if(total > 0)
+        if(false && total > 0)
         {
             builder.addField("","",false);
             builder.addField("Total Weekly Value", String.format("%,d", total)+cowriesEmoji, false);
@@ -364,7 +364,7 @@ public class OCUtils
         {
             content += getArchiveContent(4+i, recs.get(i));
         }
-        content+="\n**Season "+week+" Total:** "+ String.format("%,d", total)+cowriesEmoji;
+        //content+="\n**Season "+week+" Total:** "+ String.format("%,d", total)+cowriesEmoji;
         MessageEditSpec messageEditSpec = MessageEditSpec.builder().contentOrNull(content).build();
         return messageEditSpec;
     }

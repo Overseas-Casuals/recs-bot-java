@@ -40,11 +40,11 @@ public class Solver
 
     @Autowired
     CraftRepository craftRepository;
-    static int WORKSHOP_BONUS = 130;
-    static int GROOVE_MAX = 45;
-    static int NUM_WORKSHOPS = 4;
+    static int WORKSHOP_BONUS = 120;
+    static int GROOVE_MAX = 35;
+    static int NUM_WORKSHOPS = 3;
 
-    static int averageDayValue = 4381;
+    static int averageDayValue = 4044;
     public static int maxIslandRank = 14;
     public static double materialWeight = 0.5;
     private static int alternatives = 5;
