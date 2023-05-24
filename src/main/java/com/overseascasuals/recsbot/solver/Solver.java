@@ -339,7 +339,7 @@ public class Solver
                 {
                     //Get FT recs
                     clearDayUsage(List.of(1));
-                    int ftRank = 1;
+                    int ftRank = 12;
                     var c3 = getBestBruteForceSchedules(dayToSolve, 0,
                             null, dayToSolve, 1, ftRank);
                     CycleSchedule schedule = new CycleSchedule(dayToSolve, 0);
@@ -2084,16 +2084,20 @@ public class Solver
         }
 
         //Ensure one doesn't interfere with the first
-        List<Item> firstNonInterfering = null;
-        for(int i=1;i<sortedSchedules.size();i++)
+        List<Item> firstNonInterfering = new ArrayList<>();
+        if(islandRank == maxIslandRank)
         {
-            var subItems = sortedSchedules.get(i).getKey().getItems();
-            if(!sortedSchedules.get(0).getKey().interferesWithMe(subItems, false))
+            for(int i=1;i<sortedSchedules.size();i++)
             {
-                firstNonInterfering = subItems;
-                break;
+                var subItems = sortedSchedules.get(i).getKey().getItems();
+                if(!sortedSchedules.get(0).getKey().interferesWithMe(subItems, false))
+                {
+                    firstNonInterfering = subItems;
+                    break;
+                }
             }
         }
+
 
         BruteForceSchedules schedules = new BruteForceSchedules(sortedSchedules.stream().limit(numToReturn).collect(Collectors.toList()));
         schedules.bestSubItems = firstNonInterfering;
