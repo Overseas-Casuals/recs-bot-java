@@ -280,7 +280,7 @@ public class GetPeaksTask implements ScheduledTask
             var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).limit(Solver.getNumItems(week)).toArray();
             peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
-            if(true || list == null || list.size() == 0)
+            if(list == null || list.size() == 0)
             {
                 if(list == null)
                     peakChannel.createMessage("<@" + miennaID + "> No recs returned").subscribe();
@@ -322,15 +322,18 @@ public class GetPeaksTask implements ScheduledTask
                     }
                     else
                     {
-                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).subscribe(message -> {LOG.info("Successfully posted day-of update: {}", message.getEmbeds());}, error -> { LOG.error("Error posting updated cycle schedule:",error); });;
+                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole, squawkboxRole)).subscribe(message -> {LOG.info("Successfully posted day-of update: {}", message.getEmbeds());}, error -> { LOG.error("Error posting updated cycle schedule:",error); });;
                         trySendTweet(week, recs);
                     }
 
                     list.remove(0);
 
-                    //Add to archive
-                    var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
-                    archive.edit(OCUtils.addCurrentDay(recDay, recs, archive)).subscribe(message -> {LOG.info("Successfully posted new day to archive: {}", message.getContent());}, error -> { LOG.error("Error posting new archive day:",error);});
+                    if(recs.getMaxRank()==Solver.maxIslandRank)
+                    {
+                        //Add to archive
+                        var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
+                        archive.edit(OCUtils.addCurrentDay(recDay, recs, archive)).subscribe(message -> {LOG.info("Successfully posted new day to archive: {}", message.getContent());}, error -> { LOG.error("Error posting new archive day:",error);});
+                    }
                 }
                 if(recDay == 3)
                 {
@@ -380,9 +383,9 @@ public class GetPeaksTask implements ScheduledTask
                     }
                     for(var recs : list)
                     {
-                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting recs:",error); });
+                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole, squawkboxRole)).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting recs:",error); });
                         trySendTweet(week, recs);
-                        if(recs.isRestRecommended())
+                        if(recs.isRestRecommended() && recs.getMaxRank()==Solver.maxIslandRank)
                         {
                             var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
                             archive.edit(OCUtils.addCurrentDay(recDay+1, recs, archive)).subscribe(message -> {LOG.info("Successfully posted new rest day to archive: {}", message.getContent());}, error -> { LOG.error("Error posting new rest day to archive:",error);});
@@ -396,6 +399,8 @@ public class GetPeaksTask implements ScheduledTask
 
     private void trySendTweet(int week, DailyRecommendation rec)
     {
+        if(rec.getMaxRank() != Solver.maxIslandRank)
+            return;
         try{
             RecsTweet.sendRec(week, rec, !local);
         }

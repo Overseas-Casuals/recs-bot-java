@@ -80,18 +80,18 @@ public class OCUtils
         else
         {
             messageSpec.content("<@&"+squawkboxRole+">");
-            messageSpec.addEmbed(getGeneralRecEmbed(season, rec));
+            messageSpec.addEmbed(getGeneralRecEmbed(season, rec, true));
         }
 
 
         return messageSpec.build();
     }
 
-    public static EmbedCreateSpec getGeneralRecEmbed(int season, DailyRecommendation rec)
+    public static EmbedCreateSpec getGeneralRecEmbed(int season, DailyRecommendation rec, boolean mainrecs)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations for Rank "+rec.getMaxRank());
 
-        if(rec.getMaxRank() < 0)
+        if(mainrecs)
             builder.title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations");
         builder.timestamp(Instant.now());
 
@@ -100,7 +100,7 @@ public class OCUtils
         else
         {
 
-            String title = "Workshops 1-3 Recommendation";
+            String title = "Workshops #1-3 Rec";
             builder.color(Color.SEA_GREEN);
             if(rec.getOldRec() != null)
             {
@@ -118,7 +118,8 @@ public class OCUtils
             if(rec.get(0).getValue().getGroove() > 0)
                 builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
 
-            builder.addField("Workshop 4 Recommendation", rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), false);
+            if(rec.getBestRec().getSubItems()!=null && rec.getBestRec().getSubItems().size() > 0)
+                builder.addField("Workshop #4 Rec", rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), false);
 
             if(rec.getOldRec() != null)
             {
@@ -140,7 +141,7 @@ public class OCUtils
 
         if(rec.size() > 1 && rec.getOldRec() == null)
         {
-            if(rec.getMaxRank() > 0)
+            if(!mainrecs)
             {
                 //Add alts also
                 //builder.addField("\u200B", "\u200B", false);
