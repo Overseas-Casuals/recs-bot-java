@@ -359,6 +359,7 @@ public class Solver
                             CycleCraft crafts = new CycleCraft();
                             crafts.setCraftID(new CraftID(week, index, -1));
                             crafts.setCrafts(sched);
+                            crafts.setSubcrafts(new ArrayList<>());
                             craftRepository.save(crafts);
                         }
                         LOG.info("Fortuneteller rec for week {}, day {}: {}", week, index+1, sched);
