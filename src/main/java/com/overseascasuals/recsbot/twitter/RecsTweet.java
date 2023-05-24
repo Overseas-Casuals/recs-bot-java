@@ -58,8 +58,11 @@ public class RecsTweet
         }
         else
         {
-            str.append("\n∟ ")
+            str.append("\nWorkshops #1-3:\n∟ ")
                     .append(rec.getBestRec().getItems().stream().map(Item::getDisplayNameWithTime)
+                            .collect(Collectors.joining(" - ")));
+            str.append("\nWorkshop #4:\n∟ ")
+                    .append(rec.getBestRec().getSubItems().stream().map(Item::getDisplayNameWithTime)
                             .collect(Collectors.joining(" - ")));
             str.append("\nBase value: ").append(rec.getGroovelessValue());
             if(rec.getBestRec().getStartingGroove() > 0)

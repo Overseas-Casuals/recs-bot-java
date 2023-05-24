@@ -36,7 +36,7 @@ public class Solver
     static int NUM_WORKSHOPS = 4;
 
     static int averageDayValue = 4381;
-    public static int maxIslandRank = 14;
+    public static int maxIslandRank = 15;
     public static double materialWeight = 0.5;
     private static final int alternatives = 5;
     private static final int itemsToReserve = 15;
