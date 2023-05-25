@@ -71,7 +71,7 @@ public class RecsTweet
             if(rec.get(0).getValue().getGroove() > 0)
             {
                 str.append(" (+")
-                        .append(rec.getBestRec().getEndingGroove() - rec.getBestRec().getStartingGroove() - 9)
+                        .append(rec.getBestRec().getEndingGroove() - rec.getBestRec().getStartingGroove() - 12)
                         .append(" Groove Bonus)");
             }
         }

@@ -399,7 +399,7 @@ public class GetPeaksTask implements ScheduledTask
 
     private void trySendTweet(int week, DailyRecommendation rec)
     {
-        /*if(rec.getMaxRank() != Solver.maxIslandRank)
+        if(rec.getMaxRank() != Solver.maxIslandRank)
             return;
         try{
             RecsTweet.sendRec(week, rec, !local);
@@ -407,7 +407,7 @@ public class GetPeaksTask implements ScheduledTask
         catch(Exception e)
         {
             LOG.error("Error tweeting!!",e);
-        }*/
+        }
     }
 
 
