@@ -166,12 +166,10 @@ public class OCUtils
             {
                 if(rec.isRestRecommended())
                 {
-                    CycleSchedule sched = new CycleSchedule(rec.getDay(), 0);
-                    sched.setForFirstThreeWorkshops(rec.get(0).getKey().getItems());
-
                     //Show one alt
-                    builder.addField("If You Can't Rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true)
-                            .addField("Grooveless Value","||"+sched.getValue()+"||", true);
+                    builder.addField("If You Can't Rest...", "||**Workshops #1-3:**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true)
+                            .addField(".", "||**Workshop #4:**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true)
+                            .addField("Grooveless Value","||"+rec.getGroovelessValue()+"||", true);
                 }
                 builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
                         "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);
@@ -247,8 +245,9 @@ public class OCUtils
                 sched.setForFirstThreeWorkshops(rec.get(0).getKey().getItems());
 
                 //Show one alt
-                builder.addField("If You Can't Rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true)
-                        .addField("Grooveless Value","||"+sched.getValue()+"||", true);
+                builder.addField("If You Can't Rest...", "||**Workshops #1-3:**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true)
+                        .addField(".", "||**Workshop #4:**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true)
+                        .addField("Grooveless Value","||"+rec.getGroovelessValue()+"||", true);
             }
             else
             {

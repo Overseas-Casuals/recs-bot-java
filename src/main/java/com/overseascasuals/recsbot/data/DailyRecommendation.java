@@ -21,13 +21,10 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
     int oldGroovelessValue;
 
 
-    public DailyRecommendation(int day, int rank, BruteForceSchedules recs)
+    public DailyRecommendation(int day, int rank, BruteForceSchedules recs, CycleSchedule bestRec, boolean resting)
     {
-        super(recs);
-        this.maxRank = rank;
-        this.day = day;
-        restRecommended = true;
-        bestRec = null;
+        this(day, rank, recs, bestRec);
+        restRecommended = resting;
     }
 
     public DailyRecommendation(int day, int rank, BruteForceSchedules recs, CycleSchedule bestRec)

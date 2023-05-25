@@ -647,14 +647,9 @@ public class Solver
             }
 
             if(shouldRest)
-            {
                 LOG.info("Should rest");
-                rec = new DailyRecommendation(dayToSolve, rank, todayRecs);
-            }
-            else
-            {
-                rec = new DailyRecommendation(dayToSolve, rank, todayRecs, schedule);
-            }
+
+            rec = new DailyRecommendation(dayToSolve, rank, todayRecs, schedule, shouldRest);
             recs.add(rec);
         }
 
@@ -832,32 +827,105 @@ public class Solver
 
     private void populateReservedItems(int day)
     {
+        int resFullWeek = 16;
+        int res45=6;
+        int res67=8;
+        int resSingle=4;
+
         reservedItems.clear();
-        Map<Item, Integer> itemValues = new HashMap<>();
+        Map<ItemInfo, Integer> itemValues = new HashMap<>();
         for (ItemInfo item : items)
         {
             if (item.peaksOnOrBeforeDay(day, null))
                 continue;
             int value = item.getValueWithSupply(Supply.Sufficient);
             value = value * 8 / item.time;
-            itemValues.put(item.item, value);
+            itemValues.put(item, value);
         }
-        LinkedHashMap<Item, Integer> bestItems = itemValues
+        LinkedHashMap<ItemInfo, Integer> bestItems = itemValues
                 .entrySet().stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
                         (x, y) -> y, LinkedHashMap::new));
         var bestItemsEntries = bestItems.entrySet();
-        Iterator<Entry<Item, Integer>> itemIterator = bestItemsEntries.iterator();
+        Iterator<Entry<ItemInfo, Integer>> itemIterator = bestItemsEntries.iterator();
 
         List<Item> itemsThatGetReservations = new ArrayList<>();
-        for (int i = 0; i < itemsToReserve-(2*day) && itemIterator.hasNext(); i++)
+        int currFullWeek = 0;
+        int curr45 = 0;
+        int curr67 = 0;
+        int curr5 = 0;
+        int curr6 = 0;
+        int curr7 = 0;
+        int current = 0;
+        int cap = 0;
+        for(var next : bestItemsEntries)
         {
-            var next = itemIterator.next();
-            LOG.info("Reserving item {} ({})", next.getKey(), next.getValue());
-            reservedItems.add(next.getKey());
-            if (i < (5-day)*2)
-                itemsThatGetReservations.add(next.getKey());
+            if(day==1 && next.getKey().peaksOnDay(day+1))
+            {
+               currFullWeek++;
+               current = currFullWeek;
+               cap = resFullWeek;
+            }
+            else if(day==2)
+            {
+                if(next.getKey().peaksOnDay(3))
+                {
+                    curr45++;
+                    current = curr45;
+                    cap = res45;
+                }
+                else if(next.getKey().peaksOnDay(5))
+                {
+                    curr67++;
+                    current = curr67;
+                    cap = res67;
+                }
+                else
+                    cap=-1;
+            }
+            else if(day==3)
+            {
+                if(next.getKey().peaksOnDay(4))
+                {
+                    curr5++;
+                    current = curr5;
+                    cap = resSingle;
+                }
+                else if(next.getKey().peaksOnDay(5))
+                {
+                    curr67++;
+                    current = curr67;
+                    cap = res67;
+                }
+                else
+                    cap = -1;
+            }
+            else if(day==4)
+            {
+                if(next.getKey().peaksOnDay(5))
+                {
+                    curr6++;
+                    current = curr6;
+                    cap = resSingle;
+                }
+                else if(next.getKey().peaksOnDay(6))
+                {
+                    curr7++;
+                    current = curr7;
+                    cap = resSingle;
+                }
+                else
+                    cap = -1;
+            }
+
+            if(current <= cap)
+            {
+                LOG.info("Reserving item {} ({})", next.getKey(), next.getValue());
+                reservedItems.add(next.getKey().item);
+            }
+            if (current <= cap/2)
+                itemsThatGetReservations.add(next.getKey().item);
         }
 
         reservedHelpers.clear();
@@ -896,7 +964,7 @@ public class Solver
             {
                 int penalty = Math.min(swap, stepDown);
                 int finalPenalty = penalty / Math.max(i, 1) + 1;
-                finalPenalty*=.3; //Nerfing this hard since it doesn't seem to help
+                finalPenalty=Math.max((int)(finalPenalty*.3), 1); //Nerfing this hard since it doesn't seem to help
                 LOG.info("Reserving helper " + bestHelper + " to go with main item " + itemEnum + " (#" + (i + 1) + "), difference between " + bestHelper + " and " + secondHelper + "? " + swap + " cost of stepping down? " + stepDown + " Penalty: " + finalPenalty);
 
                 reservedHelpers.put(itemEnum, new ReservedHelper(bestHelper, finalPenalty));
@@ -927,6 +995,7 @@ public class Solver
     {
         CycleSchedule bestSchedule = new CycleSchedule(day, groove);
         bestSchedule.setForFirstThreeWorkshops(recs.get(0).getKey().getItems());
+        bestSchedule.setFourthWorkshop(recs.bestSubItems);
         addCraftedFromCycle(day, bestSchedule, rank, false);
         var newRec = new DailyRecommendation(day, rank, recs, bestSchedule);
         LOG.info("Adding late-week rec {}", newRec);
@@ -934,8 +1003,11 @@ public class Solver
     }
     private void addRestToList(BruteForceSchedules recs, int day, int rank, List<DailyRecommendation> recommendations)
     {
+        CycleSchedule bestSchedule = new CycleSchedule(day, groove);
+        bestSchedule.setForFirstThreeWorkshops(recs.get(0).getKey().getItems());
+        bestSchedule.setFourthWorkshop(recs.bestSubItems);
         addCraftedFromCycle(day, null, rank, false);
-        var newRec = new DailyRecommendation(day, rank, recs);
+        var newRec = new DailyRecommendation(day, rank, recs, bestSchedule, true);
         LOG.info("Resting for late-week rec {}", newRec);
         recommendations.add(newRec);
     }
@@ -2088,7 +2160,7 @@ public class Solver
         List<Item> firstNonInterfering = new ArrayList<>();
         if(islandRank == maxIslandRank)
         {
-            for(int i=1;i<sortedSchedules.size();i++)
+            for(int i=0;i<sortedSchedules.size();i++)
             {
                 var subItems = sortedSchedules.get(i).getKey().getItems();
                 if(!sortedSchedules.get(0).getKey().interferesWithMe(subItems, false))

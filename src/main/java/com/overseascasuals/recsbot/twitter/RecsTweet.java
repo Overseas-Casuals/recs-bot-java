@@ -4,7 +4,6 @@ import com.overseascasuals.recsbot.data.Item;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.*;
-import twitter4j.v1.*;
 
 import java.util.stream.Collectors;
 

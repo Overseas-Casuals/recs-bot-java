@@ -399,7 +399,7 @@ public class GetPeaksTask implements ScheduledTask
 
     private void trySendTweet(int week, DailyRecommendation rec)
     {
-        if(rec.getMaxRank() != Solver.maxIslandRank)
+        /*if(rec.getMaxRank() != Solver.maxIslandRank)
             return;
         try{
             RecsTweet.sendRec(week, rec, !local);
@@ -407,7 +407,7 @@ public class GetPeaksTask implements ScheduledTask
         catch(Exception e)
         {
             LOG.error("Error tweeting!!",e);
-        }
+        }*/
     }
 
 
@@ -590,16 +590,16 @@ public class GetPeaksTask implements ScheduledTask
                 currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
                 ItemSupply supply = tcDays.get(2).getObjects().get(i + 1);
                 if (currentPeak.getPeak().equals("45")) {
-                    if (supply.getSupply() == Insufficient) //potentialPeaks 4
-                    {
-                        if (supply.getDemand() == Skyrocketing) {
-                            num4Strong++;
-                            currentPeak.setPeak("4S");
-                        } else {
-                            num4Weak++;
-                            currentPeak.setPeak("4W");
-                        }
-                    } else //potentialPeaks 5
+
+                    if (supply.getDemand() == Skyrocketing) {
+                        num4Strong++;
+                        currentPeak.setPeak("4S");
+                    } else if(supply.getDemand() == Increasing) {
+                        num4Weak++;
+                        currentPeak.setPeak("4W");
+                    }
+
+                    else //potentialPeaks 5
                     {
                         num5++;
                         currentPeak.setPeak("5U");
