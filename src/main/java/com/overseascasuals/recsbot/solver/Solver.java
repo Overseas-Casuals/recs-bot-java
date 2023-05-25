@@ -633,7 +633,7 @@ public class Solver
                         }
                         else
                         {
-                            LOG.info("Recalced C4 schedule {} ({}) is still worse. Resting.", Arrays.toString(bestSchedule.getKey().getItems().toArray()), bestSchedule.getValue().getWeighted());
+                            LOG.info("Recalced C4 schedule {} ({}) is still worse. Resting.", Arrays.toString(possibleRecs.get(0).getKey().getItems().toArray()), possibleRecs.get(0).getValue().getWeighted());
                             shouldRest = true;
                         }
                     }
