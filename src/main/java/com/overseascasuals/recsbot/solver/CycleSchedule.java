@@ -1,4 +1,5 @@
 package com.overseascasuals.recsbot.solver;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import com.overseascasuals.recsbot.data.*;
@@ -26,6 +27,8 @@ public class CycleSchedule
         workshops[0] = new WorkshopSchedule(crafts);
         workshops[1] = new WorkshopSchedule(crafts);
         workshops[2] = new WorkshopSchedule(crafts);
+        if(workshops[3] == null)
+            workshops[3] = new WorkshopSchedule(new ArrayList<>());
     }
     public void setFourthWorkshop(List<Item> crafts)
     {

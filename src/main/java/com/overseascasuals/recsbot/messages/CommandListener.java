@@ -427,7 +427,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         List<EmbedCreateSpec> embeds = new ArrayList<>();
         for(var rec : recs)
         {
-            embeds.add(OCUtils.getGeneralRecEmbed(week, rec.withRank(rank)));
+            embeds.add(OCUtils.getGeneralRecEmbed(week, rec.withRank(rank), false));
         }
 
         return event.editReply(content).withEmbedsOrNull(embeds);

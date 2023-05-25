@@ -158,7 +158,7 @@ public class WorkshopSchedule
             while (craftingDaysLeft > 0 && expectedEndingGroove < Solver.GROOVE_MAX)
             {
                 if(verboseLogging)
-                    LOG.info("Have {} crafting days after today, should end at {} groove, seeing what happens tomorrow after we get to {}", craftingDaysLeft, expectedEndingGroove, expectedEndingGroove + estimatedGroovePerDay);
+                    LOG.info("Have {} crafting days after today, should end at {} groove, seeing what happens tomorrow after we get to {}", craftingDaysLeft, expectedEndingGroove, Math.min(expectedEndingGroove + estimatedGroovePerDay, GROOVE_MAX));
                 if (expectedEndingGroove + estimatedGroovePerDay + NUM_WORKSHOPS - 1 <= Solver.GROOVE_MAX)
                 {
                     fullDays++;
