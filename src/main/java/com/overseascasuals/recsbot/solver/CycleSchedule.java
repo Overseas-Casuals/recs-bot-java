@@ -24,7 +24,7 @@ public class CycleSchedule
     {
         this.rank = rank;
         this.day = day;
-        startingGroove = groove;
+        startingGroove = Math.min(groove, Solver.getMaxGroove(rank));
     }
     
     public void setForFirstThreeWorkshops(List<Item> crafts)
