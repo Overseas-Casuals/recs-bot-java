@@ -359,7 +359,7 @@ public class WorkshopSchedule
             if(i > 0)
                 isEfficient = Solver.items[items.get(i-1).ordinal()].getsEfficiencyBonus(Solver.items[items.get(i).ordinal()]);
             
-            limitedUses.put(items.get(i), limitedUses.get(items.get(i))-numWorkshops - (isEfficient?numWorkshops:0));
+            limitedUses.put(items.get(i), Math.max(limitedUses.get(items.get(i))-numWorkshops - (isEfficient?numWorkshops:0), 0));
         }
         
         return limitedUses;

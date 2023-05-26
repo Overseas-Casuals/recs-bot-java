@@ -126,6 +126,20 @@ public class CycleSchedule
             grooveBonus+= workshop.getValueWithGrooveEstimate(day, startingGroove, rested, reservedHelpers).getGroove();
         }
     }
+
+    public int getWeightedValue()
+    {
+        if(grooveBonus == -1)
+            throw new RuntimeException("Getting weighted value from cycle schedule before groove bonus set");
+        return getValue() + getGrooveBonus() - (int)(getMaterialCost() * Solver.materialWeight);
+    }
+
+    public Map<Item, Integer> getLimitedUses(Map<Item, Integer> limitedUse)
+    {
+        limitedUse = workshops[0].getLimitedUses(limitedUse, false);
+        limitedUse = workshops[3].getLimitedUses(limitedUse, true);
+        return limitedUse;
+    }
     @Override
     public String toString()
     {
