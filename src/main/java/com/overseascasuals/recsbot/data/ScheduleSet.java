@@ -23,4 +23,12 @@ public class ScheduleSet
     {
         return items.size();
     }
+
+    @Override
+    public String toString() {
+        return "ScheduleSet{" +
+                "items=" + items +
+                ", subItems=" + subItems +
+                '}';
+    }
 }

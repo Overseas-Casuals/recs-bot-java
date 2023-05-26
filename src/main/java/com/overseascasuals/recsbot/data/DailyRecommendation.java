@@ -34,10 +34,10 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         this.day = day;
         restRecommended = false;
         this.bestRec = bestRec;
-        if(rank>=15)
+        /*if(rank>=15)
             this.bestRec.setFourthWorkshop(recs.bestSubItems);
         else
-            this.bestRec.setFourthWorkshop(new ArrayList<>());
+            this.bestRec.setFourthWorkshop(new ArrayList<>());*/
         int startingGroove = bestRec.getStartingGroove();
         bestRec.setStartingGroove(0);
         groovelessValue = bestRec.getValue();
@@ -45,27 +45,14 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         dailyValue = bestRec.getValue();
     }
 
-    public DailyRecommendation(int day, int rank, BruteForceSchedules recs, CycleSchedule bestRec, CycleSchedule oldRec, WorkshopValue oldValue)
+    public DailyRecommendation(int day, int rank, BruteForceSchedules recs, CycleSchedule bestRec, CycleSchedule oldRec)
     {
-        super(recs);
-        this.maxRank = rank;
-        this.day = day;
-        restRecommended = false;
-        this.bestRec = bestRec;
-        if(rank>=15)
-            this.bestRec.setFourthWorkshop(recs.bestSubItems);
-        else
-            this.bestRec.setFourthWorkshop(new ArrayList<>());
-        int startingGroove = bestRec.getStartingGroove();
-        bestRec.setStartingGroove(0);
-        groovelessValue = bestRec.getValue();
-        bestRec.setStartingGroove(startingGroove);
-        dailyValue = bestRec.getValue();
+        this(day, rank, recs, bestRec);
+        int startingGroove = oldRec.getStartingGroove();
         this.oldRec = oldRec;
         oldRec.setStartingGroove(0);
         oldGroovelessValue = oldRec.getValue();
         oldRec.setStartingGroove(startingGroove);
-        this.oldValue = oldValue;
     }
 
     public DailyRecommendation withRank(int rank)
@@ -135,10 +122,6 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
     public CycleSchedule getOldRec()
     {
         return oldRec;
-    }
-    public WorkshopValue getOldValue()
-    {
-        return oldValue;
     }
 
     public int getOldGrooveless()

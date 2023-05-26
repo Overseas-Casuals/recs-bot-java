@@ -2,6 +2,8 @@ package com.overseascasuals.recsbot.solver;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
+import java.util.Map;
+
 import com.overseascasuals.recsbot.data.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +15,7 @@ public class CycleSchedule
     private int startingGroove;
 
     private int endingGroove;
+    private int grooveBonus = -1;
     WorkshopSchedule[] workshops = new WorkshopSchedule[Solver.NUM_WORKSHOPS];
     HashMap<Item, Integer> numCrafted;
     
@@ -109,7 +112,20 @@ public class CycleSchedule
         }
         return cost;
     }
-    
+
+    public int getGrooveBonus()
+    {
+            return grooveBonus;
+    }
+
+    public void setGrooveBonus(boolean rested, Map<Item, ReservedHelper> reservedHelpers)
+    {
+        grooveBonus = 0;
+        for(var workshop : workshops)
+        {
+            grooveBonus+= workshop.getValueWithGrooveEstimate(day, startingGroove, rested, reservedHelpers).getGroove();
+        }
+    }
     @Override
     public String toString()
     {

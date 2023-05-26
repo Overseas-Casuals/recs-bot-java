@@ -59,15 +59,15 @@ public class OCUtils
 
             else
             {
-                boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.get(0).getValue().getGroove() > 0);
+                boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.getBestRec().getGrooveBonus() > 0);
                 builder.addField("Tentative Recommendation", rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), inline)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
 
                 if(rec.getBestRec().getStartingGroove() != 0)
                     builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue() + cowriesEmoji, true);
 
-                if(rec.get(0).getValue().getGroove() > 0)
-                    builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
+                if(rec.getBestRec().getGrooveBonus() > 0)
+                    builder.addField("Estimated Bonus", String.valueOf(rec.getBestRec().getGrooveBonus()), true);
             }
             builder.addField("\u200B", "\u200B", false)
                     .addField("Required Info", rec.getTroublemakers().stream().map(Item::getDisplayName).collect(Collectors.joining(", ")), true)
@@ -108,15 +108,15 @@ public class OCUtils
                 title = "Updated Recommendation";
             }
 
-            boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.get(0).getValue().getGroove() > 0);
+            boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.getBestRec().getGrooveBonus() > 0);
             builder.addField(title, rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), inline)
                     .addField("Grooveless Value", rec.getGroovelessValue() + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
 
             if(rec.getBestRec().getStartingGroove() != 0)
                     builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue() + cowriesEmoji, true);
 
-            if(rec.get(0).getValue().getGroove() > 0)
-                builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
+            if(rec.getBestRec().getGrooveBonus() > 0)
+                builder.addField("Estimated Bonus", String.valueOf(rec.getBestRec().getGrooveBonus()), true);
 
             if(rec.getBestRec().getSubItems()!=null && rec.getBestRec().getSubItems().size() > 0)
                 builder.addField("Workshop #4 Rec", rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), false);
@@ -124,7 +124,7 @@ public class OCUtils
             if(rec.getOldRec() != null)
             {
                 builder.addField("", "", false);
-                boolean oldInline = !(rec.getBestRec().getStartingGroove() != 0 && rec.getOldValue().getGroove() > 0);
+                boolean oldInline = !(rec.getBestRec().getStartingGroove() != 0 && rec.getOldRec().getGrooveBonus() > 0);
 
                 builder.addField("Original Recommendation", rec.getOldRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), oldInline)
                         .addField("Grooveless Value", String.valueOf(rec.getOldGrooveless())+(rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
@@ -132,8 +132,8 @@ public class OCUtils
                 if(rec.getBestRec().getStartingGroove() != 0)
                         builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getOldRec().getValue()+ cowriesEmoji, true);
 
-                if(rec.getOldValue().getGroove() > 0)
-                    builder.addField("Estimated Bonus", String.valueOf(rec.getOldValue().getGroove() * 3), true);
+                if(rec.getOldRec().getGrooveBonus() > 0)
+                    builder.addField("Estimated Bonus", String.valueOf(rec.getOldRec().getGrooveBonus()), true);
             }
         }
 
