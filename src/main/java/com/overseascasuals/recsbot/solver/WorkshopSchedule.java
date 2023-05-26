@@ -19,14 +19,16 @@ public class WorkshopSchedule
     public int currentIndex = 0; //Used for cycle scheduler to figure out crafts stuff
 
     Map<RareMaterial,Integer> rareMaterialsRequired;
+    private int rank;
     
-    public WorkshopSchedule(List<Item> crafts)
+    public WorkshopSchedule(List<Item> crafts, int rank)
     {
         completionHours = new ArrayList<>();
         this.crafts = new ArrayList<>();
         items = new ArrayList<>();
         rareMaterialsRequired = new HashMap<>();
         setCrafts(crafts);
+        this.rank = rank;
     }
     
     public void setCrafts(List<Item> newCrafts)
@@ -78,7 +80,7 @@ public class WorkshopSchedule
     public int getValueForCurrent(int day, int craftedSoFar, int currentGroove, boolean isEfficient, boolean verboseLogging)
     {
         ItemInfo craft = crafts.get(currentIndex);        
-        int baseValue = craft.baseValue * Solver.WORKSHOP_BONUS * (100+currentGroove) / 10000;
+        int baseValue = craft.baseValue * Solver.getWorkshopBonus(rank) * (100+currentGroove) / 10000;
         int supply = craft.getSupplyOnDay(day) + craftedSoFar;
         int adjustedValue = baseValue * craft.popularityRatio * ItemInfo.getSupplyBucket(supply).multiplier  / 10000;
         
@@ -155,11 +157,11 @@ public class WorkshopSchedule
             int fullDays = 0;
             int numRowsOfPartialDay = 0;
             int expectedEndingGroove = expectedStartingGroove;
-            while (craftingDaysLeft > 0 && expectedEndingGroove < Solver.GROOVE_MAX)
+            while (craftingDaysLeft > 0 && expectedEndingGroove < Solver.getMaxGroove(rank))
             {
                 if(verboseLogging)
-                    LOG.info("Have {} crafting days after today, should end at {} groove, seeing what happens tomorrow after we get to {}", craftingDaysLeft, expectedEndingGroove, Math.min(expectedEndingGroove + estimatedGroovePerDay, GROOVE_MAX));
-                if (expectedEndingGroove + estimatedGroovePerDay + NUM_WORKSHOPS - 1 <= Solver.GROOVE_MAX)
+                    LOG.info("Have {} crafting days after today, should end at {} groove, seeing what happens tomorrow after we get to {}", craftingDaysLeft, expectedEndingGroove, Math.min(expectedEndingGroove + estimatedGroovePerDay, Solver.getMaxGroove(rank)));
+                if (expectedEndingGroove + estimatedGroovePerDay + NUM_WORKSHOPS - 1 <= Solver.getMaxGroove(rank))
                 {
                     fullDays++;
                     expectedEndingGroove += estimatedGroovePerDay;
@@ -169,9 +171,9 @@ public class WorkshopSchedule
                 }
                 else
                 {
-                    int grooveToGo = Solver.GROOVE_MAX - expectedEndingGroove;
+                    int grooveToGo = Solver.getMaxGroove(rank) - expectedEndingGroove;
                     numRowsOfPartialDay = (grooveToGo + 1) / NUM_WORKSHOPS;
-                    expectedEndingGroove = Solver.GROOVE_MAX;
+                    expectedEndingGroove = Solver.getMaxGroove(rank);
                     if(verboseLogging)
                         LOG.info("There's {} groove left to add today for bonus craft #{}, so lets say that's {} rows", grooveToGo, i+1, numRowsOfPartialDay);
                 }
@@ -215,7 +217,7 @@ public class WorkshopSchedule
             ItemInfo completedCraft = getCurrentCraft();
             boolean efficient = currentCraftIsEfficient();
             int previouslyCrafted = numCrafted.getOrDefault(completedCraft.item, 0);
-            int nextGroove = Math.min(startingGroove + i*NUM_WORKSHOPS, Solver.GROOVE_MAX);
+            int nextGroove = Math.min(startingGroove + i*NUM_WORKSHOPS, Solver.getMaxGroove(rank));
             int currentValue = getValueForCurrent(day, previouslyCrafted, nextGroove, efficient, verboseLogging);
 
             if((strongRatio62>0 || strongRatio63 >0) && day == 1 && completedCraft.peak == PeakCycle.Cycle2Unknown)

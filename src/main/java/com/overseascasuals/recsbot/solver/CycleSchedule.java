@@ -12,6 +12,7 @@ public class CycleSchedule
 {
     Logger LOG = LoggerFactory.getLogger(CycleSchedule.class);
     int day;
+    int rank;
     private int startingGroove;
 
     private int endingGroove;
@@ -19,29 +20,30 @@ public class CycleSchedule
     WorkshopSchedule[] workshops = new WorkshopSchedule[Solver.NUM_WORKSHOPS];
     HashMap<Item, Integer> numCrafted;
     
-    public CycleSchedule(int day, int groove)
+    public CycleSchedule(int day, int groove, int rank)
     {
+        this.rank = rank;
         this.day = day;
         startingGroove = groove;
     }
     
     public void setForFirstThreeWorkshops(List<Item> crafts)
     {
-        workshops[0] = new WorkshopSchedule(crafts);
-        workshops[1] = new WorkshopSchedule(crafts);
-        workshops[2] = new WorkshopSchedule(crafts);
+        workshops[0] = new WorkshopSchedule(crafts, rank);
+        workshops[1] = new WorkshopSchedule(crafts, rank);
+        workshops[2] = new WorkshopSchedule(crafts, rank);
         if(workshops[3] == null)
-            workshops[3] = new WorkshopSchedule(new ArrayList<>());
+            workshops[3] = new WorkshopSchedule(new ArrayList<>(), rank);
     }
     public void setFourthWorkshop(List<Item> crafts)
     {
-        workshops[3] = new WorkshopSchedule(crafts);
+        workshops[3] = new WorkshopSchedule(crafts, rank);
     }
     
     public void setWorkshop(int index, List<Item> crafts)
     {
         if(workshops[index] == null)
-            workshops[index] = new WorkshopSchedule(crafts);
+            workshops[index] = new WorkshopSchedule(crafts, rank);
         else
             workshops[index].setCrafts(crafts);
     }
@@ -91,8 +93,8 @@ public class CycleSchedule
            
            totalCowries += cowriesThisHour;
            currentGroove += grooveToAdd;
-           if(currentGroove > Solver.GROOVE_MAX)
-               currentGroove = Solver.GROOVE_MAX;
+           if(currentGroove > Solver.getMaxGroove(rank))
+               currentGroove = Solver.getMaxGroove(rank);
            craftsToAdd.forEach((k, v) ->  {numCrafted.put(k, numCrafted.getOrDefault(k, 0) + v); });
            
        }

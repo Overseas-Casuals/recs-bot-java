@@ -26,17 +26,17 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
         this.startingGroove = startingGroove;
     }
 
-    public void setBestSubItems(List<Item> bestSubItems, boolean rested, Map<Item, ReservedHelper> reservedHelpers)
+    public void setBestSubItems(List<Item> bestSubItems, boolean rested, Map<Item, ReservedHelper> reservedHelpers, int rank)
     {
         this.bestSubItems = bestSubItems;
-        bestRec = new CycleSchedule(day, startingGroove);
+        bestRec = new CycleSchedule(day, startingGroove, rank);
         bestRec.setForFirstThreeWorkshops(get(0).getKey().getItems());
         bestRec.setFourthWorkshop(bestSubItems);
         bestRec.setGrooveBonus(rested, reservedHelpers);
         if (!get(0).getKey().getItems().equals(bestSubItems) && bestSubItems.size() > 0)
         {
             int bestValue = bestRec.getWeightedValue();
-            CycleSchedule all4Rec = new CycleSchedule(day, startingGroove);
+            CycleSchedule all4Rec = new CycleSchedule(day, startingGroove, rank);
             all4Rec.setForFirstThreeWorkshops(get(0).getKey().getItems());
             all4Rec.setFourthWorkshop(get(0).getKey().getItems());
             all4Rec.setGrooveBonus(rested, reservedHelpers);

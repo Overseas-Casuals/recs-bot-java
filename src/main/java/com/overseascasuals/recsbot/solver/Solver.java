@@ -31,8 +31,36 @@ public class Solver
 
     @Autowired
     CraftRepository craftRepository;
-    static int WORKSHOP_BONUS = 130;
-    static int GROOVE_MAX = 45;
+    static int getMaxGroove(int rank)
+    {
+        if(rank >= 15)
+            return 45;
+        if (rank >=9)
+            return 35;
+        if(rank >=7)
+            return 25;
+        if(rank >=5)
+            return 20;
+        return 15;
+    }
+    static int getWorkshopBonus(int rank)
+    {
+        if(rank>=14)
+            return 130;
+        if (rank>=8)
+            return 120;
+        if(rank>=6)
+            return 110;
+        return 100;
+    }
+    static int getNumWorkshops(int rank)
+    {
+        if(rank >= 15)
+            return 4;
+        if (rank >= 5)
+            return 3;
+        return 2;
+    }
     static int NUM_WORKSHOPS = 4;
 
     static int averageDayValue = 4381;
@@ -276,7 +304,7 @@ public class Solver
 
                         itemInfo.setCrafted(numToAdd + itemInfo.getCraftedOnDay(i), i);
                     }
-                    groove = Math.min(groove, GROOVE_MAX);
+                    groove = Math.min(groove, getMaxGroove(maxIslandRank));
                     dailySchedules.put(i, new ScheduleSet(craftsAsItems, subcraftsAsItems));
                 }
                 LOG.info("groove after day {}: {}", i+1, groove);
@@ -444,9 +472,9 @@ public class Solver
                         }
                     }
 
-                    CycleSchedule oldSched = new CycleSchedule(day, startingGroove);
+                    CycleSchedule oldSched = new CycleSchedule(day, startingGroove, maxIslandRank);
 
-                    CycleSchedule newSched = new CycleSchedule(day, startingGroove);
+                    CycleSchedule newSched = new CycleSchedule(day, startingGroove, maxIslandRank);
                     newSched.setForFirstThreeWorkshops(newCrafts);
                     newSched.setFourthWorkshop(newSub);
                     newSched.setGrooveBonus(restedAlready(), reservedHelpers);
@@ -478,7 +506,7 @@ public class Solver
                             {
                                 if(startingGroovePerDay.containsKey(i))
                                 {
-                                    int adjusted = Math.min(startingGroovePerDay.get(i) + grooveDiff, GROOVE_MAX);
+                                    int adjusted = Math.min(startingGroovePerDay.get(i) + grooveDiff, getMaxGroove(maxIslandRank));
                                     LOG.info("Changing day {}'s groove from {} to {}", i+1, startingGroovePerDay.get(i), adjusted);
                                     startingGroovePerDay.put(i, adjusted );
                                 }
@@ -506,7 +534,7 @@ public class Solver
 
 
         if(day==3)
-            totalValue = generateTotalValue(listOfRecs);
+            totalValue = generateTotalValue(listOfRecs, maxIslandRank);
 
         hasRunRecs = true;
         isRunningRecs = false;
@@ -705,13 +733,13 @@ public class Solver
     {
         cachedAltRecs.remove(key);
     }
-    public int generateTotalValue(List<DailyRecommendation> lateWeekRecs)
+    public int generateTotalValue(List<DailyRecommendation> lateWeekRecs, int rank)
     {
         int total = 0;
         for(int day = 1; day < 4; day++)
         {
             //var crafts = craftRepository.findCraftsByDay(week, day, maxIslandRank);
-            CycleSchedule sched = new CycleSchedule(day, startingGroovePerDay.get(day));
+            CycleSchedule sched = new CycleSchedule(day, startingGroovePerDay.get(day), rank);
             sched.setForFirstThreeWorkshops(dailySchedules.get(day).items);
             sched.setFourthWorkshop(dailySchedules.get(day).subItems);
             int today = sched.getValue();
@@ -730,7 +758,7 @@ public class Solver
         fortuneValue = 0;
         try
         {
-            CycleSchedule crime2 = new CycleSchedule(1, 0);
+            CycleSchedule crime2 = new CycleSchedule(1, 0, maxIslandRank);
             crime2.setForFirstThreeWorkshops(new ArrayList<>());
             addCraftedFromCycle(1, crime2, maxIslandRank, false);
             for(int day=2; day<7; day++)
@@ -738,7 +766,7 @@ public class Solver
                 CycleSchedule sched;
                 if(fortuneTellerRecs == null)
                 {
-                    sched = new CycleSchedule(day, groove);
+                    sched = new CycleSchedule(day, groove, maxIslandRank);
                     var crafts = craftRepository.findCraftsByDay(week, day, -1);
                     sched.setForFirstThreeWorkshops(crafts.getCrafts());
                     sched.setFourthWorkshop(crafts.getSubcrafts());
@@ -786,7 +814,7 @@ public class Solver
 
         LOG.info("Setting schedule for day {} to {} with starting groove {}", day+1, newItems, grooveSoFar);
 
-        CycleSchedule newSched = new CycleSchedule(day, grooveSoFar);
+        CycleSchedule newSched = new CycleSchedule(day, grooveSoFar, rank);
         newSched.setForFirstThreeWorkshops(newItems);
         addCraftedFromCycle(day, newSched, rank, true);
 
@@ -1017,7 +1045,7 @@ public class Solver
 
     private void addDailyRecToList(BruteForceSchedules recs, int day, int groove, int rank, List<DailyRecommendation> recommendations)
     {
-        CycleSchedule bestSchedule = new CycleSchedule(day, groove);
+        CycleSchedule bestSchedule = new CycleSchedule(day, groove, rank);
         bestSchedule.setForFirstThreeWorkshops(recs.get(0).getKey().getItems());
         bestSchedule.setFourthWorkshop(recs.getBestSubItems());
         addCraftedFromCycle(day, recs.getBestRec(), rank, false);
@@ -1027,7 +1055,7 @@ public class Solver
     }
     private void addRestToList(BruteForceSchedules recs, int day, int rank, List<DailyRecommendation> recommendations)
     {
-        CycleSchedule bestSchedule = new CycleSchedule(day, groove);
+        CycleSchedule bestSchedule = new CycleSchedule(day, groove, rank);
         bestSchedule.setForFirstThreeWorkshops(recs.get(0).getKey().getItems());
         bestSchedule.setFourthWorkshop(recs.getBestSubItems());
         addCraftedFromCycle(day, null, rank, false);
@@ -1468,8 +1496,8 @@ public class Solver
                 break;
             }
             LOG.info("Reserving future crafts for day {}: {}", i+1, crafts);
-            limitedItems = new WorkshopSchedule(crafts.items).getLimitedUses(limitedItems, false);
-            limitedItems = new WorkshopSchedule(crafts.subItems).getLimitedUses(limitedItems, true);
+            limitedItems = new WorkshopSchedule(crafts.items, rank).getLimitedUses(limitedItems, false);
+            limitedItems = new WorkshopSchedule(crafts.subItems, rank).getLimitedUses(limitedItems, true);
         }
 
         LOG.info("Getting rest of day schedules for day {} with groove {}, limited items {} through day {}",
@@ -1512,7 +1540,7 @@ public class Solver
 
         int worstIndex = -1;
         int worstValue = 99999;
-        int estGroove = (groove + GROOVE_MAX) / 2;
+        int estGroove = (groove + getMaxGroove(rank)) / 2;
 
         for (int d = day + 2; d < 7; d++)
         {
@@ -1582,10 +1610,10 @@ public class Solver
         var vacationRecs = new ArrayList<CycleSchedule>();
         for (int d = 0; d < 5; d++)
         {
-            var schedule = getBestSchedule(3, GROOVE_MAX/2, reservedSet, rank);
+            var schedule = getBestSchedule(3, getMaxGroove(rank)/2, reservedSet, rank);
             if(schedule == null)
             {
-                LOG.error("Failed to get vacation schedule {} with day {}, groove {}, and reserved {}", d, 3, GROOVE_MAX/2, reservedSet);
+                LOG.error("Failed to get vacation schedule {} with day {}, groove {}, and reserved {}", d, 3, getMaxGroove(rank)/2, reservedSet);
                 break;
             }
             vacationRecs.add(schedule);
@@ -2021,8 +2049,8 @@ public class Solver
         /*LOG.info("Getting best schedule for day {}. groove {}. limitedUse {}, allowUpToDay {}, startingItem {}, hoursLeft {} and chains {}",
                 day+1, groove, limitedUse, allowUpToDay, startingItem, hoursLeft, csvImporter.allEfficientChains.size());*/
         HashMap<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
-        if(groove > GROOVE_MAX)
-            groove = GROOVE_MAX;
+        if(groove > getMaxGroove(islandRank))
+            groove = getMaxGroove(islandRank);
 
         Collection<List<Item>> filteredItemLists;
 
@@ -2079,7 +2107,7 @@ public class Solver
         LOG.info("Evaluating {} schedules for day {}", filteredItemLists.size(), day+1);
         for (List<Item> list : filteredItemLists)
         {
-            addToScheduleMap(list, day, groove, limitedUse, safeSchedules, false);
+            addToScheduleMap(list, day, groove, islandRank, limitedUse, safeSchedules, false);
         }
 
         if(safeSchedules.size() == 0)
@@ -2088,7 +2116,7 @@ public class Solver
 
             for (List<Item> list : filteredItemLists)
             {
-                addToScheduleMap(list, day, groove, limitedUse, safeSchedules, true);
+                addToScheduleMap(list, day, groove, islandRank, limitedUse, safeSchedules, true);
             }
 
             if(safeSchedules.size() == 0)
@@ -2146,7 +2174,7 @@ public class Solver
             }
         }
         BruteForceSchedules schedules = new BruteForceSchedules(sortedSchedules.stream().limit(numToReturn).collect(Collectors.toList()), day, groove);
-        schedules.setBestSubItems(firstNonInterfering, restedAlready(), reservedHelpers);
+        schedules.setBestSubItems(firstNonInterfering, restedAlready(), reservedHelpers, islandRank);
 
         return schedules;
     }
@@ -2154,13 +2182,13 @@ public class Solver
     {
         return schedule.stream().mapToInt(item -> items[item.ordinal()].time).sum();
     }
-    private void addToScheduleMap(List<Item> list, int day, int groove, Map<Item,Integer> limitedUse,
+    private void addToScheduleMap(List<Item> list, int day, int groove, int rank, Map<Item,Integer> limitedUse,
             HashMap<WorkshopSchedule, WorkshopValue> safeSchedules, boolean verboseSolverLogging)
     {
         if(verboseSolverLogging)
             LOG.info("Checking schedule {} against {} safe schedules", list, safeSchedules.size());
 
-        WorkshopSchedule workshop = new WorkshopSchedule(list);
+        WorkshopSchedule workshop = new WorkshopSchedule(list, rank);
         if(workshop.usesTooMany(limitedUse, false, verboseSolverLogging))
         {
             if(verboseSolverLogging)
