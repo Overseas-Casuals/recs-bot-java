@@ -329,7 +329,7 @@ public class OCUtils
         {
             content += getArchiveContent(4+i, recs.get(i));
         }
-        //content+="\n**Season "+week+" Total:** "+ String.format("%,d", total)+cowriesEmoji;
+        content+="\n**Season "+week+" Total:** "+ String.format("%,d", total)+cowriesEmoji;
         MessageEditSpec messageEditSpec = MessageEditSpec.builder().contentOrNull(content).build();
         return messageEditSpec;
     }

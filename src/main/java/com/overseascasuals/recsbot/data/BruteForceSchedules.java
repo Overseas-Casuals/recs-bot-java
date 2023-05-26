@@ -14,8 +14,7 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
 {
     private static Logger LOG = LoggerFactory.getLogger(BruteForceSchedules.class);
 
-    //Should be private
-    public List<Item> bestSubItems;
+    private List<Item> bestSubItems;
     private CycleSchedule bestRec;
     private int day;
     private int startingGroove;
