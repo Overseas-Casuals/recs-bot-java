@@ -43,74 +43,42 @@ public class RecsTweet
     {
         StringBuilder str = new StringBuilder("Season ").append(week).append(", Cycle ").append(rec.getDay()+1).append(": ");
 
-        if(rec.getOldRec() != null)
-        {
-            str.append("CURRENT DAY UPDATE");
-        }
-        if(rec.isTentative())
-        {
-            str.append("TENTATIVE SCHEDULE");
-        }
         if(rec.isRestRecommended())
         {
             str.append("\n").append(rest);
         }
         else
         {
-            str.append("\nWorkshops #1-3:\n∟ ")
+            boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems());
+            str.append("\nWorkshops #1-").append(ws4Diff?3:4).append(":\n∟ ")
                     .append(rec.getBestRec().getItems().stream().map(Item::getDisplayNameWithTime)
                             .collect(Collectors.joining(" - ")));
-            str.append("\nWorkshop #4:\n∟ ")
-                    .append(rec.getBestRec().getSubItems().stream().map(Item::getDisplayNameWithTime)
-                            .collect(Collectors.joining(" - ")));
+            if(ws4Diff)
+            {
+                str.append("\nWorkshop #4:\n∟ ")
+                        .append(rec.getBestRec().getSubItems().stream().map(Item::getDisplayNameWithTime)
+                                .collect(Collectors.joining(" - ")));
+            }
+
             str.append("\nBase value: ").append(rec.getGroovelessValue());
             if(rec.getBestRec().getStartingGroove() > 0)
                 str.append(". With ").append(rec.getBestRec().getStartingGroove()).append(" Groove: ")
                         .append(rec.getDailyValue());
-
-            if(rec.get(0).getValue().getGroove() > 0)
-            {
-                str.append(" (+")
-                        .append(rec.getBestRec().getEndingGroove() - rec.getBestRec().getStartingGroove() - 12)
-                        .append(" Groove Bonus)");
-            }
         }
-
-        if(rec.getOldRec() != null)
-        {
-            int diff = rec.getDailyValue() - rec.getOldRec().getValue();
-            str.append("\n\nWorth ");
-            if(diff > 0)
-                str.append("+");
-            str.append(diff)
-                .append(" Cowries");
-
-            int grooveGenerated = rec.getBestRec().getEndingGroove() - rec.getBestRec().getStartingGroove();
-            int oldGrooveGenerated = rec.getOldRec().getEndingGroove() - rec.getOldRec().getStartingGroove();
-
-            if(grooveGenerated != oldGrooveGenerated)
-            {
-                str.append(" (");
-                if(grooveGenerated > oldGrooveGenerated)
-                    str.append("+");
-                str.append(grooveGenerated-oldGrooveGenerated).append(" Groove.)");
-            }
-        }
-        if(rec.isTentative())
-        {
-            str.append("\n\nThis rec is still tentative!");
-        }
-
 
         str.append("\n\n#FF14 #FFXIV #FinalFantasyXIV #IslandSanctuary");
         String toReturn = str.toString();
 
-        if(toReturn.length() > 280)
+        if(toReturn.length() >= 280)
             toReturn = toReturn.replace("#FinalFantasyXIV ","");
-        if(toReturn.length() > 280)
+        if(toReturn.length() >= 280)
             toReturn = toReturn.replace("#FF14 ","");
-        if(toReturn.length() > 280)
-            toReturn = toReturn.substring(0, 280);
+        if(toReturn.length() >= 280)
+            toReturn = toReturn.replace("#FFXIV ","");
+        if(toReturn.length() >= 280)
+            toReturn = toReturn.replace("#IslandSanctuary ","");
+        if(toReturn.length() >= 280)
+            toReturn = toReturn.substring(0, 279);
         return toReturn;
     }
 }

@@ -322,8 +322,7 @@ public class GetPeaksTask implements ScheduledTask
                     }
                     else
                     {
-                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole, squawkboxRole)).subscribe(message -> {LOG.info("Successfully posted day-of update: {}", message.getEmbeds());}, error -> { LOG.error("Error posting updated cycle schedule:",error); });;
-                        trySendTweet(week, recs);
+                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole, squawkboxRole)).subscribe(message -> {LOG.info("Successfully posted day-of update: {}", message.getEmbeds());}, error -> { LOG.error("Error posting updated cycle schedule:",error); });
                     }
 
                     list.remove(0);

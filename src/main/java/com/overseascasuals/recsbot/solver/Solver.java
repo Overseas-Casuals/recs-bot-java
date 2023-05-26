@@ -398,7 +398,7 @@ public class Solver
                     rested = dayToSolve;
 
                 LOG.info("{}", rec);
-                addCraftedFromCycle(rec.getDay(), rec.getBestRec(), rank, true);
+                addCraftedFromCycle(rec.getDay(), rec.isRestRecommended()?null:rec.getBestRec(), rank, true);
             }
             else if(day == 3)
             {
@@ -406,7 +406,7 @@ public class Solver
                 listOfRecs.addAll(getRecForSingleDay(dayToSolve, rank, null, true));
                 for(var rec : listOfRecs)
                 {
-                    addCraftedFromCycle(rec.getDay(), rec.getBestRec(), rec.getMaxRank(), true);
+                    addCraftedFromCycle(rec.getDay(), rec.isRestRecommended()?null:rec.getBestRec(), rec.getMaxRank(), true);
                 }
             }
         }

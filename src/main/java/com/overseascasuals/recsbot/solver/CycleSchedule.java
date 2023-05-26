@@ -31,7 +31,10 @@ public class CycleSchedule
     {
         workshops[0] = new WorkshopSchedule(crafts, rank);
         workshops[1] = new WorkshopSchedule(crafts, rank);
-        workshops[2] = new WorkshopSchedule(crafts, rank);
+        if(Solver.getNumWorkshops(rank)>2)
+            workshops[2] = new WorkshopSchedule(crafts, rank);
+        else
+            workshops[2] = new WorkshopSchedule(new ArrayList<>(), rank);
         if(workshops[3] == null)
             workshops[3] = new WorkshopSchedule(new ArrayList<>(), rank);
     }
