@@ -143,7 +143,7 @@ public class CycleSchedule
     @Override
     public String toString()
     {
-        return "Day: "+(day+1)+", Items: " + workshops[0].toString() + "Sub items: "+workshops[3].toString()+", Starting groove: "+startingGroove+", Ending groove: "+endingGroove;
+        return "Day: "+(day+1)+", Items: " + workshops[0].toString() + " Sub items: "+workshops[3].toString()+", Starting groove: "+startingGroove+", Ending groove: "+endingGroove;
     }
     public boolean equals(Object other)
     {

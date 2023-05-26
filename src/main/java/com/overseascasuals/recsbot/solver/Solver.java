@@ -1019,7 +1019,7 @@ public class Solver
     {
         CycleSchedule bestSchedule = new CycleSchedule(day, groove);
         bestSchedule.setForFirstThreeWorkshops(recs.get(0).getKey().getItems());
-        bestSchedule.setFourthWorkshop(recs.bestSubItems);
+        bestSchedule.setFourthWorkshop(recs.getBestSubItems());
         addCraftedFromCycle(day, recs.getBestRec(), rank, false);
         var newRec = new DailyRecommendation(day, rank, recs, bestSchedule);
         LOG.info("Adding late-week rec {}", newRec);
@@ -1029,7 +1029,7 @@ public class Solver
     {
         CycleSchedule bestSchedule = new CycleSchedule(day, groove);
         bestSchedule.setForFirstThreeWorkshops(recs.get(0).getKey().getItems());
-        bestSchedule.setFourthWorkshop(recs.bestSubItems);
+        bestSchedule.setFourthWorkshop(recs.getBestSubItems());
         addCraftedFromCycle(day, null, rank, false);
         var newRec = new DailyRecommendation(day, rank, recs, bestSchedule, true);
         LOG.info("Resting for late-week rec {}", newRec);
@@ -1198,7 +1198,7 @@ public class Solver
                 cycle5Sched = getBestBruteForceSchedules(4, startingGroove, reserved7Set, 6, alternatives, rank);
 
                 int total65 = 0;
-                int grooveFrom5 = getGrooveMadeWithSchedule(new ScheduleSet(cycle5Sched.get(0).getKey().getItems(), cycle5Sched.bestSubItems));
+                int grooveFrom5 = getGrooveMadeWithSchedule(new ScheduleSet(cycle5Sched.get(0).getKey().getItems(), cycle5Sched.getBestSubItems()));
                 cycle6Sched = getBestBruteForceSchedules(5, startingGroove + grooveFrom5, reserved7Set, 6, alternatives, rank);
                 //try deriving 5 from 6
                 Map<Item,Integer> reserved67Items = cycle6Sched.getBestRec().getLimitedUses(reserved7Set);
