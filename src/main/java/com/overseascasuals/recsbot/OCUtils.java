@@ -219,6 +219,10 @@ public class OCUtils
                 builder.addField("","",false)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
                         .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue()+ cowriesEmoji, true);
+                if(rec.getBestRec().getGrooveBonus() > 0)
+                {
+                    builder.addField("Estimated Bonus", String.valueOf(rec.getBestRec().getGrooveBonus()), true);
+                }
             }
         }
 
@@ -346,13 +350,13 @@ public class OCUtils
         boolean ws3Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems());
         content+=rec.getGroovelessValue()+cowriesEmoji;
         if(rec.getBestRec().getStartingGroove() > 0)
-            content+=" ("+rec.getDailyValue()+cowriesEmoji+" "+rec.getBestRec().getStartingGroove()+" Groove)";
-        content+="\n * WS1-"+(ws3Diff?3:4)+": " + rec.getBestRec().getItems().stream().map(Item::getDisplayName)
+            content+=" ("+rec.getDailyValue()+cowriesEmoji+" "+rec.getBestRec().getStartingGroove()+" Groove): ";
+        content+=rec.getBestRec().getItems().stream().map(Item::getDisplayName)
                 .collect(Collectors.joining(" - "));
 
         if(ws3Diff)
         {
-            content+="\n * WS4: "+rec.getBestRec().getSubItems().stream().map(Item::getDisplayName)
+            content+="\n * **WS4:** "+rec.getBestRec().getSubItems().stream().map(Item::getDisplayName)
                     .collect(Collectors.joining(" - "));
         }
 

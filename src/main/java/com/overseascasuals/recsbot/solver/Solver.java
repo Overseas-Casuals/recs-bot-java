@@ -75,7 +75,7 @@ public class Solver
 
     static int prepeakBonus = 5;
     
-    final static ItemInfo[] items = {
+    public final static ItemInfo[] items = {
             new ItemInfo(Potion,Concoctions,Invalid,28,4,1,null),
             new ItemInfo(Firesand,Concoctions,UnburiedTreasures,28,4,1,null),
             new ItemInfo(WoodenChair,Furnishings,Woodworks,42,6,1,null),
@@ -578,9 +578,10 @@ public class Solver
         {
             ScheduleSet craftsAsItems = dailySchedules.get(i);
             List<ItemInfo> todaysItems = new ArrayList<>();
+            clearDayUsage(List.of(i));
             if(craftsAsItems != null && craftsAsItems.size() > 0)
             {
-                clearDayUsage(List.of(i));
+
                 for(int c=0; c<craftsAsItems.size(); c++)
                 {
                     Item item = craftsAsItems.items.get(c);

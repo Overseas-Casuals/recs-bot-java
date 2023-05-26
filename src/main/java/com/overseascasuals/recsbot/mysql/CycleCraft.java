@@ -221,18 +221,8 @@ public class CycleCraft
     public String toString() {
         return "CycleCraft{" +
                 "craftID=" + craftID +
-                ", craft1='" + craft1 + '\'' +
-                ", craft2='" + craft2 + '\'' +
-                ", craft3='" + craft3 + '\'' +
-                ", craft4='" + craft4 + '\'' +
-                ", craft5='" + craft5 + '\'' +
-                ", craft6='" + craft6 + '\'' +
-                ", subcraft1='" + subcraft1 + '\'' +
-                ", subcraft2='" + subcraft2 + '\'' +
-                ", subcraft3='" + subcraft3 + '\'' +
-                ", subcraft4='" + subcraft4 + '\'' +
-                ", subcraft5='" + subcraft5 + '\'' +
-                ", subcraft6='" + subcraft6 + '\'' +
+                ", crafts='" + getCrafts() +
+                ", subcrafts='" + getSubcrafts() +
                 '}';
     }
 }
