@@ -1,24 +1,26 @@
 package com.overseascasuals.recsbot.data;
 
+import com.overseascasuals.recsbot.solver.CycleSchedule;
+
 import java.util.List;
 
 public class RestOfWeekRec
 {
-    private List<List<Item>> recs;
+    private List<CycleSchedule> recs;
     private int worstIndex;
     private boolean rested;
 
-    public RestOfWeekRec(List<List<Item>> recs, int worstIndex, boolean rested) {
+    public RestOfWeekRec(List<CycleSchedule> recs, int worstIndex, boolean rested) {
         this.recs = recs;
         this.worstIndex = worstIndex;
         this.rested = rested;
     }
 
-    public List<List<Item>> getRecs() {
+    public List<CycleSchedule> getRecs() {
         return recs;
     }
 
-    public void setRecs(List<List<Item>> recs) {
+    public void setRecs(List<CycleSchedule> recs) {
         this.recs = recs;
     }
 
