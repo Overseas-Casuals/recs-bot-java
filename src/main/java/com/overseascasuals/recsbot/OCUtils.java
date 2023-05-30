@@ -249,21 +249,19 @@ public class OCUtils
         builder.timestamp(Instant.now());
         //var messageSpec = MessageCreateSpec.builder();
 
-
-
         builder.color(Color.SUMMER_SKY);
-        builder.addField("Cycle 2", getStringFromRec(recs.get(1)), true)
-                .addField("Cycle 3", getStringFromRec(recs.get(4)),true)
-                .addField("Cycle 4", getStringFromRec(recs.get(2)),true)
-                .addField("Cycle 5", getStringFromRec(recs.get(3)),true)
-                .addField("Cycle 6", getStringFromRec(recs.get(0)),true)
-                .addField("Cycle 7", getRestText(),true);
+        addPredictiveRec(builder, recs.get(1), 2, false);
+        addPredictiveRec(builder, recs.get(4), 3, false);
+        addPredictiveRec(builder, recs.get(2), 4, false);
+        addPredictiveRec(builder, recs.get(3), 5, false);
+        addPredictiveRec(builder, recs.get(0), 6, false);
+        builder.addField("Cycle 7", getRestText(),true);
 
         //messageSpec.addEmbed(builder.build());
         return builder.build();
     }
 
-    public static String getStringFromRec(CycleSchedule rec)
+    private static void addPredictiveRec(EmbedCreateSpec.Builder builder, CycleSchedule rec, int cycle, boolean rest)
     {
         boolean ws4Diff = !rec.getItems().equals(rec.getSubItems()) && rec.getSubItems().size() > 0;
         String recString;
@@ -272,10 +270,18 @@ public class OCUtils
         else
             recString = "**First 3 Workshops:**\n";
         recString+=rec.getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"));
-        if(ws4Diff)
-            recString+="\n\n**4th Workshop:**\n"+rec.getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"));
 
-        return recString;
+        String title = "Cycle "+cycle;
+        if(rest)
+        {
+            recString = "||"+recString+"||";
+            title+= " - Rest";
+        }
+
+        builder.addField(title, recString, true);
+        if(rec.getSubItems().size()>0 && !rec.getSubItems().equals(rec.getItems()))
+            builder.addField(".", (rest?"||":"")+"**4th Workshop:**\n"+rec.getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+(rest?"||":""), true);
+        builder.addField("", "", false);
     }
 
     private static String getRestText()
@@ -296,12 +302,7 @@ public class OCUtils
         for(int i=0; i<recs.getRecs().size(); i++)
         {
             CycleSchedule rec = recs.getRecs().get(i);
-            String recString = getStringFromRec(rec);
-
-            if(!recs.isRested() && i==recs.getWorstIndex())
-                builder.addField("Cycle "+(startDay+i)+" - Rest", "||"+recString+"||", true);
-            else
-                builder.addField("Cycle "+(startDay+i), recString, true);
+            addPredictiveRec(builder, rec, startDay+i, !recs.isRested() && i==recs.getWorstIndex());
         }
 
         if(rank<0)
