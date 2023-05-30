@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 public class OCUtils
 {
     public static String cowriesEmoji = " <:OC_SeafarerCowrie:1109399604203626536>";
+    public static int altsToDisplay = 5;
     private static String getDateStr(int season)
     {
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d");
@@ -155,8 +156,9 @@ public class OCUtils
 
                 StringBuilder altSb = new StringBuilder();
                 StringBuilder grossSb = new StringBuilder();
-                for(var alt : rec)
+                for(int i = 0; i < altsToDisplay && i < rec.size(); i++)
                 {
+                    var alt = rec.get(i);
                     String altText = "**"+alt.getValue().getWeighted() +"**\u00A0\u00A0" + alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
                     altSb.append(altText).append('\n');
                     grossSb.append(alt.getValue().getWeighted()).append('\n');
@@ -172,10 +174,11 @@ public class OCUtils
             {
                 if(rec.isRestRecommended())
                 {
-                    boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems());
+                    boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems()) && rec.getBestRec().getSubItems().size()>0;
+                    String title = ws4Diff?"First 3 Workshops":"All Workshops";
                     //Show one alt
-                    builder.addField("If You Can't Rest...", "||**Workshops #1-"+(ws4Diff?3:4)+":**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
-                    if(ws4Diff && rec.getBestRec().getSubItems().size()>0)
+                    builder.addField("If You Can't Rest...", "||**"+title+":**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
+                    if(ws4Diff)
                             builder.addField(".", "||**4th Workshop:**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
                     builder.addField("Grooveless Value","||"+rec.getGroovelessValue()+"||", true);
                 }
@@ -199,30 +202,31 @@ public class OCUtils
                 builder.addField("","",false);
             var rec = recs.get(i);
 
-            boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems());
+            boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems())&& rec.getBestRec().getSubItems().size()>0;
             if(rec.isRestRecommended())
             {
                 builder.addField("Cycle "+(i+5),getRestText(), false);
-
+                String title = ws4Diff?"First 3 Workshops":"All Workshops";
                 //Show one alt
-                builder.addField("If You Can't Rest...", "||**Workshops #1-"+(ws4Diff?3:4)+":**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
+                builder.addField("If You Can't Rest...", "||**"+title+":**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
                 if(ws4Diff && rec.getBestRec().getSubItems().size()>0)
                     builder.addField(".", "||**4th Workshop:**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
                 builder.addField("Grooveless Value","||"+rec.getGroovelessValue()+"||", true);
             }
             else
             {
-                builder.addField("Cycle "+(i+5)+" Workshops #1-"+(ws4Diff?3:4), rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+                String title = ws4Diff?"First 3 Workshops":"All Workshops";
+                builder.addField("Cycle "+(i+5)+" "+title, rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
                 if(ws4Diff && rec.getBestRec().getSubItems().size()>0)
                     builder.addField("4th Workshop", rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
 
                 builder.addField("","",false)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
                         .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue()+ cowriesEmoji, true);
-                if(rec.getBestRec().getGrooveBonus() > 0)
+                /*if(rec.getBestRec().getGrooveBonus() > 0)
                 {
                     builder.addField("Estimated Bonus", String.valueOf(rec.getBestRec().getGrooveBonus()), true);
-                }
+                }*/
             }
         }
 
@@ -245,16 +249,33 @@ public class OCUtils
         builder.timestamp(Instant.now());
         //var messageSpec = MessageCreateSpec.builder();
 
+
+
         builder.color(Color.SUMMER_SKY);
-        builder.addField("Cycle 2", recs.get(1).getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
-                .addField("Cycle 3", recs.get(4).getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
-                .addField("Cycle 4", recs.get(2).getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
-                .addField("Cycle 5", recs.get(3).getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
-                .addField("Cycle 6", recs.get(0).getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
+        builder.addField("Cycle 2", getStringFromRec(recs.get(1)), true)
+                .addField("Cycle 3", getStringFromRec(recs.get(4)),true)
+                .addField("Cycle 4", getStringFromRec(recs.get(2)),true)
+                .addField("Cycle 5", getStringFromRec(recs.get(3)),true)
+                .addField("Cycle 6", getStringFromRec(recs.get(0)),true)
                 .addField("Cycle 7", getRestText(),true);
 
         //messageSpec.addEmbed(builder.build());
         return builder.build();
+    }
+
+    public static String getStringFromRec(CycleSchedule rec)
+    {
+        boolean ws4Diff = !rec.getItems().equals(rec.getSubItems()) && rec.getSubItems().size() > 0;
+        String recString;
+        if(!ws4Diff)
+            recString = "**All Workshops:**\n";
+        else
+            recString = "**First 3 Workshops:**\n";
+        recString+=rec.getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"));
+        if(ws4Diff)
+            recString+="\n\n**4th Workshop:**\n"+rec.getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"));
+
+        return recString;
     }
 
     private static String getRestText()
@@ -274,7 +295,9 @@ public class OCUtils
 
         for(int i=0; i<recs.getRecs().size(); i++)
         {
-            String recString = recs.getRecs().get(i).getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"));
+            CycleSchedule rec = recs.getRecs().get(i);
+            String recString = getStringFromRec(rec);
+
             if(!recs.isRested() && i==recs.getWorstIndex())
                 builder.addField("Cycle "+(startDay+i)+" - Rest", "||"+recString+"||", true);
             else

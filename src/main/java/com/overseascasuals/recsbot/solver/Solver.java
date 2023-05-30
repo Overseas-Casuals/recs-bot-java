@@ -61,6 +61,8 @@ public class Solver
             return 3;
         return 2;
     }
+
+    private static boolean sameDayUpdate = false;
     static int NUM_WORKSHOPS = 4;
 
     private static int averageWorkshopValue = 1123;
@@ -370,7 +372,7 @@ public class Solver
                 {
                     //Get FT recs
                     clearDayUsage(List.of(1));
-                    int ftRank = 12;
+                    int ftRank = 15;
                     var c3 = getBestBruteForceSchedules(dayToSolve, 0,
                             null, dayToSolve, 1, ftRank);
                     addCraftedFromCycle(2, c3.getBestRec(), ftRank, false);
@@ -419,119 +421,111 @@ public class Solver
         {
 
             ScheduleSet currentCrafts = dailySchedules.get(day);//craftRepository.findCraftsByDay(week, day, rank).getCrafts();
-            if(currentCrafts != null && currentCrafts.size() != 0)
-            {
-                int startingGroove =  groove - getGrooveMadeWithSchedule(currentCrafts);
-                if(startingGroovePerDay.containsKey(day))
-                {
+
+
+            if(currentCrafts != null && currentCrafts.size() != 0) {
+                int startingGroove = groove - getGrooveMadeWithSchedule(currentCrafts);
+                if (startingGroovePerDay.containsKey(day)) {
                     startingGroove = startingGroovePerDay.get(day);
                 }
+                CycleSchedule oldSched = new CycleSchedule(day, startingGroove, maxIslandRank);
+                oldSched.setForFirstThreeWorkshops(currentCrafts.items);
+                oldSched.setFourthWorkshop(currentCrafts.subItems);
+                oldSched.setGrooveBonus(restedAlready(), reservedHelpers);
 
-                int lastDaySolved = day+1;
-                LOG.info("Rechecking day {}'s rank {} recs starting at {} groove with crafts {} and subcrafts {}", day+1, maxIslandRank, startingGroove, currentCrafts.items, currentCrafts.subItems);
+                if(sameDayUpdate) {
+                    int lastDaySolved = day + 1;
+                    LOG.info("Rechecking day {}'s rank {} recs starting at {} groove with crafts {} and subcrafts {}", day + 1, maxIslandRank, startingGroove, currentCrafts.items, currentCrafts.subItems);
 
-                List<Item> nextCycleCraft = new ArrayList<>(dailySchedules.get(lastDaySolved).items);
-                nextCycleCraft.addAll(dailySchedules.get(lastDaySolved).subItems);
-                if(day==3)
-                {
-                    LOG.info("Checking c4 schedule and daily schedule for C5: {}", nextCycleCraft);
-                    nextCycleCraft.addAll(dailySchedules.get(5).items);
-                    nextCycleCraft.addAll(dailySchedules.get(5).subItems);
-                    nextCycleCraft.addAll(dailySchedules.get(6).items);
-                    nextCycleCraft.addAll(dailySchedules.get(6).subItems);
-                    lastDaySolved = 6;
+                    List<Item> nextCycleCraft = new ArrayList<>(dailySchedules.get(lastDaySolved).items);
+                    nextCycleCraft.addAll(dailySchedules.get(lastDaySolved).subItems);
+                    if (day == 3) {
+                        LOG.info("Checking c4 schedule and daily schedule for C5: {}", nextCycleCraft);
+                        nextCycleCraft.addAll(dailySchedules.get(5).items);
+                        nextCycleCraft.addAll(dailySchedules.get(5).subItems);
+                        nextCycleCraft.addAll(dailySchedules.get(6).items);
+                        nextCycleCraft.addAll(dailySchedules.get(6).subItems);
+                        lastDaySolved = 6;
 
-                }
-                Map<Item, Integer> limitedUse = new HashMap<>();
-                if(nextCycleCraft.size() > 0)
-                {
-                    for(var item : nextCycleCraft)
-                    {
-                        limitedUse.put(item,items[item.ordinal()].getCraftedOnDay(day)); //We can't use any more of anything we're using tomorrow
                     }
-                }
-
-                var newBest = getBestBruteForceSchedules(day, startingGroove,
-                        limitedUse, lastDaySolved, 1, currentCrafts.items.get(0), 24, maxIslandRank);
-
-                if(newBest != null && newBest.size() > 0)
-                {
-                    List<Item> newCrafts = newBest.get(0).getKey().getItems();
-
-                    var potNewSubs =  getBestBruteForceSchedules(day, startingGroove,
-                            limitedUse, lastDaySolved, 40, currentCrafts.subItems.get(0), 24, maxIslandRank);
-
-                    List<Item> newSub = new ArrayList<>();
-
-                    if(potNewSubs!=null)
-                    {
-                        for (Entry<WorkshopSchedule, WorkshopValue> potNewSub : potNewSubs)
-                        {
-                            var subItems = potNewSub.getKey().getItems();
-                            if (!newBest.get(0).getKey().interferesWithMe(subItems, false))
-                            {
-                                newSub = subItems;
-                                break;
-                            }
+                    Map<Item, Integer> limitedUse = new HashMap<>();
+                    if (nextCycleCraft.size() > 0) {
+                        for (var item : nextCycleCraft) {
+                            limitedUse.put(item, items[item.ordinal()].getCraftedOnDay(day)); //We can't use any more of anything we're using tomorrow
                         }
                     }
 
-                    CycleSchedule oldSched = new CycleSchedule(day, startingGroove, maxIslandRank);
+                    var newBest = getBestBruteForceSchedules(day, startingGroove,
+                            limitedUse, lastDaySolved, 1, currentCrafts.items.get(0), 24, maxIslandRank);
 
-                    CycleSchedule newSched = new CycleSchedule(day, startingGroove, maxIslandRank);
-                    newSched.setForFirstThreeWorkshops(newCrafts);
-                    newSched.setFourthWorkshop(newSub);
-                    newSched.setGrooveBonus(restedAlready(), reservedHelpers);
-                    oldSched.setForFirstThreeWorkshops(currentCrafts.items);
-                    oldSched.setFourthWorkshop(currentCrafts.subItems);
-                    oldSched.setGrooveBonus(restedAlready(), reservedHelpers);
-                    int newValue = newSched.getValue() + newSched.getGrooveBonus();
-                    int oldValue = oldSched.getValue() + oldSched.getGrooveBonus();
+                    if (newBest != null && newBest.size() > 0) {
+                        List<Item> newCrafts = newBest.get(0).getKey().getItems();
 
-                    var newCraftSet = new ScheduleSet(newCrafts, newSub);
+                        var potNewSubs = getBestBruteForceSchedules(day, startingGroove,
+                                limitedUse, lastDaySolved, 40, currentCrafts.subItems.get(0), 24, maxIslandRank);
 
-                    LOG.info("Old value for day {}: {}: ({}), new value {}: ({})", day+1, currentCrafts, oldValue, newCraftSet, newValue);
+                        List<Item> newSub = new ArrayList<>();
 
-                    if(newValue > oldValue + 120)
-                    {
-                        LOG.info("Schedule updated detected for day {}! Now crafting {}", day+1,
-                                newCraftSet);
-                        addCraftedFromCycle(day, newSched, maxIslandRank, true);
-
-                        listOfRecs.add(0, new DailyRecommendation(day, maxIslandRank, newBest, newSched, oldSched));
-
-                        int oldGroove = getGrooveMadeWithSchedule(currentCrafts);
-                        int newGroove = getGrooveMadeWithSchedule(newCraftSet);
-                        int grooveDiff = newGroove - oldGroove;
-                        if(grooveDiff != 0)
-                        {
-                            LOG.info("Updated schedule for day changes the groove value! {}->{}", oldGroove, newGroove);
-                            for(int i=day+2; i<7; i++)
-                            {
-                                if(startingGroovePerDay.containsKey(i))
-                                {
-                                    int adjusted = Math.min(startingGroovePerDay.get(i) + grooveDiff, getMaxGroove(maxIslandRank));
-                                    LOG.info("Changing day {}'s groove from {} to {}", i+1, startingGroovePerDay.get(i), adjusted);
-                                    startingGroovePerDay.put(i, adjusted );
+                        if (potNewSubs != null) {
+                            for (Entry<WorkshopSchedule, WorkshopValue> potNewSub : potNewSubs) {
+                                var subItems = potNewSub.getKey().getItems();
+                                if (!newBest.get(0).getKey().interferesWithMe(subItems, false)) {
+                                    newSub = subItems;
+                                    break;
                                 }
                             }
                         }
-                    }
+
+
+                        CycleSchedule newSched = new CycleSchedule(day, startingGroove, maxIslandRank);
+                        newSched.setForFirstThreeWorkshops(newCrafts);
+                        newSched.setFourthWorkshop(newSub);
+                        newSched.setGrooveBonus(restedAlready(), reservedHelpers);
+                        int newValue = newSched.getValue() + newSched.getGrooveBonus();
+                        int oldValue = oldSched.getValue() + oldSched.getGrooveBonus();
+
+                        var newCraftSet = new ScheduleSet(newCrafts, newSub);
+
+                        LOG.info("Old value for day {}: {}: ({}), new value {}: ({})", day + 1, currentCrafts, oldValue, newCraftSet, newValue);
+
+                        if (newValue > oldValue + 120) {
+                            LOG.info("Schedule updated detected for day {}! Now crafting {}", day + 1,
+                                    newCraftSet);
+                            addCraftedFromCycle(day, newSched, maxIslandRank, true);
+
+                            listOfRecs.add(0, new DailyRecommendation(day, maxIslandRank, newBest, newSched, oldSched));
+
+                            int oldGroove = getGrooveMadeWithSchedule(currentCrafts);
+                            int newGroove = getGrooveMadeWithSchedule(newCraftSet);
+                            int grooveDiff = newGroove - oldGroove;
+                            if (grooveDiff != 0) {
+                                LOG.info("Updated schedule for day changes the groove value! {}->{}", oldGroove, newGroove);
+                                for (int i = day + 2; i < 7; i++) {
+                                    if (startingGroovePerDay.containsKey(i)) {
+                                        int adjusted = Math.min(startingGroovePerDay.get(i) + grooveDiff, getMaxGroove(maxIslandRank));
+                                        LOG.info("Changing day {}'s groove from {} to {}", i + 1, startingGroovePerDay.get(i), adjusted);
+                                        startingGroovePerDay.put(i, adjusted);
+                                    }
+                                }
+                            }
+                        }
                     /*else if(newValue < oldValue.getWeighted())
                     {
                         LOG.error("Value is worse somehow??");
                         return null;
                     }*/
-                    else
-                    {
-                        LOG.info("Value is the same or negligible");
-                        listOfRecs.add(0, new DailyRecommendation(day, maxIslandRank, new BruteForceSchedules(new ArrayList<>(), day, startingGroove), oldSched, oldSched));
+                        else {
+                            LOG.info("Value is the same or negligible");
+                            listOfRecs.add(0, new DailyRecommendation(day, maxIslandRank, new BruteForceSchedules(new ArrayList<>(), day, startingGroove), oldSched, oldSched));
+                        }
+                    } else {
+                        LOG.error("Can't find updated recs? Very confusing");
+                        return null;
                     }
                 }
                 else
                 {
-                    LOG.error("Can't find updated recs? Very confusing");
-                    return null;
+                    listOfRecs.add(0, new DailyRecommendation(day, maxIslandRank, new BruteForceSchedules(new ArrayList<>(), day, startingGroove), oldSched, oldSched));
                 }
             }
         }
@@ -2054,6 +2048,7 @@ public class Solver
     private BruteForceSchedules getBestBruteForceSchedules(int day, int groove,
                                                            Map<Item,Integer> limitedUse, int allowUpToDay, int numToReturn, Item startingItem, int hoursLeft, int islandRank)
     {
+        numToReturn = 15;
         /*LOG.info("Getting best schedule for day {}. groove {}. limitedUse {}, allowUpToDay {}, startingItem {}, hoursLeft {} and chains {}",
                 day+1, groove, limitedUse, allowUpToDay, startingItem, hoursLeft, csvImporter.allEfficientChains.size());*/
         HashMap<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
@@ -2181,8 +2176,22 @@ public class Solver
                 }
             }
         }
+        List<Item> secondNonInterfering = new ArrayList<>();
+        if(islandRank >= 15)
+        {
+            for (Entry<WorkshopSchedule, WorkshopValue> sortedSchedule : sortedSchedules)
+            {
+                var subItems = sortedSchedule.getKey().getItems();
+                if (!sortedSchedules.get(1).getKey().interferesWithMe(subItems, false))
+                {
+                    secondNonInterfering = subItems;
+                    break;
+                }
+            }
+        }
+
         BruteForceSchedules schedules = new BruteForceSchedules(sortedSchedules.stream().limit(numToReturn).collect(Collectors.toList()), day, groove);
-        schedules.setBestSubItems(firstNonInterfering, restedAlready(), reservedHelpers, islandRank);
+        schedules.setBestSubItems(firstNonInterfering, secondNonInterfering, restedAlready(), reservedHelpers, islandRank);
 
         return schedules;
     }
