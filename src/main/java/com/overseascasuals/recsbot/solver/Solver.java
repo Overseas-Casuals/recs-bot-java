@@ -63,7 +63,11 @@ public class Solver
     }
     static int NUM_WORKSHOPS = 4;
 
-    static int averageDayValue = 4381;
+    private static int averageWorkshopValue = 1123;
+    public static int getAverageDayValue(int rank)
+    {
+        return averageWorkshopValue * getWorkshopBonus(rank) * getNumWorkshops(rank) / 100;
+    }
     public static int maxIslandRank = 15;
     public static double materialWeight = 0.5;
     private static final int alternatives = 5;
@@ -755,6 +759,7 @@ public class Solver
                 total+=rec.getDailyValue();
             }
         }
+        LOG.info("Season total: {}", total);
 
         fortuneValue = 0;
         try
@@ -789,6 +794,7 @@ public class Solver
             fortuneValue = -1;
             LOG.error("Exception determining value of FT recs for week: ",e);
         }
+        LOG.info("FT total: {}", fortuneValue);
         setCraftedFromHistory();
 
         return total;
@@ -872,11 +878,11 @@ public class Solver
                 craftRepository.save(crafts);
                 LOG.info("Saving crafts {} (sub {}) to db for week {}, day {}, and rank {}", items, subItems, week, day, rank);
             }
-            else
-                LOG.info("Not saving crafts because we're running locally");
+            /*else
+                LOG.info("Not saving crafts because we're running locally");*/
         }
-        else
-            LOG.info("Not saving crafts because we're just trying out values");
+        /*else
+            LOG.info("Not saving crafts because we're just trying out values");*/
     }
 
 
@@ -1353,6 +1359,7 @@ public class Solver
         int c7Value = getTotalForRecs(c7Recs);
         int bestValue = Math.max(c5Value, Math.max(c6Value, c7Value));
 
+        LOG.info("Based on C5 total: {}, Based on C6 total: {}, Based on C7 total: {}", c5Value, c6Value, c7Value);
         if(bestValue == c5Value)
         {
             LOG.info("Recs based on C5 are best");
@@ -2105,7 +2112,7 @@ public class Solver
         }
 
 
-        LOG.info("Evaluating {} schedules for day {}", filteredItemLists.size(), day+1);
+        //LOG.info("Evaluating {} schedules for day {}", filteredItemLists.size(), day+1);
         for (List<Item> list : filteredItemLists)
         {
             addToScheduleMap(list, day, groove, islandRank, limitedUse, safeSchedules, false);

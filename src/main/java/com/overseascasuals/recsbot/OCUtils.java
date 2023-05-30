@@ -100,10 +100,10 @@ public class OCUtils
         else
         {
 
-            String title = "Workshops #1-3 Rec";
+            String title = "First 3 Workshops";
             boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems());
             if(!ws4Diff)
-                title = "Workshops #1-4 Rec";
+                title = "All Workshops Rec";
             builder.color(Color.SEA_GREEN);
             if(rec.getOldRec() != null)
             {
@@ -113,7 +113,7 @@ public class OCUtils
 
             builder.addField(title, rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
             if(rec.getBestRec().getSubItems()!=null && rec.getBestRec().getSubItems().size() > 0 && ws4Diff)
-                builder.addField("Workshop #4 Rec", rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+                builder.addField("4th Workshop", rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
 
             builder.addField("", "", false);
             builder.addField("Grooveless Value", rec.getGroovelessValue() + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
@@ -130,7 +130,7 @@ public class OCUtils
                 builder.addField("", "", false);
 
                 builder.addField("Original Recommendation", rec.getOldRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
-                builder.addField("Workshop #4 Rec", rec.getOldRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+                builder.addField("4th Workshop", rec.getOldRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
 
                 builder.addField("", "", false);
                 builder.addField("Grooveless Value", rec.getOldGrooveless()+(rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
@@ -176,7 +176,7 @@ public class OCUtils
                     //Show one alt
                     builder.addField("If You Can't Rest...", "||**Workshops #1-"+(ws4Diff?3:4)+":**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
                     if(ws4Diff && rec.getBestRec().getSubItems().size()>0)
-                            builder.addField(".", "||**Workshop #4:**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
+                            builder.addField(".", "||**4th Workshop:**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
                     builder.addField("Grooveless Value","||"+rec.getGroovelessValue()+"||", true);
                 }
                 builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
@@ -207,14 +207,14 @@ public class OCUtils
                 //Show one alt
                 builder.addField("If You Can't Rest...", "||**Workshops #1-"+(ws4Diff?3:4)+":**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
                 if(ws4Diff && rec.getBestRec().getSubItems().size()>0)
-                    builder.addField(".", "||**Workshop #4:**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
+                    builder.addField(".", "||**4th Workshop:**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
                 builder.addField("Grooveless Value","||"+rec.getGroovelessValue()+"||", true);
             }
             else
             {
                 builder.addField("Cycle "+(i+5)+" Workshops #1-"+(ws4Diff?3:4), rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
                 if(ws4Diff && rec.getBestRec().getSubItems().size()>0)
-                    builder.addField("Workshop #4", rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+                    builder.addField("4th Workshop", rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
 
                 builder.addField("","",false)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)

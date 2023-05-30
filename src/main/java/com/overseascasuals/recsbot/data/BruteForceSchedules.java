@@ -40,7 +40,7 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
             all4Rec.setFourthWorkshop(get(0).getKey().getItems());
             all4Rec.setGrooveBonus(rested, reservedHelpers);
             int all4Value = all4Rec.getWeightedValue();
-            LOG.info("4th WS different: {}, all 4 the same: {}", bestValue, all4Value);
+            //LOG.info("4th WS different: {}, all 4 the same: {}", bestValue, all4Value);
 
             if (all4Value > bestValue)
             {

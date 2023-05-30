@@ -33,7 +33,7 @@ public class CycleSchedule
         workshops[1] = new WorkshopSchedule(crafts, rank);
         if(Solver.getNumWorkshops(rank)>2)
             workshops[2] = new WorkshopSchedule(crafts, rank);
-        else
+        else if(workshops[2] == null)
             workshops[2] = new WorkshopSchedule(new ArrayList<>(), rank);
         if(workshops[3] == null)
             workshops[3] = new WorkshopSchedule(new ArrayList<>(), rank);
@@ -128,7 +128,8 @@ public class CycleSchedule
         grooveBonus = 0;
         for(var workshop : workshops)
         {
-            grooveBonus+= workshop.getValueWithGrooveEstimate(day, startingGroove, rested, reservedHelpers).getGroove();
+            if(workshop.getItems().size() > 0)
+                grooveBonus+= workshop.getValueWithGrooveEstimate(day, startingGroove, rested, reservedHelpers).getGroove();
         }
     }
 
