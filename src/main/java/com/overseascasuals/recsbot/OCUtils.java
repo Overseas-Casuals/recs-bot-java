@@ -281,7 +281,8 @@ public class OCUtils
         builder.addField(title, recString, true);
         if(rec.getSubItems().size()>0 && !rec.getSubItems().equals(rec.getItems()))
             builder.addField(".", (rest?"||":"")+"**4th Workshop:**\n"+rec.getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+(rest?"||":""), true);
-        builder.addField("", "", false);
+        if(rec.getRank()>=15)
+            builder.addField("", "", false);
     }
 
     private static String getRestText()

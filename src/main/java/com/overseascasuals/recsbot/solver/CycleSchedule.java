@@ -13,6 +13,10 @@ public class CycleSchedule
     Logger LOG = LoggerFactory.getLogger(CycleSchedule.class);
     int day;
     int rank;
+    public int getRank()
+    {
+        return rank;
+    }
     private int startingGroove;
 
     private int endingGroove;
