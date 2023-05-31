@@ -315,10 +315,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                     return event.editReply(itemName+" is not a valid item");
                 }
             }
-            else
-            {
-                break;
-            }
         }
         for(int i=1; i<=3; i++)
         {
@@ -327,10 +323,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 Material mat = Material.values()[event.getOption("nomat"+i).flatMap(ApplicationCommandInteractionOption::getValue).map(ApplicationCommandInteractionOptionValue::asLong).get().intValue()];
                 LOG.info("Running alts excluding mat {}", mat);
                 items.addAll(caramelMap.get(mat));
-            }
-            else
-            {
-                break;
             }
         }
 
