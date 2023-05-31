@@ -85,9 +85,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             }
 
             switch (command) {
-                case "set_schedule" -> {
-                    return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredScheduleResponse(event)));
-                }
                 case "next_week" -> {
                     return event.deferReply().then(Mono.defer(() -> deferredNextWeekCommand(event)));
                 }
@@ -140,47 +137,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
         solver.clearCache(cacheKey);
         return event.editReply("Cleared");
-    }
-
-    private InteractionReplyEditMono deferredScheduleResponse(ChatInputInteractionEvent event)
-    {
-        List<Item> items = new ArrayList<>();
-        int rank = maxIslandRank;
-        if(event.getOption("rank").isPresent())
-        {
-            rank = Math.toIntExact(event.getOption("rank")
-                    .flatMap(ApplicationCommandInteractionOption::getValue)
-                    .map(ApplicationCommandInteractionOptionValue::asLong).get());
-        }
-        for(int i=1; i<=6; i++)
-        {
-            if(event.getOption("craft_"+i).isPresent())
-            {
-                String itemName = event.getOption("craft_"+i).flatMap(ApplicationCommandInteractionOption::getValue)
-                        .map(ApplicationCommandInteractionOptionValue::asString)
-                        .get().replace(" ","");
-                try
-                {
-                    items.add(Item.valueOf(itemName));
-                }
-                catch(IllegalArgumentException e)
-                {
-                    return event.editReply(itemName+" is not a valid item");
-                }
-            }
-            else
-            {
-                LOG.info("Craft "+i+" isn't present. Stopping converting list");
-                break;
-            }
-        }
-
-        int day = event.getOption("cycle").flatMap(ApplicationCommandInteractionOption::getValue)
-                .map(ApplicationCommandInteractionOptionValue::asLong)
-                .get().intValue();
-        solver.setScheduleCommand(day, rank, items);
-
-        return event.editReply("Created schedule of "+(items.size() > 0? items : "Rest")+" for cycle "+(day+1));
     }
 
     private InteractionReplyEditMono deferredNextWeekCommand(ChatInputInteractionEvent event)

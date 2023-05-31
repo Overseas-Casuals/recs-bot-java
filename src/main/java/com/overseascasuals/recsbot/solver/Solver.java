@@ -181,6 +181,13 @@ public class Solver
     private final Map<Integer, RestOfWeekRec> restOfWeek = new HashMap<>();
 
     private final Map<Integer, Integer> startingGroovePerDay = new HashMap<>();
+    public int getStartingGroove(int day, int rank)
+    {
+        if(getNumWorkshops(rank) == getNumWorkshops(maxIslandRank))
+            return startingGroovePerDay.get(day);
+        else
+            return startingGroovePerDay.get(day)/getNumWorkshops(maxIslandRank) * getNumWorkshops(rank);
+    }
 
     private final Map<Integer, List<Entry<WorkshopSchedule, WorkshopValue>>> restOfDay = new HashMap<>();
     private final Map<Integer, Integer> hoursLeftInDay = new HashMap<>();
@@ -657,7 +664,7 @@ public class Solver
         else if(dayToSolve < 7)
         {
             DailyRecommendation rec;
-            var todayRecs =  getBestBruteForceSchedules(dayToSolve, startingGroovePerDay.get(dayToSolve),
+            var todayRecs =  getBestBruteForceSchedules(dayToSolve, getStartingGroove(dayToSolve, rank),
                     limitedUse, dayToSolve, alternatives, rank);
             if(todayRecs == null || todayRecs.size() == 0)
                 return null;
@@ -674,7 +681,7 @@ public class Solver
                     if(c5WorstFuture)
                     {
                         LOG.info("C5 is the worst future day, so seeing if C4+C5 is better than C4 alone");
-                        var possibleRecs = getBestBruteForceSchedules(dayToSolve, startingGroovePerDay.get(dayToSolve),  limitedUse, dayToSolve + 1, alternatives, rank);
+                        var possibleRecs = getBestBruteForceSchedules(dayToSolve, getStartingGroove(dayToSolve, rank),  limitedUse, dayToSolve + 1, alternatives, rank);
                         int recalced4Value = possibleRecs.getBestRec().getWeightedValue();
                         if(recalced4Value > c5AverageValue)
                         {
@@ -738,7 +745,7 @@ public class Solver
         for(int day = 1; day < 4; day++)
         {
             //var crafts = craftRepository.findCraftsByDay(week, day, maxIslandRank);
-            CycleSchedule sched = new CycleSchedule(day, startingGroovePerDay.get(day), rank);
+            CycleSchedule sched = new CycleSchedule(day, getStartingGroove(day, rank), rank);
             sched.setForFirstThreeWorkshops(dailySchedules.get(day).items);
             sched.setFourthWorkshop(dailySchedules.get(day).subItems);
             int today = sched.getValue();
@@ -792,35 +799,6 @@ public class Solver
         setCraftedFromHistory();
 
         return total;
-    }
-    public void setScheduleCommand(int day, int rank, List<Item> newItems)
-    {
-        int grooveSoFar = 0;
-
-        if(!startingGroovePerDay.containsKey(day))
-        {
-            for(int i=1;i<day; i++)
-            {
-                grooveSoFar+= getGrooveMadeWithSchedule(dailySchedules.get(i));
-                startingGroovePerDay.put(i+1, grooveSoFar);
-            }
-        }
-        grooveSoFar = startingGroovePerDay.get(day);
-
-        if(rested == day && newItems.size() > 0)
-            rested = -1;
-        else if(rested == -1 && newItems.size() == 0)
-            rested = day;
-
-
-        LOG.info("Setting schedule for day {} to {} with starting groove {}", day+1, newItems, grooveSoFar);
-
-        CycleSchedule newSched = new CycleSchedule(day, grooveSoFar, rank);
-        newSched.setForFirstThreeWorkshops(newItems);
-        addCraftedFromCycle(day, newSched, rank, true);
-
-        restOfWeek.clear();
-        hoursLeftInDay.clear();
     }
 
     private void addCraftedFromCycle(int day, CycleSchedule schedule, int rank, boolean real)
@@ -1071,7 +1049,7 @@ public class Solver
 
     public List<DailyRecommendation> getLastTwoDays(int rank, Map<Item, Integer> limitedUse)
     {
-        int startingGroove = startingGroovePerDay.get(5);
+        int startingGroove = getStartingGroove(5, rank);
         List<DailyRecommendation> recs = new ArrayList<>();
 
         var cycle6Sched = getBestBruteForceSchedules(5, startingGroove, limitedUse, 6, alternatives, rank);
@@ -1140,7 +1118,7 @@ public class Solver
 
 
         if(startingGroove == -1)
-            startingGroove = startingGroovePerDay.get(4);
+            startingGroove = getStartingGroove(4, rank);
         var cycle5Sched = getBestBruteForceSchedules(4, startingGroove, limitedUse, 6, alternatives, rank);
         var cycle6Sched = getBestBruteForceSchedules(5, startingGroove, limitedUse, 6, alternatives, rank);
         var cycle7Sched = getBestBruteForceSchedules(6, startingGroove, limitedUse, 6, alternatives, rank);
@@ -1371,7 +1349,7 @@ public class Solver
     private boolean isWorseThanAllFollowing(CycleSchedule rec,
             int day, boolean checkC5, int rank, Map<Item,Integer> limitedUse)
     {
-        int groove = startingGroovePerDay.get(day);
+        int groove = getStartingGroove(day, rank);
         int worstInFuture = 99999;
         c5WorstFuture = checkC5;
         c5AverageValue = 0;
@@ -1479,7 +1457,7 @@ public class Solver
         List<Map.Entry<WorkshopSchedule, WorkshopValue>> restOfDayRank = new ArrayList<>();
 
 
-        int startingGroove = startingGroovePerDay.get(day);
+        int startingGroove = getStartingGroove(day, rank);
 
         Map<Item, Integer> limitedItems = null;
         int lastDaySet = day+1;
