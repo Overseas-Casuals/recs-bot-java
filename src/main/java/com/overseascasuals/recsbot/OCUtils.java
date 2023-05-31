@@ -100,11 +100,9 @@ public class OCUtils
             builder.color(Color.SUMMER_SKY).addField("Main Recommendation",getRestText(), false);
         else
         {
+            boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems()) && rec.getBestRec().getSubItems().size() > 0;
 
-            String title = "First 3 Workshops";
-            boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems());
-            if(!ws4Diff)
-                title = "All Workshops Rec";
+            String title = ws4Diff?"First 3 Workshops":"All Workshops";
             builder.color(Color.SEA_GREEN);
             if(rec.getOldRec() != null)
             {
@@ -113,7 +111,7 @@ public class OCUtils
             }
 
             builder.addField(title, rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
-            if(rec.getBestRec().getSubItems()!=null && rec.getBestRec().getSubItems().size() > 0 && ws4Diff)
+            if(ws4Diff)
                 builder.addField("4th Workshop", rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
 
             builder.addField("", "", false);
