@@ -321,8 +321,9 @@ public class OCUtils
         if(recs != null && recs.size() > 0 && recs.get(0).getKey().getItems().size() > 0)
         {
             StringBuilder altSb = new StringBuilder();
-            for(var alt : recs)
+            for(int i = 0; i < altsToDisplay && i< recs.size(); i++)
             {
+                var alt = recs.get(i);
                 if(alt.getKey().getItems().size() > 0)
                 {
                     String altText = "**"+alt.getValue().getWeighted() +"**\u00A0\u00A0" + alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
