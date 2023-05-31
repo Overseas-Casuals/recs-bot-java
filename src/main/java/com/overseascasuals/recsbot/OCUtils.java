@@ -374,8 +374,9 @@ public class OCUtils
         boolean ws3Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems());
         content+=rec.getGroovelessValue()+cowriesEmoji;
         if(rec.getBestRec().getStartingGroove() > 0)
-            content+=" ("+rec.getDailyValue()+cowriesEmoji+" "+rec.getBestRec().getStartingGroove()+" Groove): ";
-        content+=rec.getBestRec().getItems().stream().map(Item::getDisplayName)
+            content+=" ("+rec.getDailyValue()+cowriesEmoji+" "+rec.getBestRec().getStartingGroove()+" Groove)";
+
+        content+=": " + rec.getBestRec().getItems().stream().map(Item::getDisplayName)
                 .collect(Collectors.joining(" - "));
 
         if(ws3Diff)
