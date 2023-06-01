@@ -390,7 +390,7 @@ public class OCUtils
 
         if(ws3Diff)
         {
-            content+="\n * **WS4:** "+rec.getBestRec().getSubItems().stream().map(Item::getDisplayName)
+            content+="\n * WS4: "+rec.getBestRec().getSubItems().stream().map(Item::getDisplayName)
                     .collect(Collectors.joining(" - "));
         }
 
