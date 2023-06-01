@@ -1,9 +1,6 @@
 package com.overseascasuals.recsbot;
 
-import com.overseascasuals.recsbot.data.DailyRecommendation;
-import com.overseascasuals.recsbot.data.Item;
-import com.overseascasuals.recsbot.data.RestOfWeekRec;
-import com.overseascasuals.recsbot.data.WorkshopValue;
+import com.overseascasuals.recsbot.data.*;
 import com.overseascasuals.recsbot.solver.CycleSchedule;
 import com.overseascasuals.recsbot.solver.WorkshopSchedule;
 import discord4j.core.object.entity.Message;
@@ -309,7 +306,7 @@ public class OCUtils
 
         return builder.build();
     }
-    public static EmbedCreateSpec generateTodayEmbed(int season, int cycle, int hours, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs, int rank)
+    public static EmbedCreateSpec generateTodayEmbed(int season, int cycle, int hours, BruteForceSchedules recs, int rank)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(cycle+1)+" Partial Schedule for Rank "+rank);
         builder.timestamp(Instant.now());
@@ -320,6 +317,18 @@ public class OCUtils
 
         if(recs != null && recs.size() > 0 && recs.get(0).getKey().getItems().size() > 0)
         {
+            CycleSchedule rec = recs.getBestRec();
+            boolean ws4Diff = !rec.getItems().equals(rec.getSubItems()) && rec.getSubItems().size() > 0;
+            String title;
+            if(!ws4Diff)
+                title = "All Workshops:";
+            else
+                title = "First 3 Workshops:";
+
+            builder.addField(title, rec.getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+            if(rec.getSubItems().size()>0 && !rec.getSubItems().equals(rec.getItems()))
+                builder.addField("4th Workshop:", rec.getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+
             StringBuilder altSb = new StringBuilder();
             for(int i = 0; i < altsToDisplay && i< recs.size(); i++)
             {
@@ -332,7 +341,7 @@ public class OCUtils
             }
             altSb.setLength(altSb.length()-1);
 
-            builder.addField("Schedules by Value", altSb.toString(), true);
+            builder.addField("Schedules by Value", altSb.toString(), false);
         }
         else
             builder.addField("Schedules by Value", "None available", false);

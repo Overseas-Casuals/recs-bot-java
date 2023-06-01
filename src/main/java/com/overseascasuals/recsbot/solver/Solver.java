@@ -189,7 +189,7 @@ public class Solver
             return startingGroovePerDay.get(day)/getNumWorkshops(maxIslandRank) * getNumWorkshops(rank);
     }
 
-    private final Map<Integer, List<Entry<WorkshopSchedule, WorkshopValue>>> restOfDay = new HashMap<>();
+    private final Map<Integer, BruteForceSchedules> restOfDay = new HashMap<>();
     private final Map<Integer, Integer> hoursLeftInDay = new HashMap<>();
     private final Map<String, List<DailyRecommendation>> cachedAltRecs = new HashMap<>();
     public RestOfWeekRec fortuneTellerRecs;
@@ -1439,7 +1439,7 @@ public class Solver
         return sum;
     }
 
-    public List<Entry<WorkshopSchedule, WorkshopValue>> getRestOfDayRecs(int day, int hoursLeft, int rank, Item startingItem)
+    public BruteForceSchedules getRestOfDayRecs(int day, int hoursLeft, int rank, Item startingItem)
     {
         if(rank > maxIslandRank)
             rank = maxIslandRank;
@@ -1454,7 +1454,7 @@ public class Solver
 
         LOG.info("Recalculating today's recs");
 
-        List<Map.Entry<WorkshopSchedule, WorkshopValue>> restOfDayRank = new ArrayList<>();
+        BruteForceSchedules restOfDayRank = null;
 
 
         int startingGroove = getStartingGroove(day, rank);
