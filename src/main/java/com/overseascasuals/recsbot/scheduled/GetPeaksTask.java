@@ -65,8 +65,6 @@ public class GetPeaksTask implements ScheduledTask
     String c1PeakRole;
     @Value("${discord.squawkboxRole}")
     String squawkboxRole;
-    @Value("${discord.crimeRole}")
-    String crimeTimeRole;
 
     @Value("${testing.startDay}")
     int startDayOverride;
@@ -340,7 +338,7 @@ public class GetPeaksTask implements ScheduledTask
 
                     for(int i=0; i<numRanks;i++)
                     {
-                        var combinedC4Post = MessageCreateSpec.builder().content("<@&"+squawkboxRole+"> <@&"+crimeTimeRole+">");
+                        var combinedC4Post = MessageCreateSpec.builder().content("<@&"+squawkboxRole+">");
 
 
                         var c4Message = OCUtils.createCombinedC4Post(week, list, numRanks-1==i?solver.totalValue:-1);

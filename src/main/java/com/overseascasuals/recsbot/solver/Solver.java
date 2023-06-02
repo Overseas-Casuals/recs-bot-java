@@ -379,7 +379,7 @@ public class Solver
                 {
                     //Get FT recs
                     clearDayUsage(List.of(1));
-                    int ftRank = 15;
+                    int ftRank = maxIslandRank;
                     var c3 = getBestBruteForceSchedules(dayToSolve, 0,
                             null, dayToSolve, 1, ftRank);
                     addCraftedFromCycle(2, c3.getBestRec(), ftRank, false);
