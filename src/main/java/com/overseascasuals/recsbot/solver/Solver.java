@@ -1107,7 +1107,8 @@ public class Solver
         int total = 0;
         for(DailyRecommendation rec : recs)
         {
-            total += rec.getDailyValue();
+            if(!rec.isRestRecommended())
+                total += rec.getDailyValue();
         }
         return total;
     }
@@ -2030,6 +2031,7 @@ public class Solver
         /*LOG.info("Getting best schedule for day {}. groove {}. limitedUse {}, allowUpToDay {}, startingItem {}, hoursLeft {} and chains {}",
                 day+1, groove, limitedUse, allowUpToDay, startingItem, hoursLeft, csvImporter.allEfficientChains.size());*/
         HashMap<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
+        Map<WorkshopSchedule, WorkshopValue> semiSafeSchedules = new HashMap<>();
         if(groove > getMaxGroove(islandRank))
             groove = getMaxGroove(islandRank);
 
@@ -2088,7 +2090,7 @@ public class Solver
         //LOG.info("Evaluating {} schedules for day {}", filteredItemLists.size(), day+1);
         for (List<Item> list : filteredItemLists)
         {
-            addToScheduleMap(list, day, groove, islandRank, limitedUse, safeSchedules, false);
+            addToScheduleMap(list, day, groove, islandRank, limitedUse, safeSchedules, semiSafeSchedules, false);
         }
 
         if(safeSchedules.size() == 0)
@@ -2097,7 +2099,7 @@ public class Solver
 
             for (List<Item> list : filteredItemLists)
             {
-                addToScheduleMap(list, day, groove, islandRank, limitedUse, safeSchedules, true);
+                addToScheduleMap(list, day, groove, islandRank, limitedUse, safeSchedules, semiSafeSchedules, true);
             }
 
             if(safeSchedules.size() == 0)
@@ -2105,6 +2107,11 @@ public class Solver
         }
 
         var sortedSchedules = safeSchedules
+                .entrySet().stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .collect(Collectors.toList());
+
+        var sortedSemiSafe = semiSafeSchedules
                 .entrySet().stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .collect(Collectors.toList());
@@ -2144,7 +2151,7 @@ public class Solver
         List<Item> firstNonInterfering = new ArrayList<>();
         if(islandRank >= 15)
         {
-            for (Entry<WorkshopSchedule, WorkshopValue> sortedSchedule : sortedSchedules)
+            for (Entry<WorkshopSchedule, WorkshopValue> sortedSchedule : sortedSemiSafe)
             {
                 var subItems = sortedSchedule.getKey().getItems();
                 if (!sortedSchedules.get(0).getKey().interferesWithMe(subItems, false))
@@ -2157,7 +2164,7 @@ public class Solver
         List<Item> secondNonInterfering = new ArrayList<>();
         if(islandRank >= 15)
         {
-            for (Entry<WorkshopSchedule, WorkshopValue> sortedSchedule : sortedSchedules)
+            for (Entry<WorkshopSchedule, WorkshopValue> sortedSchedule : sortedSemiSafe)
             {
                 var subItems = sortedSchedule.getKey().getItems();
                 if (!sortedSchedules.get(1).getKey().interferesWithMe(subItems, false))
@@ -2178,13 +2185,13 @@ public class Solver
         return schedule.stream().mapToInt(item -> items[item.ordinal()].time).sum();
     }
     private void addToScheduleMap(List<Item> list, int day, int groove, int rank, Map<Item,Integer> limitedUse,
-            HashMap<WorkshopSchedule, WorkshopValue> safeSchedules, boolean verboseSolverLogging)
+            HashMap<WorkshopSchedule, WorkshopValue> safeSchedules, Map<WorkshopSchedule, WorkshopValue> semiSafeSchedules, boolean verboseSolverLogging)
     {
         if(verboseSolverLogging)
             LOG.info("Checking schedule {} against {} safe schedules", list, safeSchedules.size());
 
         WorkshopSchedule workshop = new WorkshopSchedule(list, rank);
-        if(workshop.usesTooMany(limitedUse, false, verboseSolverLogging))
+        if(workshop.usesTooMany(limitedUse, true, verboseSolverLogging))
         {
             if(verboseSolverLogging)
                 LOG.info("Not using schedule {} because it uses too many limited use items {}", list, limitedUse);
@@ -2196,24 +2203,36 @@ public class Solver
         if(verboseSolverLogging)
             LOG.info("Schedule has value {}", value.getWeighted());
 
-        // Only add if we don't already have one with this schedule or ours is better
-        int oldValue = -99999;
-        if(safeSchedules.containsKey(workshop))
-            oldValue = safeSchedules.get(workshop).getWeighted();
-
-        if (oldValue < value.getWeighted())
+        if(!workshop.usesTooMany(limitedUse, false, verboseSolverLogging))
         {
-            if (verboseSolverLogging && oldValue > 0)
-                LOG.info("Replacing schedule with mats " + workshop.rareMaterialsRequired + " with " + list + " because " + value.getWeighted() + " is higher than " + oldValue);
+            // Only add if we don't already have one with this schedule or ours is better
+            int oldValue = -99999;
+            if(safeSchedules.containsKey(workshop))
+                oldValue = safeSchedules.get(workshop).getWeighted();
 
-            safeSchedules.remove(workshop); // It doesn't seem to update the key when
-                                            // updating the value, so we delete the key
-                                            // first
-            safeSchedules.put(workshop, value);
+            if (oldValue < value.getWeighted())
+            {
+                if (verboseSolverLogging && oldValue > 0)
+                    LOG.info("Replacing schedule with mats " + workshop.rareMaterialsRequired + " with " + list + " because " + value.getWeighted() + " is higher than " + oldValue);
+
+                safeSchedules.remove(workshop); // It doesn't seem to update the key when updating the value, so we delete the key first
+                safeSchedules.put(workshop, value);
+            }
+            else if(verboseSolverLogging)
+            {
+                LOG.info("Not replacing because old value {} is higher than {}", oldValue, value.getWeighted());
+            }
         }
-        else if(verboseSolverLogging)
+        int oldSubValue = -99999;
+        if(semiSafeSchedules.containsKey(workshop))
+            oldSubValue = semiSafeSchedules.get(workshop).getWeighted();
+
+        if (oldSubValue < value.getWeighted())
         {
-            LOG.info("Not replacing because old value {} is higher than {}", oldValue, value.getWeighted());
+            semiSafeSchedules.remove(workshop); // It doesn't seem to update the key when updating the value, so we delete the key first
+            semiSafeSchedules.put(workshop, value);
         }
+
+
     }
 }
