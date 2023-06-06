@@ -47,7 +47,7 @@ public class PingIslandTask implements ScheduledTask
     public void run() {
 
         try{
-            LOG.info("Pinging {}: {}",peakDbURL, restService.getURLResponse(peakDbURL+"?week=13"));
+            LOG.info("Pinging {}: {}",peakDbURL, restService.getURLResponse(peakDbURL+"?week=13&api=1.3"));
         }
         catch(RestClientException e)
         {
