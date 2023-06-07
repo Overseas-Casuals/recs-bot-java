@@ -114,7 +114,7 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         return maxRank;
     }
 
-    public String prettyPrint(Map.Entry<WorkshopSchedule, WorkshopValue> rec)
+    public static String prettyPrint(Map.Entry<WorkshopSchedule, WorkshopValue> rec)
     {
         return rec.getKey() +"\tGross: "+rec.getValue().getGross()+"\tNet: "+rec.getValue().getNet()+"\tGroove bonus: "+rec.getValue().getGroove()+"\tPenalty: "+rec.getValue().getPenalty()+"\tPeak bonus: "+rec.getValue().getPeakBonus()+" Total: "+rec.getValue().getWeighted();
     }

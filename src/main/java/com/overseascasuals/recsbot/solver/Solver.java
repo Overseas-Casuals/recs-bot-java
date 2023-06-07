@@ -2154,8 +2154,10 @@ public class Solver
             for (Entry<WorkshopSchedule, WorkshopValue> sortedSchedule : sortedSemiSafe)
             {
                 var subItems = sortedSchedule.getKey().getItems();
+                //LOG.info("Checking {} for interference with main schedule {}", subItems, sortedSchedules.get(0).getKey().getItems());
                 if (!sortedSchedules.get(0).getKey().interferesWithMe(subItems, false))
                 {
+                    //LOG.info("It doesn't! {}", DailyRecommendation.prettyPrint(sortedSchedule));
                     firstNonInterfering = subItems;
                     break;
                 }
