@@ -348,6 +348,9 @@ public class Solver
         populateReservedItems(day+1);
         int dayToSolve = day+1;
 
+        if(day==0)
+            setStrongRatios();
+
         //If we're on live and we already have a schedule for this day, just move on
         if("live".equals(activeProfile) && dailySchedules.containsKey(dayToSolve)){
             hasRunRecs = true;
@@ -362,9 +365,6 @@ public class Solver
             {
                 if(rested == dayToSolve)
                     rested = -1;
-
-                if(day==0)
-                    setStrongRatios();
 
                 var recs = getRecForSingleDay(dayToSolve, rank, null, true);
 
