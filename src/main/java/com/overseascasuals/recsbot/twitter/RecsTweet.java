@@ -33,10 +33,10 @@ public class RecsTweet
     }*/
     public static void sendRec(int week, DailyRecommendation rec, boolean live) throws TwitterException
     {
-        String str = convertRecToString(week, rec);
+       /* String str = convertRecToString(week, rec);
         LOG.info("{}:\n{}\n\nLength: {}", live?"Tweeting":"Would be tweeting", str, str.length());
         if(live)
-            sendTweetAPI(str);
+            sendTweetAPI(str);*/
     }
 
     public static String convertRecToString(int week, DailyRecommendation rec)
