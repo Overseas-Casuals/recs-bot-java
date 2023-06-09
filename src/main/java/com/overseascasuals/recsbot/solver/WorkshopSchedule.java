@@ -110,7 +110,7 @@ public class WorkshopSchedule
         return cost;
     }
     
-    public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested, Map<Item,ReservedHelper> reservedHelpers) {
+    public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested, Map<Item,ReservedHelper> reservedHelpers, boolean subSchedule) {
         boolean verboseLogging = false;
 
         /*if(day == 3 && items.size() == 4 && items.get(0) == Item.Brush && items.get(1) == Item.SharkOil && items.get(2) == Item.Brush
@@ -119,10 +119,10 @@ public class WorkshopSchedule
 
         /*if(day == 1 && items.size() == 5 && items.get(0) == Item.Dressing && items.get(1) == Item.Butter && items.get(2) == Item.Horn
                 && items.get(3) == Item.BoiledEgg && items.get(4) == Item.CawlCennin)
-            verboseLogging = true;
+            verboseLogging = true;*/
 
-        if(day == 1 && items.size() == 6 && items.get(0) == Item.CornFlakes && items.get(1) == Item.Sauerkraut && items.get(2) == Item.CornFlakes
-                && items.get(3) == Item.Sauerkraut && items.get(4) == Item.CornFlakes && items.get(5) == Item.Sauerkraut)
+        /*if(day == 3 && items.size() == 6 && items.get(0) == Item.Butter && items.get(1) == Item.Dressing && items.get(2) == Item.Butter
+                && items.get(3) == Item.Dressing && items.get(4) == Item.Butter && items.get(5) == Item.Dressing)
             verboseLogging = true;*/
 
         int expectedGroove = 3;
@@ -219,6 +219,7 @@ public class WorkshopSchedule
 
         int prepeakBonus = 0;
 
+        int numWorkshops = subSchedule?1:3;
 
         for(int i=0; i<getNumCrafts(); i++)
         {
@@ -249,7 +250,7 @@ public class WorkshopSchedule
 
             workshopValue += currentValue;
             currentIndex++;
-            int amountCrafted = efficient? 6 : 3; //Only assume we're making up to 6 crafts
+            int amountCrafted = efficient? numWorkshops*2 : numWorkshops; //Only assume we're making up to 6 crafts
             numCrafted.put(completedCraft.item, previouslyCrafted + amountCrafted);
 
             if (verboseLogging)

@@ -2205,39 +2205,44 @@ public class Solver
             return;
         }
 
-        WorkshopValue value = workshop.getValueWithGrooveEstimate(day, groove, restedAlready(), reservedHelpers);
 
-        if(verboseSolverLogging)
-            LOG.info("Schedule has value {}", value.getWeighted());
+
+
 
         if(!workshop.usesTooMany(limitedUse, false, verboseSolverLogging))
         {
+            WorkshopValue mainValue = workshop.getValueWithGrooveEstimate(day, groove, restedAlready(), reservedHelpers, false);
+
+            if(verboseSolverLogging)
+                LOG.info("Schedule has value {}", mainValue.getWeighted());
+
             // Only add if we don't already have one with this schedule or ours is better
             int oldValue = -99999;
             if(safeSchedules.containsKey(workshop))
                 oldValue = safeSchedules.get(workshop).getWeighted();
 
-            if (oldValue < value.getWeighted())
+            if (oldValue < mainValue.getWeighted())
             {
                 if (verboseSolverLogging && oldValue > 0)
-                    LOG.info("Replacing schedule with mats " + workshop.rareMaterialsRequired + " with " + list + " because " + value.getWeighted() + " is higher than " + oldValue);
+                    LOG.info("Replacing schedule with mats " + workshop.rareMaterialsRequired + " with " + list + " because " + mainValue.getWeighted() + " is higher than " + oldValue);
 
                 safeSchedules.remove(workshop); // It doesn't seem to update the key when updating the value, so we delete the key first
-                safeSchedules.put(workshop, value);
+                safeSchedules.put(workshop, mainValue);
             }
             else if(verboseSolverLogging)
             {
-                LOG.info("Not replacing because old value {} is higher than {}", oldValue, value.getWeighted());
+                LOG.info("Not replacing because old value {} is higher than {}", oldValue, mainValue.getWeighted());
             }
         }
+        WorkshopValue subValue = workshop.getValueWithGrooveEstimate(day, groove, restedAlready(), reservedHelpers, true);
         int oldSubValue = -99999;
         if(semiSafeSchedules.containsKey(workshop))
             oldSubValue = semiSafeSchedules.get(workshop).getWeighted();
 
-        if (oldSubValue < value.getWeighted())
+        if (oldSubValue < subValue.getWeighted())
         {
             semiSafeSchedules.remove(workshop); // It doesn't seem to update the key when updating the value, so we delete the key first
-            semiSafeSchedules.put(workshop, value);
+            semiSafeSchedules.put(workshop, subValue);
         }
 
 

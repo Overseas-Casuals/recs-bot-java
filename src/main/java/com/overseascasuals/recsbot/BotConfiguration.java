@@ -421,9 +421,9 @@ public class BotConfiguration implements CommandLineRunner
         /*if(!solver.hasRunRecs)
         {
             LOG.info("Haven't run recs yet. Doing so now.");
-            solver.getDailyRecommendations(42, 0, true);
+            solver.getDailyRecommendations(42, 2, true);
         }
-        solver.getRecForSingleDay(1, 15,null, false);*/
+        solver.getRecForSingleDay(3, 15,List.of(Item.RunnerBeanSaute), false);*/
         Thread.sleep(5000); //Idk, just make sure things have a chance to finish running?
     }
 }

@@ -131,11 +131,13 @@ public class CycleSchedule
     public void setGrooveBonus(boolean rested, Map<Item, ReservedHelper> reservedHelpers)
     {
         grooveBonus = 0;
-        for(var workshop : workshops)
+        otherWeights = 0;
+        for(int i=0;i<workshops.length;i++)
         {
+            var workshop = workshops[i];
             if(workshop.getItems().size() > 0)
             {
-                var value = workshop.getValueWithGrooveEstimate(day, startingGroove, rested, reservedHelpers);
+                var value = workshop.getValueWithGrooveEstimate(day, startingGroove, rested, reservedHelpers, i>=3);
                 grooveBonus+= value.getGroove();
                 otherWeights+= value.getPeakBonus() - value.getPenalty();
             }
@@ -145,9 +147,15 @@ public class CycleSchedule
 
     public int getWeightedValue()
     {
+        return getWeightedValue(false);
+    }
+    public int getWeightedValue(boolean verbose)
+    {
         if(grooveBonus == -1)
             throw new RuntimeException("Getting weighted value from cycle schedule before groove bonus set");
-        return getValue() + grooveBonus + otherWeights - (int)(getMaterialCost() * Solver.materialWeight);
+        if(verbose)
+            LOG.info("Getting weighted value for schedule {}, grooveBonus: {}, other weights: {}, material cost: {}", this, grooveBonus, otherWeights, getMaterialCost());
+        return getValue(verbose) + grooveBonus + otherWeights - (int)(getMaterialCost() * Solver.materialWeight);
     }
 
     public Map<Item, Integer> getLimitedUses(Map<Item, Integer> limitedUse)
