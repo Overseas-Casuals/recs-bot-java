@@ -2027,7 +2027,9 @@ public class Solver
     private BruteForceSchedules getBestBruteForceSchedules(int day, int groove,
                                                            Map<Item,Integer> limitedUse, int allowUpToDay, int numToReturn, Item startingItem, int hoursLeft, int islandRank)
     {
-        numToReturn = 15;
+        if(numToReturn<2)
+            numToReturn = 2; //We need at least 2 to do the 4th schedule thing
+
         /*LOG.info("Getting best schedule for day {}. groove {}. limitedUse {}, allowUpToDay {}, startingItem {}, hoursLeft {} and chains {}",
                 day+1, groove, limitedUse, allowUpToDay, startingItem, hoursLeft, csvImporter.allEfficientChains.size());*/
         HashMap<WorkshopSchedule, WorkshopValue> safeSchedules = new HashMap<>();
@@ -2119,26 +2121,29 @@ public class Solver
         List<Integer> redundantIndices = new ArrayList<>();
         var sets = new HashSet<Map<RareMaterial, Integer>>();
 
-        if(numToReturn > 1)
-        {
-            for(int i=0; i<numToReturn * 3 && i<sortedSchedules.size(); i++)
-            {
-                WorkshopSchedule sched = sortedSchedules.get(i).getKey();
-                if(sched.isItemSuperset(sets))
-                {
-                    redundantIndices.add(i);
-                }
-                else
-                    sets.add(sched.rareMaterialsRequired);
-            }
-        }
 
+        for(int i=0; i<numToReturn * 3 && i<sortedSchedules.size(); i++)
+        {
+            WorkshopSchedule sched = sortedSchedules.get(i).getKey();
+            if(sched.isItemSuperset(sets))
+            {
+                //LOG.info("Sched {} is redundant with rare mats {}", sched.getItems(), sched.rareMaterialsRequired);
+                redundantIndices.add(i);
+            }
+            else
+            {
+                //LOG.info("Adding rare mats {} from highest-rated schedule {}", sched.rareMaterialsRequired, sched.getItems());
+                sets.add(sched.rareMaterialsRequired);
+            }
+
+        }
 
         for(int j = redundantIndices.size() - 1; j >=0; j--)
         {
             //Remove from the end forward because the indices will change once you start removing
             int i = redundantIndices.get(j);
-            sortedSchedules.remove(i);
+            var removed = sortedSchedules.remove(i);
+            //LOG.info("Removed redundant schedule {}", removed.getKey().getItems());\
         }
 
         if(sortedSchedules.size() == 0)
@@ -2153,11 +2158,11 @@ public class Solver
         {
             for (Entry<WorkshopSchedule, WorkshopValue> sortedSchedule : sortedSemiSafe)
             {
+                //LOG.info("Checking subschedule {}: {}", sortedSchedule.getKey().getItems(), sortedSchedule.getValue().getWeighted());
                 var subItems = sortedSchedule.getKey().getItems();
-                //LOG.info("Checking {} for interference with main schedule {}", subItems, sortedSchedules.get(0).getKey().getItems());
                 if (!sortedSchedules.get(0).getKey().interferesWithMe(subItems, false))
                 {
-                    //LOG.info("It doesn't! {}", DailyRecommendation.prettyPrint(sortedSchedule));
+                    //LOG.info("Schedule {} has best subschedule {}", sortedSchedules.get(0).getKey().getItems(), DailyRecommendation.prettyPrint(sortedSchedule));
                     firstNonInterfering = subItems;
                     break;
                 }

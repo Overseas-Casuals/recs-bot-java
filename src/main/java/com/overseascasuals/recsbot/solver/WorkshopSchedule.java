@@ -112,10 +112,18 @@ public class WorkshopSchedule
     
     public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested, Map<Item,ReservedHelper> reservedHelpers) {
         boolean verboseLogging = false;
-        /*if(day == 1 && items.size() == 5 && items.get(0) == Item.PopotoSalad && items.get(1) == Item.BoiledEgg && items.get(2) == Item.CawlCennin
-                && items.get(3) == Item.BoiledEgg && items.get(4) == Item.CawlCennin)
+
+        /*if(day == 3 && items.size() == 4 && items.get(0) == Item.Brush && items.get(1) == Item.SharkOil && items.get(2) == Item.Brush
+                && items.get(3) == Item.SpruceRoundShield)
             verboseLogging = true;*/
 
+        /*if(day == 1 && items.size() == 5 && items.get(0) == Item.Dressing && items.get(1) == Item.Butter && items.get(2) == Item.Horn
+                && items.get(3) == Item.BoiledEgg && items.get(4) == Item.CawlCennin)
+            verboseLogging = true;
+
+        if(day == 1 && items.size() == 6 && items.get(0) == Item.CornFlakes && items.get(1) == Item.Sauerkraut && items.get(2) == Item.CornFlakes
+                && items.get(3) == Item.Sauerkraut && items.get(4) == Item.CornFlakes && items.get(5) == Item.Sauerkraut)
+            verboseLogging = true;*/
 
         int expectedGroove = 3;
         int effCrafts = 0;
@@ -391,7 +399,8 @@ public class WorkshopSchedule
         {
             WorkshopSchedule otherWorkshop = (WorkshopSchedule)other;
             
-            return rareMaterialsRequired.equals(otherWorkshop.rareMaterialsRequired);
+            //return rareMaterialsRequired.equals(otherWorkshop.rareMaterialsRequired);
+            return items.equals(otherWorkshop.items);
             
         }
         return false;
@@ -401,6 +410,8 @@ public class WorkshopSchedule
     {
         for(var itemSet : otherItemSets)
         {
+            if(rareMaterialsRequired.equals(itemSet))
+                return true;
             boolean isSuperset = true;
             for(var entry : itemSet.entrySet())
             {
@@ -453,6 +464,7 @@ public class WorkshopSchedule
     
     public int hashCode()
     {
-        return rareMaterialsRequired.hashCode();
+        //return rareMaterialsRequired.hashCode();
+        return items.hashCode();
     }
 }

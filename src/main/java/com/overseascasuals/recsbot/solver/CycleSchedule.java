@@ -21,6 +21,7 @@ public class CycleSchedule
 
     private int endingGroove;
     private int grooveBonus = -1;
+    private int otherWeights = -1;
     WorkshopSchedule[] workshops = new WorkshopSchedule[Solver.NUM_WORKSHOPS];
     HashMap<Item, Integer> numCrafted;
     
@@ -133,7 +134,12 @@ public class CycleSchedule
         for(var workshop : workshops)
         {
             if(workshop.getItems().size() > 0)
-                grooveBonus+= workshop.getValueWithGrooveEstimate(day, startingGroove, rested, reservedHelpers).getGroove();
+            {
+                var value = workshop.getValueWithGrooveEstimate(day, startingGroove, rested, reservedHelpers);
+                grooveBonus+= value.getGroove();
+                otherWeights+= value.getPeakBonus() - value.getPenalty();
+            }
+
         }
     }
 
@@ -141,7 +147,7 @@ public class CycleSchedule
     {
         if(grooveBonus == -1)
             throw new RuntimeException("Getting weighted value from cycle schedule before groove bonus set");
-        return getValue() + getGrooveBonus() - (int)(getMaterialCost() * Solver.materialWeight);
+        return getValue() + grooveBonus + otherWeights - (int)(getMaterialCost() * Solver.materialWeight);
     }
 
     public Map<Item, Integer> getLimitedUses(Map<Item, Integer> limitedUse)

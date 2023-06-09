@@ -34,10 +34,7 @@ import reactor.retry.Retry;
 
 import java.time.Duration;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @EnableScheduling
 @Configuration
@@ -416,8 +413,17 @@ public class BotConfiguration implements CommandLineRunner
 
 
         //solver.getRestOfDayRecs(3, 20, 11, Item.GrowthFormula);
-        //solver.getRestOfDayRecs(3, 22, 11, null);
-        //solver.getRecForSingleDay(5, 11, List.of(Item.GarnetRapier), true);
+        //solver.getRestOfDayRecs(3, 22, 11, null);=
+
+
+        //If we don't have this, it's because we haven't run recs at all
+        //So run recs to get things all set up
+        /*if(!solver.hasRunRecs)
+        {
+            LOG.info("Haven't run recs yet. Doing so now.");
+            solver.getDailyRecommendations(42, 0, true);
+        }
+        solver.getRecForSingleDay(1, 15,null, false);*/
         Thread.sleep(5000); //Idk, just make sure things have a chance to finish running?
     }
 }
