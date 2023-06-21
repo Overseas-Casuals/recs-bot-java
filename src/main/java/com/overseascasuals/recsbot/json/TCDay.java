@@ -1,10 +1,13 @@
 package com.overseascasuals.recsbot.json;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.Date;
 import java.util.List;
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class TCDay {
     private Date start;
+    private Date updated;
     private boolean lock;
     private int popularity;
     private int predictedPopularity;
@@ -20,6 +23,10 @@ public class TCDay {
     public void setStart(Date start) {
         this.start = start;
     }
+
+    public Date getUpdated(){return updated; }
+
+    public void setUpdated(Date updated) {this.updated = updated; }
 
     public boolean isLock() {
         return lock;
