@@ -767,6 +767,7 @@ public class Solver
         {
             CycleSchedule crime2 = new CycleSchedule(1, 0, maxIslandRank);
             crime2.setForFirstThreeWorkshops(new ArrayList<>());
+            crime2.setFourthWorkshop(new ArrayList<>());
             addCraftedFromCycle(1, crime2, maxIslandRank, false);
             for(int day=2; day<7; day++)
             {

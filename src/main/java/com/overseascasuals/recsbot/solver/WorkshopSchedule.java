@@ -80,7 +80,8 @@ public class WorkshopSchedule
     public int getValueForCurrent(int day, int craftedSoFar, int currentGroove, boolean isEfficient, boolean verboseLogging)
     {
         ItemInfo craft = crafts.get(currentIndex);        
-        int baseValue = craft.baseValue * Solver.getWorkshopBonus(rank) * (100+currentGroove) / 10000;
+        //int baseValue = craft.baseValue * Solver.getWorkshopBonus(rank) * (100+currentGroove) / 10000;
+        int baseValue = (int)(craft.baseValue * (Solver.getWorkshopBonus(rank)/100f) * (100+currentGroove) / 100);
         int supply = craft.getSupplyOnDay(day) + craftedSoFar;
         int adjustedValue = baseValue * craft.popularityRatio * ItemInfo.getSupplyBucket(supply).multiplier  / 10000;
         
