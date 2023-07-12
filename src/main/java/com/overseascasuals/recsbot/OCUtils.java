@@ -94,7 +94,17 @@ public class OCUtils
         builder.timestamp(Instant.now());
 
         if(rec.isRestRecommended())
+        {
             builder.color(Color.SUMMER_SKY).addField("Main Recommendation",getRestText(), false);
+
+            boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems()) && rec.getBestRec().getSubItems().size()>0;
+            String title = ws4Diff?"First 3 Workshops":"All Workshops";
+            //Show one alt
+            builder.addField("If You Can't Rest...", "||**"+title+":**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
+            if(ws4Diff)
+                builder.addField(".", "||**4th Workshop**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
+            builder.addField("Grooveless Value","||"+rec.getGroovelessValue()+"||", true);
+        }
         else
         {
             boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems()) && rec.getBestRec().getSubItems().size() > 0;
@@ -167,16 +177,6 @@ public class OCUtils
             }
             else
             {
-                if(rec.isRestRecommended())
-                {
-                    boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems()) && rec.getBestRec().getSubItems().size()>0;
-                    String title = ws4Diff?"First 3 Workshops":"All Workshops";
-                    //Show one alt
-                    builder.addField("If You Can't Rest...", "||**"+title+":**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
-                    if(ws4Diff)
-                            builder.addField(".", "||**4th Workshop**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
-                    builder.addField("Grooveless Value","||"+rec.getGroovelessValue()+"||", true);
-                }
                 builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
                         "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);
             }
