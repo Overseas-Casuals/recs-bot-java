@@ -785,23 +785,26 @@ public class Solver
             addCraftedFromCycle(1, crime2, maxIslandRank, false);
             for(int day=2; day<7; day++)
             {
-                CycleSchedule sched;
+                CycleSchedule sched = new CycleSchedule(day, groove, maxIslandRank);
                 if(fortuneTellerRecs == null)
                 {
-                    sched = new CycleSchedule(day, groove, maxIslandRank);
+                    LOG.info("Getting FT recs from database");
                     var crafts = craftRepository.findCraftsByDay(week, day, -1);
                     sched.setForFirstThreeWorkshops(crafts.getCrafts());
                     sched.setFourthWorkshop(crafts.getSubcrafts());
                 }
                 else
                 {
-                    sched = fortuneTellerRecs.getRecs().get(day-2);
+                    LOG.info("Getting FT recs from local cache");
+                    var cachedSched = fortuneTellerRecs.getRecs().get(day-2);
+                    sched.setForFirstThreeWorkshops(cachedSched.getItems());
+                    sched.setFourthWorkshop(cachedSched.getSubItems());
                 }
 
                 addCraftedFromCycle(day, sched, maxIslandRank, false);
 
                 int today = sched.getValue();
-                LOG.info("Getting FT total for day {}, starting groove {} crafts {}: {} cowries", day+1, sched.getStartingGroove(), sched.getItems(), today);
+                LOG.info("Getting FT total for day {}, starting groove {} crafts {}, subcrafts {}: {} cowries", day+1, sched.getStartingGroove(), sched.getItems(), sched.getSubItems(), today);
                 fortuneValue += today;
             }
         }
