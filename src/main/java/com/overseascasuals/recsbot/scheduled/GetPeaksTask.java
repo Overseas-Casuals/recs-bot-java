@@ -89,7 +89,7 @@ public class GetPeaksTask implements ScheduledTask
     @Autowired
     Solver solver;
 
-    private String cron = "0 10 8 ? * TUE-FRI";
+    private String cron = "0 10 8 ? * *";
 
     private GatewayDiscordClient client;
 

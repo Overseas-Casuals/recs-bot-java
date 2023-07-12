@@ -351,10 +351,24 @@ public class Solver
         if(day==0)
             setStrongRatios();
 
-        //If we're on live and we already have a schedule for this day, just move on
-        if("live".equals(activeProfile) && dailySchedules.containsKey(dayToSolve)){
+        //If we're on live and we already have a schedule for this day, make sure our state is accurate and move on
+        if("live".equals(activeProfile) && dailySchedules.containsKey(Math.min(dayToSolve,6))){
             hasRunRecs = true;
             isRunningRecs = false;
+
+            if(day > 3)
+            {
+                for(int i=4; i<=6;i++)
+                {
+                    if(dailySchedules.containsKey(i))
+                    {
+                        CycleSchedule sched = new CycleSchedule(i, startingGroovePerDay.get(i), maxIslandRank);
+                        sched.setForFirstThreeWorkshops(dailySchedules.get(i).items);
+                        sched.setFourthWorkshop(dailySchedules.get(i).subItems);
+                        addCraftedFromCycle(i, sched, maxIslandRank, false);
+                    }
+                }
+            }
             return listOfRecs;
         }
 
