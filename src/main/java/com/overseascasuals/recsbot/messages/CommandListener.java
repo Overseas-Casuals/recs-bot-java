@@ -203,15 +203,28 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             solver.getDailyRecommendations(week, day, true);
         }
 
-        var recs = solver.getRestOfWeekRecs(rank, false);
+        List<Item> items;
+        try
+        {
+            items = getItemsFromEvent(event);
+        }
+        catch(IllegalArgumentException e)
+        {
+            return event.editReply(e.getMessage());
+        }
 
+        var recs = solver.getRestOfWeekRecs(rank, items,false);
+
+        String content = "";
+        if(items.size()>0)
+            content = "Not using "+ items.stream().map(Item::getDisplayName).collect(Collectors.joining(", "));
 
         if(recs == null || recs.getRecs() == null || recs.getRecs().size() == 0)
             return event.editReply("No rest of week recs returned. <@"+miennaID+">");
 
         var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs, rank);
 
-        return event.editReply().withEmbeds(embed);
+        return event.editReply(content).withEmbeds(embed);
     }
 
     private InteractionReplyEditMono deferredTodayCommand(ChatInputInteractionEvent event)
@@ -288,16 +301,8 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         return event.editReply("Re-ran recs successfully. Check <#"+recsChannelID+">");
     }
 
-    private InteractionReplyEditMono deferredAltsCommand(ChatInputInteractionEvent event)
+    private List<Item> getItemsFromEvent(ChatInputInteractionEvent event) throws IllegalArgumentException
     {
-        int rank = maxIslandRank;
-        if(event.getOption("rank").isPresent())
-        {
-            rank = Math.toIntExact(event.getOption("rank")
-                    .flatMap(ApplicationCommandInteractionOption::getValue)
-                    .map(ApplicationCommandInteractionOptionValue::asLong).get());
-        }
-
         List<Item> items = new ArrayList<>();
         for(int i=1; i<=3; i++)
         {
@@ -312,7 +317,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 }
                 catch(IllegalArgumentException e)
                 {
-                    return event.editReply(itemName+" is not a valid item");
+                    throw new IllegalArgumentException(itemName+" is not a valid item");
                 }
             }
         }
@@ -325,6 +330,29 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 items.addAll(caramelMap.get(mat));
             }
         }
+        return items;
+    }
+
+    private InteractionReplyEditMono deferredAltsCommand(ChatInputInteractionEvent event)
+    {
+        int rank = maxIslandRank;
+        if(event.getOption("rank").isPresent())
+        {
+            rank = Math.toIntExact(event.getOption("rank")
+                    .flatMap(ApplicationCommandInteractionOption::getValue)
+                    .map(ApplicationCommandInteractionOptionValue::asLong).get());
+        }
+
+        List<Item> items;
+        try
+        {
+            items = getItemsFromEvent(event);
+        }
+        catch(IllegalArgumentException e)
+        {
+            return event.editReply(e.getMessage());
+        }
+
 
         var calendar = Calendar.getInstance();
         calendar.setTime(new Date());

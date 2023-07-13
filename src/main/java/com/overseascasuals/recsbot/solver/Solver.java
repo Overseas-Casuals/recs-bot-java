@@ -178,7 +178,7 @@ public class Solver
 
     public List<CycleSchedule> getVacationRecs (int rank) { return vacationRecs.get(rank);}
 
-    private final Map<Integer, RestOfWeekRec> restOfWeek = new HashMap<>();
+    private final Map<String, RestOfWeekRec> restOfWeek = new HashMap<>();
 
     private final Map<Integer, Integer> startingGroovePerDay = new HashMap<>();
     public int getStartingGroove(int day, int rank)
@@ -399,7 +399,7 @@ public class Solver
                     addCraftedFromCycle(2, c3.getBestRec(), ftRank, false);
                     List<CycleSchedule> schedules = new ArrayList<>();
                     schedules.add(c3.getBestRec());
-                    RestOfWeekRec restOfWeek = getRestOfWeekRecs(ftRank, true);
+                    RestOfWeekRec restOfWeek = getRestOfWeekRecs(ftRank, null,true);
                     schedules.addAll(restOfWeek.getRecs());
                     fortuneTellerRecs = new RestOfWeekRec(schedules, -1, true);
 
@@ -1522,12 +1522,14 @@ public class Solver
         return restOfDayRank;
     }
 
-    public RestOfWeekRec getRestOfWeekRecs(int rank, boolean bypassCache)
+    public RestOfWeekRec getRestOfWeekRecs(int rank, List<Item> limitedItems,  boolean bypassCache)
     {
         if(rank > maxIslandRank)
             rank = maxIslandRank;
 
-        if(!bypassCache && restOfWeek.containsKey(rank))
+        String cacheKey = getKeyForAltRequest(day+2, rank, limitedItems);
+
+        if(!bypassCache && restOfWeek.containsKey(cacheKey))
         {
             LOG.info("Returning rest of week from cache");
             return restOfWeek.get(rank);
@@ -1535,6 +1537,11 @@ public class Solver
 
 
         Map<Item,Integer> reservedSet = new HashMap<>();
+        if(limitedItems!=null && limitedItems.size()>0)
+        {
+            for(Item i : limitedItems)
+                reservedSet.put(i, 0);
+        }
         var restOfWeekRank = new ArrayList<CycleSchedule>();
 
         int worstIndex = -1;
@@ -1573,7 +1580,7 @@ public class Solver
         }
         var rec = new RestOfWeekRec(restOfWeekRank, worstIndex, rested > 0 && rested <= day + 1);
         if(!bypassCache)
-            restOfWeek.put(rank, rec);
+            restOfWeek.put(cacheKey, rec);
 
         return rec;
     }
