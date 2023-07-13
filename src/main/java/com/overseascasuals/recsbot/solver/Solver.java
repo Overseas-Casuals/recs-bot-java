@@ -1532,7 +1532,7 @@ public class Solver
         if(!bypassCache && restOfWeek.containsKey(cacheKey))
         {
             LOG.info("Returning rest of week from cache");
-            return restOfWeek.get(rank);
+            return restOfWeek.get(cacheKey);
         }
 
 
