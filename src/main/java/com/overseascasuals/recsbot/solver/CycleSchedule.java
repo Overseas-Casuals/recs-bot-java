@@ -12,6 +12,10 @@ public class CycleSchedule
 {
     Logger LOG = LoggerFactory.getLogger(CycleSchedule.class);
     int day;
+    public int getDay()
+    {
+        return day;
+    }
     int rank;
     public int getRank()
     {

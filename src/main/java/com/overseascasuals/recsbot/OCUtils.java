@@ -2,6 +2,7 @@ package com.overseascasuals.recsbot;
 
 import com.overseascasuals.recsbot.data.*;
 import com.overseascasuals.recsbot.solver.CycleSchedule;
+import com.overseascasuals.recsbot.solver.Solver;
 import com.overseascasuals.recsbot.solver.WorkshopSchedule;
 import discord4j.core.object.entity.Message;
 import discord4j.core.spec.EmbedCreateSpec;
@@ -11,10 +12,7 @@ import discord4j.rest.util.Color;
 
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class OCUtils
@@ -77,7 +75,7 @@ public class OCUtils
         }
         else
         {
-            messageSpec.content("<@&"+squawkboxRole+">");
+            messageSpec.content("<@&"+squawkboxRole+">"+getFlavorText(rec));
             messageSpec.addEmbed(getGeneralRecEmbed(season, rec, true));
         }
 
@@ -182,6 +180,90 @@ public class OCUtils
             }
         }
         return builder.build();
+    }
+    private static List<String> squawks = List.of("*squawk*", "*brawk*", "*SQUAWK*", "*braaaaawk*", "*SQUAAAAAWK*", "*squawk*", "*brawk*","*squawk*", "*brawk*","*squawk*");
+    private static List<String> comfort = List.of(" It's okay.", " Don't worry.", " It's intended.", " It's fine.", " Everything's fine.", " *squawk*", "");
+    public static String getFlavorText(RestOfWeekRec rec)
+    {
+        return _getFlavorText(rec.getRecs());
+    }
+    public static String getFlavorText(DailyRecommendation rec)
+    {
+        List<CycleSchedule> recs = new ArrayList<>();
+        if(!rec.isRestRecommended())
+            recs.add(rec.getBestRec());
+        return _getFlavorText(recs);
+    }
+    public static String getFlavorText(List<DailyRecommendation> recs)
+    {
+        List<CycleSchedule> cycles = new ArrayList<>();
+        for(var rec : recs)
+            if(!rec.isRestRecommended())
+                cycles.add(rec.getBestRec());
+        return _getFlavorText(cycles);
+    }
+    private static String _getFlavorText(List<CycleSchedule> list)
+    {
+        var breaks = dayWithEfficiencyBreak(list);
+        StringBuilder sb = new StringBuilder(" ");
+        if(breaks.size()>0)
+        {
+            if(Math.random()<.5)
+                sb.append(getRandomInList(squawks)).append(" ");
+
+            sb.append("Yes, the break in efficiency bonus on cycle");
+            if(breaks.size()>1)
+                sb.append("s");
+            sb.append(" ");
+            var iter = breaks.iterator();
+            int first = iter.next();
+            sb.append(first+1);
+            while(iter.hasNext())
+            {
+                int next = iter.next();
+                if(!iter.hasNext()) //this is the last one
+                    sb.append(" and ").append(next+1);
+                else
+                    sb.append(", ").append(next+1);
+            }
+            sb.append(" is on purpose.").append(getRandomInList(comfort));
+
+            if(Math.random()<.25)
+                sb.append(" ").append(squawks.get((int)(Math.random() * squawks.size())));
+
+            return sb.toString();
+        }
+
+        if(Math.random()<.1)
+            sb.append(getRandomInList(squawks));
+
+        return sb.toString();
+    }
+
+    private static String getRandomInList(List<String> list)
+    {
+        return list.get((int)(Math.random() * list.size()));
+    }
+
+    private static Set<Integer> dayWithEfficiencyBreak(List<CycleSchedule> recs)
+    {
+        Set<Integer> breaks = new HashSet<>();
+        for(var rec:recs)
+        {
+            var items = rec.getItems();
+            for(int i=1;i<items.size();i++)
+            {
+                if(!Solver.items[items.get(i).ordinal()].getsEfficiencyBonus(Solver.items[items.get(i-1).ordinal()]))
+                    breaks.add(rec.getDay());
+            }
+            items = rec.getSubItems();
+            for(int i=1;i<items.size();i++)
+            {
+                if(!Solver.items[items.get(i).ordinal()].getsEfficiencyBonus(Solver.items[items.get(i-1).ordinal()]))
+                    breaks.add(rec.getDay());
+            }
+        }
+        return breaks;
     }
 
     public static EmbedCreateSpec createCombinedC4Post(int season, List<DailyRecommendation> recs, int total)

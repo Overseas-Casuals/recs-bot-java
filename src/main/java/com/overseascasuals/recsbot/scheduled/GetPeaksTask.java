@@ -338,7 +338,7 @@ public class GetPeaksTask implements ScheduledTask
 
                     for(int i=0; i<numRanks;i++)
                     {
-                        var combinedC4Post = MessageCreateSpec.builder().content("<@&"+squawkboxRole+">");
+                        var combinedC4Post = MessageCreateSpec.builder().content("<@&"+squawkboxRole+">" + OCUtils.getFlavorText(list));
 
 
                         var c4Message = OCUtils.createCombinedC4Post(week, list, numRanks-1==i?solver.totalValue:-1);
@@ -376,7 +376,7 @@ public class GetPeaksTask implements ScheduledTask
                     {
                         var embed = OCUtils.generateThisWeekEmbed(week, solver.fortuneTellerRecs, -1);
 
-                        fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&"+clairvoyantRole+">").addEmbed(embed).build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted fortune teller recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting fortune-teller recs:",error);});
+                        fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&"+clairvoyantRole+">" + OCUtils.getFlavorText(solver.fortuneTellerRecs)).addEmbed(embed).build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted fortune teller recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting fortune-teller recs:",error);});
                     }
                     for(var recs : list)
                     {
