@@ -520,18 +520,15 @@ public class GetPeaksTask implements ScheduledTask
                     num2Weak++;
                     currentPeak.setPeak("2W");
                 }
-                else if (supply.getSupply() == Insufficient) //Peaks D3 or 6/7
+                else if (supply.getDemand() == Skyrocketing)
                 {
-                    if (supply.getDemand() == Skyrocketing)
-                    {
-                        num3Strong++;
-                        currentPeak.setPeak("3S");
-                    }
-                    else
-                    {
-                        num67++;
-                        currentPeak.setPeak("67");;
-                    }
+                    num3Strong++;
+                    currentPeak.setPeak("3S");
+                }
+                else if(supply.getDemand() == Increasing)
+                {
+                    num67++;
+                    currentPeak.setPeak("67");;
                 }
                 else
                 {
@@ -566,17 +563,19 @@ public class GetPeaksTask implements ScheduledTask
                 CraftPeaks currentPeak = newPeaks.get(i);
                 currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
                 ItemSupply supply = tcDays.get(2).getObjects().get(i + 1);
-                if (currentPeak.getPeak().equals("45")) {
-                    if (supply.getSupply() == Insufficient) //potentialPeaks 4
+                if (currentPeak.getPeak().equals("45"))
+                {
+                    if (supply.getDemand() == Skyrocketing)
                     {
-                        if (supply.getDemand() == Skyrocketing) {
-                            num4Strong++;
-                            currentPeak.setPeak("4S");
-                        } else {
-                            num4Weak++;
-                            currentPeak.setPeak("4W");
-                        }
-                    } else //potentialPeaks 5
+                        num4Strong++;
+                        currentPeak.setPeak("4S");
+                    }
+                    else if(supply.getDemand() == Increasing)
+                    {
+                        num4Weak++;
+                        currentPeak.setPeak("4W");
+                    }
+                    else //potentialPeaks 5
                     {
                         num5++;
                         currentPeak.setPeak("5U");
@@ -652,17 +651,14 @@ public class GetPeaksTask implements ScheduledTask
             }
             else if (currentPeak.getPeak().equals("5U"))
             {
-                if (supply.getSupply() == Insufficient)
+                if (supply.getDemand() == Skyrocketing) {
+                    num5Strong++;
+                    currentPeak.setPeak("5S");
+                }
+                else
                 {
-                    if (supply.getDemand() == Skyrocketing) {
-                        num5Strong++;
-                        currentPeak.setPeak("5S");
-                    }
-                    else
-                    {
-                        num5Weak++;
-                        currentPeak.setPeak("5W");
-                    }
+                    num5Weak++;
+                    currentPeak.setPeak("5W");
                 }
             }
             else
