@@ -192,6 +192,46 @@ public class GetPeaksTask implements ScheduledTask
                     validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,51,62);
                 if(validTCPeaks)
                     validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,63,74);
+
+                if(!validTCPeaks)
+                {
+                    LOG.info("Invalid peaks found. Checking CN/KR info??");
+                    List<TCDay> chinaDays = null;
+                    //try china?
+                    try
+                    {
+                        response = restService.getURLResponse(tcChinaURL);
+                        //Parse data from JSON
+                        if(response != null)
+                        {
+                            response = response.replaceAll("(?<=demand|supply)\":([5-9]\\d*|\\d\\d+)", "\":5");
+                            chinaDays = objectMapper.readValue(response, new TypeReference<>() {});
+                        }
+
+                        validTCPeaks = chinaDays != null && chinaDays.size() > recDay && chinaDays.get(recDay) != null && chinaDays.get(recDay).getObjects() != null && chinaDays.get(recDay).getObjects().size() > 0;
+                    }
+                    catch(Exception e)
+                    {
+                        LOG.error("Error parsing data from KRCN TC: "+response, e);
+                        validTCPeaks = false;
+                    }
+
+                    if(validTCPeaks)
+                    {
+                        if(recDay > 0)
+                            peaksByDay = peakRepository.findPeaksByDay(week, recDay-1);
+                        else
+                            peaksByDay = new ArrayList<>();
+
+                        validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, chinaDays, week, recDay, 1,50);
+
+                        if(validTCPeaks)
+                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, chinaDays, week, recDay,51,62);
+                        if(validTCPeaks)
+                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,63,74);
+                    }
+                }
+
             }
             else if (!alreadyHavePeaks)
             {
