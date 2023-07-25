@@ -133,6 +133,8 @@ public class BotConfiguration implements CommandLineRunner
             LOG.error("Null application ID. Unable to register commands");
             return;
         }
+        /*ApplicationCommandRequest editPostRequest = ApplicationCommandRequest.builder().name("Fix").type(3).build();
+        commands.add(editPostRequest);*/
 
         // Build our command's definition
         ApplicationCommandRequest setPeakRequest = ApplicationCommandRequest.builder()

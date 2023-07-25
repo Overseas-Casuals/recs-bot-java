@@ -433,6 +433,14 @@ public class OCUtils
         return builder.build();
     }
 
+    public static MessageEditSpec fixBadArchive(Message origMessage)
+    {
+        String old = origMessage.getContent();
+        String corrected = old/*.replace("6722", "6721")
+                .replace("36,976", "36,974")*/;
+        MessageEditSpec messageEditSpec = MessageEditSpec.builder().contentOrNull(corrected).build();
+        return messageEditSpec;
+    }
     public static MessageEditSpec addCurrentDay(int day, DailyRecommendation rec, Message origMessage)
     {
         String content = origMessage.getContent();
