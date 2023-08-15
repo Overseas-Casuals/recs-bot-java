@@ -1047,7 +1047,7 @@ public class Solver
         bestSchedule.setFourthWorkshop(recs.getBestSubItems());
         addCraftedFromCycle(day, bestSchedule, rank, false);
         var newRec = new DailyRecommendation(day, rank, recs, bestSchedule);
-        LOG.info("Adding late-week rec {}", newRec);
+        LOG.info("Adding late-week rec for C{} {} ({}): {}",day+1, bestSchedule.getItems(), bestSchedule.getSubItems(), bestSchedule.getValue());
         recommendations.add(newRec);
     }
     private void addRestToList(BruteForceSchedules recs, int day, int rank, List<DailyRecommendation> recommendations)
@@ -1232,13 +1232,12 @@ public class Solver
 
                 total65 += recalcedCycle5Sched.getBestRec().getWeightedValue();
                 addCraftedFromCycle(4, recalcedCycle5Sched.getBestRec(), rank, false);
-                cycle6Sched = getBestBruteForceSchedules(6, groove, reserved7Set, 6, alternatives, rank);
+                cycle6Sched = getBestBruteForceSchedules(5, groove, reserved7Set, 6, alternatives, rank);
                 total65 += cycle6Sched.getBestRec().getWeightedValue();
 
-                /*System.out.println("Trying to prioritize day 6:"+Arrays.toString(recalcedCycle6Sched.getKey().getItems().toArray())
-                        +" ("+recalcedCycle6Sched.getValue()+"), so day 5: "+Arrays.toString(recalcedCycle5Sched.getKey().getItems().toArray())
-                        +" ("+recalcedCycle5Sched.getValue()+") total: "+total65);*/
-
+                /*LOG.info("Derived 5 from 6 Total: {} (reserved {})\n6:{} ({}) {}\n5:{} ({}) {}", total65, reserved67Items, cycle6Sched.getBestRec().getItems(), cycle6Sched.getBestRec().getSubItems(),cycle6Sched.getBestRec().getWeightedValue(),
+                        recalcedCycle5Sched.getBestRec().getItems(), recalcedCycle5Sched.getBestRec().getSubItems(),recalcedCycle5Sched.getBestRec().getWeightedValue());
+*/
                 //Try deriving 6 from 5
                 int total56 = 0;
 
@@ -1248,10 +1247,9 @@ public class Solver
                 var basedOn56Sched = getBestBruteForceSchedules(5, groove, reserved7Set, 6, alternatives, rank);
                 total56 += basedOn56Sched.getBestRec().getWeightedValue();
 
-                /*System.out.println("Trying to prioritize day 5:"+Arrays.toString(cycle5Sched.getKey().getItems().toArray())
-                        +" ("+cycle5Sched.getValue()+"), so day 6: "+Arrays.toString(basedOn56Sched.getKey().getItems().toArray())
-                        +" ("+basedOn56Sched.getValue()+") total: "+total56);*/
-
+                /*LOG.info("Derived 6 from 5 Total: {}:\n5:{} ({}) {}\n6:{} ({}) {}", total56, cycle5Sched.getBestRec().getItems(), cycle5Sched.getBestRec().getSubItems(),cycle5Sched.getBestRec().getWeightedValue(),
+                        basedOn56Sched.getBestRec().getItems(), basedOn56Sched.getBestRec().getSubItems(),basedOn56Sched.getBestRec().getWeightedValue());
+*/
                 if(total65 > total56)
                 {
                     //System.out.println("Basing on 6 is better");

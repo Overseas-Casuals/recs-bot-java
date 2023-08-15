@@ -31,10 +31,18 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
         bestRec = new CycleSchedule(day, startingGroove, rank);
         if(size() == 0)
             return;
+
+        boolean verboseLogging = false;
+        //if(day == 5 && get(0).getKey().getItems().get(1)==Item.SharkOil &&get(0).getKey().getItems().get(2)==Item.Pie && get(0).getKey().getItems().get(1)==Item.PumpkinPudding)
+            //verboseLogging = true;
         bestRec.setForFirstThreeWorkshops(get(0).getKey().getItems());
         bestRec.setFourthWorkshop(bestSubItems);
         bestRec.setGrooveBonus(rested, reservedHelpers);
         int bestValue = bestRec.getWeightedValue();
+
+        if(verboseLogging)
+            LOG.info("Best schedule for C{}: {} {} ({})", day+1, bestValue, bestRec.getItems(), bestRec.getSubItems());
+
 
         //try second best
         if(secondBestSubItems.size() > 0)
@@ -44,10 +52,12 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
             secondBest.setFourthWorkshop(secondBestSubItems);
             secondBest.setGrooveBonus(rested, reservedHelpers);
             int secondBestValue = secondBest.getWeightedValue();
-            LOG.info("Best schedule: {}, second best schedule: {}", bestValue, secondBestValue);
+            if(verboseLogging)
+                LOG.info("Best schedule: {}, second best schedule: {} {} ({})", bestValue, secondBestValue, secondBest.getItems(), secondBest.getSubItems());
             if(secondBestValue > bestValue)
             {
-                LOG.info("Second best schedule with sub is worth more than best with sub");
+                if(verboseLogging)
+                    LOG.info("Second best schedule with sub is worth more than best with sub");
                 this.bestSubItems = secondBestSubItems;
                 bestRec = secondBest;
                 bestValue = secondBestValue;
@@ -65,7 +75,8 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
 
             if (all4Value > bestValue)
             {
-                LOG.info("all 4 the same as best is better: {}", all4Value);
+                if(verboseLogging)
+                    LOG.info("all 4 the same as best is better: {}", all4Value);
                 this.bestSubItems = get(0).getKey().getItems();
                 bestRec = all4Rec;
                 bestValue = all4Value;
@@ -83,7 +94,8 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
 
             if (all4Value > bestValue)
             {
-                LOG.info("all 4 the same as second best is better: {}", all4Value);
+                if(verboseLogging)
+                    LOG.info("all 4 the same as second best is better: {}", all4Value);
                 this.bestSubItems = get(1).getKey().getItems();
                 bestRec = all4Rec;
                 bestValue = all4Value;
