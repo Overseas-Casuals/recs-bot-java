@@ -305,10 +305,11 @@ public class WorkshopSchedule
 
         //Allow for the accounting for materials if desired
 
-        var value = new WorkshopValue( workshopValue, grooveValue, getMaterialCost(), helperPenalty, prepeakBonus);
+        int matCost = getMaterialCost();
+        var value = new WorkshopValue( workshopValue, grooveValue, matCost, helperPenalty, prepeakBonus);
 
         if(verboseLogging)
-            LOG.info("Schedule {} has workshop value {}, grooveValue {}, helperPenalty {}, and prepeak bonus {}. Weighted: {}", items, workshopValue, grooveValue, helperPenalty, prepeakBonus, value.getWeighted());
+            LOG.info("Schedule {} has workshop value {}, grooveValue {}, matCost {}, helperPenalty {}, and prepeak bonus {}. Weighted: {}", items, workshopValue, grooveValue, matCost, helperPenalty, prepeakBonus, value.getWeighted());
 
 
         return value;

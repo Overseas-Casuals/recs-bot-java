@@ -1043,9 +1043,9 @@ public class Solver
     private void addDailyRecToList(BruteForceSchedules recs, int day, int groove, int rank, List<DailyRecommendation> recommendations)
     {
         CycleSchedule bestSchedule = new CycleSchedule(day, groove, rank);
-        bestSchedule.setForFirstThreeWorkshops(recs.get(0).getKey().getItems());
+        bestSchedule.setForFirstThreeWorkshops(recs.getBestRec().getItems());
         bestSchedule.setFourthWorkshop(recs.getBestSubItems());
-        addCraftedFromCycle(day, recs.getBestRec(), rank, false);
+        addCraftedFromCycle(day, bestSchedule, rank, false);
         var newRec = new DailyRecommendation(day, rank, recs, bestSchedule);
         LOG.info("Adding late-week rec {}", newRec);
         recommendations.add(newRec);
