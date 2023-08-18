@@ -411,7 +411,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
     public InteractionReplyEditMono deferredPushPeaks(ChatInputInteractionEvent event)
     {
-        var d1 = new Date(1661241600000L);
+        /*var d1 = new Date(1661241600000L);
         var d2 = new Date();
 
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
@@ -423,7 +423,8 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         var peaks = peakRepository.findPeaksByDay(week, day);
         String peakresponse = restService.postPeaks(week, day, peaks);
 
-        return event.editReply("Posted popularity and peaks: "+popresponse+", "+peakresponse);
+        return event.editReply("Posted popularity and peaks: "+popresponse+", "+peakresponse);*/
+        return event.editReply("Peak DB doesn't exist");
     }
 
 }

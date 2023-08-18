@@ -12,7 +12,7 @@ package com.overseascasuals.recsbot.scheduled;
         import org.springframework.stereotype.Service;
         import org.springframework.web.client.RestClientException;
 
-@Service
+//@Service
 public class RestartIslandTask implements ScheduledTask
 {
     private static Logger LOG = LoggerFactory.getLogger(RestartIslandTask.class);

@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 
-@Service
+//@Service
 public class PingIslandTask implements ScheduledTask
 {
     private static Logger LOG = LoggerFactory.getLogger(PingIslandTask.class);

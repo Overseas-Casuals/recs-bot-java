@@ -260,14 +260,14 @@ public class GetPeaksTask implements ScheduledTask
                     pop.setPopularity(tcDays.get(0).getPopularity());
                     pop.setNextPopularity(tcDays.get(0).getPredictedPopularity());
                     popularityRepository.save(pop);
-                    try{
+                    /*try{
                         LOG.info("Sending popularity to island.ws: "+restService.postPopularity(week,tcDays.get(0).getPopularity(),  tcDays.get(0).getPredictedPopularity()));
                     }
                     catch(RestClientException e)
                     {
                         LOG.error("Failed to send popularity to peak DB", e);
                         peakChannel.createMessage("<@"+miennaID+"> Couldn't connect to peak database to send popularity").subscribe();
-                    }
+                    }*/
 
                 }
 
@@ -276,14 +276,14 @@ public class GetPeaksTask implements ScheduledTask
                     peakRepository.save(singlePeak);
                 }
 
-                try {
+                /*try {
                     LOG.info("Sending peaks to island.ws: " + restService.postPeaks(week, recDay, peaksByDay));
                 }
                 catch(RestClientException e)
                 {
                     LOG.error("Failed to send peaks to peak DB", e);
                     peakChannel.createMessage("<@"+miennaID+"> Couldn't connect to peak database to send peaks").subscribe();
-                }
+                }*/
 
             }
             else if (!alreadyHavePeaks)
