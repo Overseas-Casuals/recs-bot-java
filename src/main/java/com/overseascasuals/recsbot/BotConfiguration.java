@@ -137,107 +137,6 @@ public class BotConfiguration implements CommandLineRunner
         commands.add(editPostRequest);*/
 
         // Build our command's definition
-        ApplicationCommandRequest setPeakRequest = ApplicationCommandRequest.builder()
-                .name("set_peak")
-                .description("Sets the peak of a craft on Cycle 2 or 3")
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("item")
-                        .description("The item to set the peak of")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .required(true)
-                        .autocomplete(true)
-                        .build()
-                )
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("c2_peak")
-                        .description("Whether the C2 peak is strong or weak")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .required(false)
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Strong").value("strong").build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Weak").value("weak").build())
-                        .build())
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("c3_peak")
-                        .description("Whether the item peaks C3 or C6/7")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .required(false)
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("3W").value("3W").build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("6/7").value("6/7").build())
-                        .build())
-                .defaultMemberPermissions("0")
-                .dmPermission(false)
-                .build();
-        commands.add(setPeakRequest);
-
-        ApplicationCommandRequest setCraftsRequest = ApplicationCommandRequest.builder()
-                .name("set_schedule")
-                .description("Overrides the schedule for a certain day")
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("cycle")
-                        .description("The cycle we're setting the schedule of")
-                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
-                        .required(true)
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cycle 2").value(1).build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cycle 3").value(2).build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cycle 4").value(3).build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cycle 5").value(4).build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cycle 6").value(5).build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cycle 7").value(6).build())
-                        .build()
-                )
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("rank")
-                        .description("The rank we're setting the schedule of")
-                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
-                        .required(false)
-                        .build())
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("craft_1")
-                        .description("The first craft of the cycle")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .autocomplete(true)
-                        .required(false)
-                        .build())
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("craft_2")
-                        .description("The second craft of the cycle")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .autocomplete(true)
-                        .required(false)
-                        .build())
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("craft_3")
-                        .description("The third craft of the cycle")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .autocomplete(true)
-                        .required(false)
-                        .build())
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("craft_4")
-                        .description("The fourth craft of the cycle")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .autocomplete(true)
-                        .required(false)
-                        .build())
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("craft_5")
-                        .description("The fifth craft of the cycle")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .autocomplete(true)
-                        .required(false)
-                        .build())
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("craft_6")
-                        .description("The sixth craft of the cycle")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .autocomplete(true)
-                        .required(false)
-                        .build())
-                .defaultMemberPermissions("0")
-                .dmPermission(false)
-                .build();
-        commands.add(setCraftsRequest);
-
         ApplicationCommandRequest nextWeekRequest = ApplicationCommandRequest.builder()
                 .name("next_week")
                 .description("Gets a non-optimized schedule for next season if you're going to be away")
@@ -406,18 +305,6 @@ public class BotConfiguration implements CommandLineRunner
                 .build();
         commands.add(altsRequest);
 
-        ApplicationCommandRequest rerunRequest = ApplicationCommandRequest.builder()
-                .name("rerun")
-                .description("Re-run recs and post them to the right channel")
-                .build();
-        commands.add(rerunRequest);
-
-        ApplicationCommandRequest islandRequest = ApplicationCommandRequest.builder()
-                .name("push_peaks")
-                .description("Pushes peaks to the public database")
-                .build();
-        commands.add(islandRequest);
-
         ApplicationCommandRequest clear_cache = ApplicationCommandRequest.builder()
                 .name("clear_cache")
                 .description("Clears the alts cache for a specific key")
@@ -429,9 +316,6 @@ public class BotConfiguration implements CommandLineRunner
                         .build())
                 .build();
         commands.add(clear_cache);
-
-
-
 
         /* Bulk overwrite commands.
         */
@@ -445,20 +329,24 @@ public class BotConfiguration implements CommandLineRunner
     {
         Long applicationId = client.getRestClient().getApplicationId().block();
 
+        List<String> commandsToRemove = Arrays.asList("push_peaks","set_peak","rerun","set_schedule");
 
         var commandIDs = client.getRestClient()
                 .getApplicationService()
-                .getGlobalApplicationCommands(applicationId).map(ApplicationCommandData::id)
-                .map(Id::asLong).collectList()
+                .getGlobalApplicationCommands(applicationId).collectMap(ApplicationCommandData::id, ApplicationCommandData::name)
                 .block();
 
-        for(var id : commandIDs)
-            client.getRestClient().getApplicationService()
-                    .deleteGlobalApplicationCommand(applicationId, id)
-                    .subscribe();
+        for(var id : commandIDs.entrySet())
+        {
+            if(commandsToRemove.contains(id.getValue()))
+            {
+                LOG.info("Deleting command name: {}, ID: {}", id.getValue(), id.getKey());
+                client.getRestClient().getApplicationService()
+                        .deleteGlobalApplicationCommand(applicationId, id.getKey().asLong())
+                        .subscribe();
+            }
 
-// Delete it
-
+        }
     }
 
     @Override
