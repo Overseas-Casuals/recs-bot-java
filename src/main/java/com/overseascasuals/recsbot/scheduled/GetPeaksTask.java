@@ -192,6 +192,8 @@ public class GetPeaksTask implements ScheduledTask
                     validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,51,62);
                 if(validTCPeaks)
                     validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,63,74);
+                if(validTCPeaks)
+                    validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,75,86);
 
                 if(!validTCPeaks)
                 {
@@ -229,6 +231,8 @@ public class GetPeaksTask implements ScheduledTask
                             validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, chinaDays, week, recDay,51,62);
                         if(validTCPeaks)
                             validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,63,74);
+                        if(validTCPeaks)
+                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,75,86);
                     }
                 }
 
