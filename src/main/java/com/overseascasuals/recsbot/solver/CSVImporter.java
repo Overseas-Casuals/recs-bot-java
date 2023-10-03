@@ -50,8 +50,9 @@ public class CSVImporter
             System.out.println("Error importing chain csv: "+e.getMessage());
         }
         popularityRatios = new Integer[100][Solver.items.length];
+        int[] ratios = {0, 140, 120, 100, 80};
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(new ClassPathResource("popularityRatios.csv").getInputStream())))
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new ClassPathResource("popularity.csv").getInputStream())))
         {
             int index = 0;
             String line;
@@ -61,7 +62,7 @@ public class CSVImporter
                 String[] values = line.split(",");
                 for(int item = 0; item < Solver.items.length; item++)
                 {
-                    popularityRatios[index][item] = Integer.parseInt(values[item]);
+                    popularityRatios[index][item] = ratios[Integer.parseInt(values[item])];
                 }
                 index++;
             }

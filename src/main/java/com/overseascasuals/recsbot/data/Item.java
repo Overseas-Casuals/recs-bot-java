@@ -75,7 +75,16 @@ public enum Item
     RunnerBeanSaute("Runner Bean Saute","<:OC_RunnerBeanSaute:1110495881402253392>"),
     BeetSoup("Beet Soup","<:OC_BeetSoup:1110495769246572654>"),
     ImamBayildi("Imam Bayildi","<:OC_ImamBayildi:1110495825127292958>"),
-    PickledZucchini("Pickled Zucchini","<:OC_PickledZucchini:1110495869024874509>");
+    PickledZucchini("Pickled Zucchini","<:OC_PickledZucchini:1110495869024874509>"),
+    ServingDish("Serving Dish", "<:OC_BrassServingDish:1158630308988596264>"),
+    GrindingWheel("Grinding Wheel", "<:OC_GrindingWheel:1158630384049864857>"),
+    Tathlums("Tathlums", "<:OC_DuriumThathlums:1158630360578539520>"),
+    GoldHairpin("Gold Hairpin", "<:OC_SeafarerCowrie:1109399604203626536>"),
+    MammetAward("Mammet Award", "<:OC_SeafarerCowrie:1109399604203626536>"),
+    FruitPunch("Fruit Punch", "<:OC_SeafarerCowrie:1109399604203626536>"),
+    SweetPopotoPie("Sweet Popoto Pie", "<:OC_SeafarerCowrie:1109399604203626536>"),
+    Peperoncino("Peperoncino", "<:OC_SeafarerCowrie:1109399604203626536>"),
+    BuffaloBeanSalad("Buffalo Bean Salad", "<:OC_SeafarerCowrie:1109399604203626536>");
     
     private String displayName;
     private String emoji;
