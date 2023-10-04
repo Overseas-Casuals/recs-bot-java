@@ -72,7 +72,7 @@ public class Solver
     {
         return averageWorkshopValue * getWorkshopBonus(rank) * getNumWorkshops(rank) / 100;
     }
-    public static int maxIslandRank = 17;
+    public static int maxIslandRank = 20;
     public static double materialWeight = 0.5;
     private static final int alternatives = 5;
 
