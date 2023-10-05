@@ -79,12 +79,12 @@ public enum Item
     ServingDish("Serving Dish", "<:OC_BrassServingDish:1158630308988596264>"),
     GrindingWheel("Grinding Wheel", "<:OC_GrindingWheel:1158630384049864857>"),
     Tathlums("Tathlums", "<:OC_DuriumThathlums:1158630360578539520>"),
-    GoldHairpin("Gold Hairpin", "<:OC_SeafarerCowrie:1109399604203626536>"),
-    MammetAward("Mammet Award", "<:OC_SeafarerCowrie:1109399604203626536>"),
-    FruitPunch("Fruit Punch", "<:OC_SeafarerCowrie:1109399604203626536>"),
-    SweetPopotoPie("Sweet Popoto Pie", "<:OC_SeafarerCowrie:1109399604203626536>"),
-    Peperoncino("Peperoncino", "<:OC_SeafarerCowrie:1109399604203626536>"),
-    BuffaloBeanSalad("Buffalo Bean Salad", "<:OC_SeafarerCowrie:1109399604203626536>");
+    GoldHairpin("Gold Hairpin", "<:OC_GoldHarpin:1158758327472357426>"),
+    MammetAward("Mammet Award", "<:OC_MammetAward:1158758339262566513>"),
+    FruitPunch("Fruit Punch", "<:OC_FruitPunch:1158758315711545425>"),
+    SweetPopotoPie("Sweet Popoto Pie", "<:OC_SweetPopotoPie:1158758361999876208>"),
+    Peperoncino("Peperoncino", "<:OC_Peperoncino:1158758351581216798>"),
+    BuffaloBeanSalad("Buffalo Bean Salad", "<:OC_BuffaloBeanSalad:1158758302109409330>");
     
     private String displayName;
     private String emoji;
