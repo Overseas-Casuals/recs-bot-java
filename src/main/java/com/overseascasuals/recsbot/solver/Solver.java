@@ -579,7 +579,7 @@ public class Solver
             rec.getBestRec().setGrooveBonus(restedAlready(rec.getDay()), reservedHelpers);
         }
 
-        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory());
+        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
 
         hasRunRecs = true;
         isRunningRecs = false;

@@ -77,40 +77,46 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
     @Override
     public Mono<Message> execute(ChatInputInteractionEvent event) {
         String command = event.getCommandName();
+        Mono<Message> toReturn = null;
         LOG.info("Processing {} command", command);
         try {
             if (solver.isRunningRecs) {
                 LOG.info("Telling them to chill for a sec");
-                return event.deferReply().withEphemeral(true).then(event.editReply("Recs bot is running recs right now. Please try again in a minute or so!"));
+                toReturn = event.deferReply().withEphemeral(true).then(event.editReply("Recs bot is running recs right now. Please try again in a minute or so!"));
             }
-
-            switch (command) {
-                case "next_week" -> {
-                    return event.deferReply().then(Mono.defer(() -> deferredNextWeekCommand(event)));
-                }
-                case "this_week" -> {
-                    return event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event)));
-                }
-                case "today" -> {
-                    return event.deferReply().then(Mono.defer(() -> deferredTodayCommand(event)));
-                }
-                case "rerun" -> {
-                    return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredRerunCommand(event)));
-                }
-                case "alts" -> {
-                    return event.deferReply().then(Mono.defer(() -> deferredAltsCommand(event)));
-                }
-                case "push_peaks" -> {
-                    return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredPushPeaks(event)));
-                }
-                case "clear_cache" -> {
-                    return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredClearCache(event)));
+            else
+            {
+                switch (command) {
+                    case "next_week" -> {
+                        toReturn = event.deferReply().then(Mono.defer(() -> deferredNextWeekCommand(event)));
+                    }
+                    case "this_week" -> {
+                        toReturn = event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event)));
+                    }
+                    case "today" -> {
+                        toReturn = event.deferReply().then(Mono.defer(() -> deferredTodayCommand(event)));
+                    }
+                    case "rerun" -> {
+                        toReturn = event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredRerunCommand(event)));
+                    }
+                    case "alts" -> {
+                        toReturn = event.deferReply().then(Mono.defer(() -> deferredAltsCommand(event)));
+                    }
+                    case "push_peaks" -> {
+                        toReturn = event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredPushPeaks(event)));
+                    }
+                    case "clear_cache" -> {
+                        toReturn = event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredClearCache(event)));
+                    }
+                    default -> {
+                        LOG.info("Unknown command???");
+                        toReturn = event.deferReply().withEphemeral(true)
+                                .then(event.editReply("Command " + event.getCommandName() + " not recognized"));
+                    }
                 }
             }
-
-            LOG.info("Unknown command???");
-            return event.deferReply().withEphemeral(true)
-                    .then(event.editReply("Command " + event.getCommandName() + " not recognized"));
+            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+            return toReturn;
         }
         catch(Exception e)
         {
@@ -118,6 +124,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         }
         try
         {
+            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
             return event.editReply("Error handling event./"+command+"<@"+miennaID+">");
         }
         catch(Exception ex)
@@ -173,7 +180,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         LOG.info("Returning next week from cache");
 
         var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs, rank);
-        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory());
+
 
         return event.editReply().withEmbeds(embed);
     }
@@ -224,7 +231,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             return event.editReply("No rest of week recs returned. <@"+miennaID+">");
 
         var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs, rank);
-        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory());
+
 
         return event.editReply(content).withEmbeds(embed);
     }
@@ -267,7 +274,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         }
 
         var embed = OCUtils.generateTodayEmbed(week, day, hoursLeft, recs, rank);
-        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory());
 
         return event.editReply().withEmbeds(embed);
     }
@@ -408,7 +414,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         {
             embeds.add(OCUtils.getGeneralRecEmbed(week, rec.withRank(rank), false));
         }
-        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory());
 
         return event.editReply(content).withEmbedsOrNull(embeds);
     }
