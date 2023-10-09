@@ -356,6 +356,9 @@ public class BotConfiguration implements CommandLineRunner
         LOG.info("Getting crafts from day 2 of week 15");
         var response = craftRepository.findCraftsByDay(15,1, 9);
         LOG.info("Found "+response.getCraft1());
+
+        long heapSize = Runtime. getRuntime(). maxMemory();
+        LOG.info("Max heap: "+heapSize+". Total: "+Runtime.getRuntime().totalMemory());
         if(!("local".equals(activeProfile))) return;
 
         LOG.info("Ran taskList {}", taskList);
@@ -371,9 +374,9 @@ public class BotConfiguration implements CommandLineRunner
         /*if(!solver.hasRunRecs)
         {
             LOG.info("Haven't run recs yet. Doing so now.");
-            solver.getDailyRecommendations(42, 2, true);
+            solver.getDailyRecommendations(59, 2, true);
         }
-        solver.getRecForSingleDay(3, 15,List.of(Item.RunnerBeanSaute), false);*/
+        solver.getRestOfDayRecs(2, 22, 18, null);*/
         Thread.sleep(5000); //Idk, just make sure things have a chance to finish running?
     }
 }

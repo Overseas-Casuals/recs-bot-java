@@ -164,15 +164,16 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
         if(recs == null || recs.size() < 5)
         {
-          if(rank >=9 && rank <= maxIslandRank)
+          if(rank >=5 && rank <= maxIslandRank)
               return event.editReply("No vacation recs returned. <@"+miennaID+">");
           else
-              return event.editReply("No vacation recs available for rank "+rank);
+              return event.editReply("Rank "+rank+" too low to use vacation presets. Check out ?leveling to get presets to use while you level!");
         }
 
         LOG.info("Returning next week from cache");
 
         var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs, rank);
+        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory());
 
         return event.editReply().withEmbeds(embed);
     }
@@ -223,6 +224,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             return event.editReply("No rest of week recs returned. <@"+miennaID+">");
 
         var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs, rank);
+        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory());
 
         return event.editReply(content).withEmbeds(embed);
     }
@@ -265,6 +267,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         }
 
         var embed = OCUtils.generateTodayEmbed(week, day, hoursLeft, recs, rank);
+        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory());
 
         return event.editReply().withEmbeds(embed);
     }
@@ -405,6 +408,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         {
             embeds.add(OCUtils.getGeneralRecEmbed(week, rec.withRank(rank), false));
         }
+        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory());
 
         return event.editReply(content).withEmbedsOrNull(embeds);
     }

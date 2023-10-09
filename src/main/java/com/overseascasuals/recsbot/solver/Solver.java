@@ -72,7 +72,7 @@ public class Solver
     {
         return averageWorkshopValue * getWorkshopBonus(rank) * getNumWorkshops(rank) / 100;
     }
-    public static int maxIslandRank = 20;
+    public static int maxIslandRank = 19;
     public static double materialWeight = 0.5;
     private static final int alternatives = 5;
 
@@ -187,7 +187,15 @@ public class Solver
     private final Map<Item, ReservedHelper> reservedHelpers = new HashMap<>();
     private final Map<Integer, List<CycleSchedule>> vacationRecs = new HashMap<>();
 
-    public List<CycleSchedule> getVacationRecs (int rank) { return vacationRecs.get(rank);}
+    public List<CycleSchedule> getVacationRecs (int rank)
+    {
+        for(int i=rank;i>=5;i--)
+        {
+            if(vacationRecs.containsKey(i))
+                return vacationRecs.get(i);
+        }
+        return null;
+    }
 
     private final Map<String, RestOfWeekRec> restOfWeek = new HashMap<>();
 
@@ -566,13 +574,15 @@ public class Solver
         if(day==3)
             totalValue = generateTotalValue(listOfRecs, maxIslandRank);
 
-        hasRunRecs = true;
-        isRunningRecs = false;
-
         for(var rec : listOfRecs)
         {
             rec.getBestRec().setGrooveBonus(restedAlready(rec.getDay()), reservedHelpers);
         }
+
+        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory());
+
+        hasRunRecs = true;
+        isRunningRecs = false;
         return listOfRecs;
     }
 
@@ -1612,10 +1622,14 @@ public class Solver
             items[i].setInitialData(ratio, Unknown);
         }
 
-        for(int i=9; i<=maxIslandRank; i++)
-        {
-            vacationRecs.put(i, vacationRecsHelper(i));
-        }
+
+        vacationRecs.put(5, vacationRecsHelper(5));
+        vacationRecs.put(9, vacationRecsHelper(9));
+        vacationRecs.put(11, vacationRecsHelper(11));
+        vacationRecs.put(15, vacationRecsHelper(15));
+        vacationRecs.put(18, vacationRecsHelper(18));
+
+
         return popData.getPopularity();
     }
 
