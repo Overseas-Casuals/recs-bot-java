@@ -654,6 +654,28 @@ public class Solver
         }
     }
 
+    public static Item getBestLink(int hour, Item item)
+    {
+        return getBestLink(hour, item, null);
+    }
+
+    public static Item getBestLink(int hour, Item item1, Item item2)
+    {
+        Item bestLink = null;
+        int bestValue = -1;
+        for(var item : items)
+        {
+            if(item.time == hour && item.getsEfficiencyBonus(items[item1.ordinal()])
+                    && (item2==null || item.getsEfficiencyBonus(items[item2.ordinal()]))
+                    && item.getValueWithSupply(Supply.Sufficient)>bestValue)
+            {
+                bestLink = item.item;
+                bestValue = item.getValueWithSupply(Supply.Sufficient);
+            }
+        }
+        return bestLink;
+    }
+
     private String getKeyForAltRequest(int dayToSolve, int rank, List<Item> items)
     {
         if(rank < 5)

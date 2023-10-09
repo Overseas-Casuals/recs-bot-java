@@ -320,6 +320,20 @@ public class OCUtils
         return builder.build();
     }
 
+    public static EmbedCreateSpec favorsEmbed(int season, List<List<Item>> favorSchedules)
+    {
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Personalized Favor Schedules");
+        builder.timestamp(Instant.now());
+        //var messageSpec = MessageCreateSpec.builder();
+
+        builder.color(Color.BISMARK);
+        for(int i=0;i<favorSchedules.size(); i++)
+        {
+            builder.addField("Schedule #"+(i+1), favorSchedules.get(i).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+        }
+        return builder.build();
+    }
+
     public static EmbedCreateSpec generateNextWeekEmbed(int season, List<CycleSchedule> recs, int rank)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations for Rank "+rank);

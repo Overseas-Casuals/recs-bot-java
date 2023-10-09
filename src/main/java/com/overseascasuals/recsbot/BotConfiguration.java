@@ -137,6 +137,34 @@ public class BotConfiguration implements CommandLineRunner
         commands.add(editPostRequest);*/
 
         // Build our command's definition
+
+        ApplicationCommandRequest favorsRequest = ApplicationCommandRequest.builder()
+                .name("favors")
+                .description("Gets semi-optimized possible schedules to fit one or more of this season's favors")
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("favor1")
+                        .description("A favor you'd like help making")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("favor2")
+                        .description("Another favor you'd like help making")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("favor3")
+                        .description("A third favor you'd like help making")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .build();
+        commands.add(favorsRequest);
+
         ApplicationCommandRequest nextWeekRequest = ApplicationCommandRequest.builder()
                 .name("next_week")
                 .description("Gets a non-optimized schedule for next season if you're going to be away")

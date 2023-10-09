@@ -106,6 +106,9 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 case "clear_cache" -> {
                     return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredClearCache(event)));
                 }
+                case "favors" -> {
+                    return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredFavors(event)));
+                }
             }
 
             LOG.info("Unknown command???");
@@ -126,6 +129,170 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         }
         return event.deferReply()
                 .then(event.editReply("Error handling event./"+command+"<@"+miennaID+">"));
+    }
+
+    private InteractionReplyEditMono deferredFavors(ChatInputInteractionEvent event)
+    {
+        List<Item> favorsRaw = getItemsFromEvent(event, "favor");
+
+        boolean link48 = false;
+        boolean link68 = false;
+        boolean link46 = false;
+
+        Item[] favors = new Item[3]; //4hr, 6hr, and 8hr favor, in order
+
+        for(Item favor : favorsRaw)
+        {
+            int time = Solver.items[favor.ordinal()].time;
+            if(favors[(time/2)-2] != null)
+            {
+                LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+                return event.editReply("Invalid favors specified. Multiple "+time+"-hour crafts listed.");
+            }
+            favors[(time/2)-2] = favor;
+        }
+
+        link46 = favors[0] != null && favors[1] != null && Solver.items[favors[0].ordinal()].getsEfficiencyBonus(Solver.items[favors[1].ordinal()]);
+        link48 = favors[0] != null && favors[2] != null && Solver.items[favors[0].ordinal()].getsEfficiencyBonus(Solver.items[favors[2].ordinal()]);
+        link68 = favors[1] != null && favors[2] != null && Solver.items[favors[1].ordinal()].getsEfficiencyBonus(Solver.items[favors[2].ordinal()]);
+
+        List<List<Item>> favorSchedules = new ArrayList<>();
+
+        if(!solver.hasRunRecs)
+        {
+            var d1 = new Date(1661241600000L);
+            var d2 = new Date();
+
+            int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
+            int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+
+            LOG.info("Haven't run recs yet. Doing so now.");
+            solver.getDailyRecommendations(week, day, true);
+        }
+
+        //The work
+
+        if(favors[0] != null && favors[1] != null && favors[2] != null)//All 3 favors given
+        {
+            //All 3 link
+            if(link46 && link48 && link68)
+            {
+                favorSchedules.add(List.of(favors[0], favors[2], favors[0], favors[2]));
+                favorSchedules.add(List.of(favors[0], favors[2], favors[0], favors[2]));
+                favorSchedules.add(List.of(favors[1], favors[0], favors[1], favors[2]));
+                favorSchedules.add(List.of(favors[1], favors[0], favors[1], favors[2]));
+            }
+            else if(link46)
+            {
+                Item eightLink = Solver.getBestLink(4, favors[2]);
+                Item fourLink = Solver.getBestLink(4, favors[0]);
+
+                favorSchedules.add(List.of(fourLink, favors[0], favors[1], favors[0], favors[1]));
+                favorSchedules.add(List.of(fourLink, favors[0], favors[1], favors[0], favors[1]));
+                favorSchedules.add(List.of(eightLink, favors[2], eightLink, favors[2]));
+                favorSchedules.add(List.of(eightLink, favors[2], eightLink, favors[2]));
+            }
+            else if(link48)
+            {
+                Item sixLink= Solver.getBestLink(8, favors[1]);
+                favorSchedules.add(List.of(favors[0], favors[2], favors[0], favors[2]));
+                favorSchedules.add(List.of(favors[0], favors[2], favors[0], favors[2]));
+                favorSchedules.add(List.of(favors[0], favors[1], sixLink, favors[1]));
+                favorSchedules.add(List.of(favors[0], favors[1], sixLink, favors[1]));
+            }
+            else if(link68)
+            {
+                Item eightLink = Solver.getBestLink(4, favors[2] ,favors[0]);
+                if(eightLink == null)
+                    eightLink = Solver.getBestLink(4, favors[2]);
+
+                Item fourLink = Solver.getBestLink(4, favors[0]);
+                favorSchedules.add(List.of(favors[0], fourLink, favors[0], eightLink, favors[2]));
+                favorSchedules.add(List.of(favors[0], fourLink, favors[0], eightLink, favors[2]));
+                favorSchedules.add(List.of(favors[0], favors[1], favors[2], favors[1]));
+                favorSchedules.add(List.of(favors[0], favors[1], favors[2], favors[1]));
+            }
+            else
+            {
+                Item fourLink = Solver.getBestLink(4, favors[0]);
+                Item eightLink = Solver.getBestLink(6, favors[2] ,favors[1]);
+                if(eightLink == null)
+                    eightLink = Solver.getBestLink(6, favors[2]);
+                Item sixLink = Solver.getBestLink(4, favors[1]);
+
+                favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], favors[2]));
+                favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], favors[2]));
+                favorSchedules.add(List.of(sixLink, favors[1], eightLink, favors[2]));
+                favorSchedules.add(List.of(sixLink, favors[1], eightLink, favors[2]));
+                favorSchedules.add(List.of(sixLink, favors[1], eightLink, favors[2]));
+            }
+        }
+        else if(favors[0] != null && favors[1] != null)//4 and 6 hour given
+        {
+            if(link46)
+            {
+                favorSchedules.add(List.of(favors[1], favors[0], favors[1], favors[0]));
+                favorSchedules.add(List.of(favors[1], favors[0], favors[1], favors[0]));
+            }
+            else
+            {
+                Item sixLink = Solver.getBestLink(4, favors[1]);
+                Item fourLink = Solver.getBestLink(4, favors[0], favors[1]);
+                if(fourLink == null)
+                    fourLink = Solver.getBestLink(4, favors[0]);
+                //646|44
+                favorSchedules.add(List.of(favors[1], sixLink, favors[1], fourLink, favors[0]));
+                favorSchedules.add(List.of(favors[1], sixLink, favors[1], fourLink, favors[0]));
+                Item onlyFourLink = Solver.getBestLink(4, favors[0]);
+                Item eightLink = Solver.getBestLink(8, favors[0]);
+                //44448
+                favorSchedules.add(List.of(onlyFourLink, favors[0], onlyFourLink, favors[0], eightLink));
+            }
+        }
+        else if(link48) //4 and 8 hour given and link
+        {
+            Item eightLink = Solver.getBestLink(4, favors[2]);
+            favorSchedules.add(List.of(eightLink, favors[2], eightLink, favors[2]));
+            Item fourLink = Solver.getBestLink(4, favors[0]);
+            favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], favors[2]));
+            favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], favors[2]));
+        }
+        else if(link68) //6 and 8 hours given and link
+        {
+                Item sixLink = Solver.getBestLink(4, favors[1]);
+                favorSchedules.add(List.of(sixLink, favors[1], favors[2], favors[1]));
+                favorSchedules.add(List.of(sixLink, favors[1], favors[2], favors[1]));
+                Item eightLink = Solver.getBestLink(4, favors[2]);
+                favorSchedules.add(List.of(eightLink, favors[2], eightLink, favors[2]));
+        }
+        else
+        {
+            if(favors[1] != null)
+            {
+                Item sixLink = Solver.getBestLink(4, favors[1]);
+                favorSchedules.add(List.of(sixLink, favors[1], sixLink, favors[1], sixLink));
+                favorSchedules.add(List.of(sixLink, favors[1], sixLink, favors[1], sixLink));
+            }
+            if(favors[0] != null)
+            {
+                Item fourLink = Solver.getBestLink(8, favors[0]);
+                Item fourEightLink = Solver.getBestLink(4, favors[0]);
+                favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], fourEightLink));
+                favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], fourEightLink));
+            }
+            if(favors[2] != null)
+            {
+                Item eightLink = Solver.getBestLink(4, favors[2]);
+                favorSchedules.add(List.of(eightLink, favors[2], eightLink, favors[2]));
+                favorSchedules.add(List.of(eightLink, favors[2], eightLink, favors[2]));
+            }
+        }
+
+        var embed = OCUtils.favorsEmbed(solver.getWeek(), favorSchedules);
+        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+        return event.editReply("Fit the following schedules anywhere in the given week. You need to use each schedule in one workshop each time it appears.\n\nThese schedules will frequently lose the efficiency bonus. That's normal.").withEmbeds(embed);
+
+
     }
 
     private InteractionReplyEditMono deferredClearCache(ChatInputInteractionEvent event)
@@ -314,13 +481,15 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
     }
 
     private List<Item> getItemsFromEvent(ChatInputInteractionEvent event) throws IllegalArgumentException
+    { return getItemsFromEvent(event, "nocraft");}
+    private List<Item> getItemsFromEvent(ChatInputInteractionEvent event, String prefix) throws IllegalArgumentException
     {
         List<Item> items = new ArrayList<>();
         for(int i=1; i<=3; i++)
         {
-            if(event.getOption("nocraft"+i).isPresent())
+            if(event.getOption(prefix+i).isPresent())
             {
-                String itemName = event.getOption("nocraft"+i).flatMap(ApplicationCommandInteractionOption::getValue)
+                String itemName = event.getOption(prefix+i).flatMap(ApplicationCommandInteractionOption::getValue)
                         .map(ApplicationCommandInteractionOptionValue::asString)
                         .get().replace(" ","");
                 try
