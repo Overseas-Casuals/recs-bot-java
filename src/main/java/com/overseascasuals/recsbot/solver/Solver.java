@@ -2257,6 +2257,42 @@ public class Solver
 
         return schedules;
     }
+
+    public List<Item> getItemsBetween(int hours, Item item1, Item item2)
+    {
+        if(hours == 10)
+        {
+            List<ItemInfo> item14Links = new ArrayList<>();
+            List<ItemInfo> item16Links = new ArrayList<>();
+            for(var item : items)
+            {
+                if(items[item1.ordinal()].getsEfficiencyBonus(item))
+                {
+                    if(item.time == 4)
+                        item14Links.add(item);
+                    else if(item.time==6)
+                        item16Links.add(item);
+                }
+            }
+            for(var item : item14Links)
+            {
+                for(var link : items)
+                {
+                    if(link.time == 6 && link.getsEfficiencyBonus(item) && link.getsEfficiencyBonus(items[item2.ordinal()]))
+                        return List.of(item.item, link.item);
+                }
+            }
+            for(var item : item16Links)
+            {
+                for(var link : items)
+                {
+                    if(link.time == 4 && link.getsEfficiencyBonus(item) && link.getsEfficiencyBonus(items[item2.ordinal()]))
+                        return List.of(item.item, link.item);
+                }
+            }
+        }
+        return null;
+    }
     private static int getHoursUsed(List<Item> schedule)
     {
         return schedule.stream().mapToInt(item -> items[item.ordinal()].time).sum();
