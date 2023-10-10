@@ -216,9 +216,21 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             {
                 Item fourLink = Solver.getBestLink(4, favors[0]);
                 Item eightLink = Solver.getBestLink(6, favors[2] ,favors[1]);
-                if(eightLink == null)
-                    eightLink = Solver.getBestLink(6, favors[2]);
                 Item sixLink = Solver.getBestLink(4, favors[1]);
+                if(eightLink == null)
+                {
+                    eightLink = Solver.getBestLink(4, favors[2], favors[1]);
+
+                    if(eightLink == null)
+                    {
+                        eightLink = Solver.getBestLink(6, favors[2]);
+                    }
+                    else
+                    {
+                        sixLink = Solver.getBestLink(6, favors[1]);
+                    }
+                }
+
 
                 favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], favors[2]));
                 favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], favors[2]));
@@ -287,12 +299,17 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 favorSchedules.add(List.of(eightLink, favors[2], eightLink, favors[2]));
             }
         }
-
-        var embed = OCUtils.favorsEmbed(solver.getWeek(), favorSchedules);
-        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-        return event.editReply("Fit the following schedules anywhere in the given week. You need to use each schedule in one workshop each time it appears.\n\nThese schedules will frequently lose the efficiency bonus. That's normal.").withEmbeds(embed);
-
-
+        if(favorSchedules.size()>0)
+        {
+            var embed = OCUtils.favorsEmbed(solver.getWeek(), favorSchedules);
+            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+            return event.editReply("Fit the following schedules anywhere in the given week. You need to use each schedule in one workshop each time it appears.\n\nThese schedules will frequently lose the efficiency bonus. That's normal.").withEmbeds(embed);
+        }
+        else
+        {
+            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+            return event.editReply("Please enter at least one favor you want to make");
+        }
     }
 
     private InteractionReplyEditMono deferredClearCache(ChatInputInteractionEvent event)

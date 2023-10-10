@@ -84,7 +84,7 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
         }
 
         //try all 4 workshops the same as second best
-        if (!get(1).getKey().getItems().equals(secondBestSubItems) && secondBestSubItems.size() > 0)
+        if (size()>1 && !get(1).getKey().getItems().equals(secondBestSubItems) && secondBestSubItems.size() > 0)
         {
             CycleSchedule all4Rec = new CycleSchedule(day, startingGroove, rank);
             all4Rec.setForFirstThreeWorkshops(get(1).getKey().getItems());
