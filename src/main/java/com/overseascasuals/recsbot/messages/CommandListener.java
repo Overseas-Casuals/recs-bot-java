@@ -190,26 +190,15 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 favorSchedules.add(List.of(favors[1], favors[0], favors[1], favors[2]));
                 favorSchedules.add(List.of(favors[1], favors[0], favors[1], favors[2]));
             }
-            else if(link46)
+            else if(link46 && Solver.getBestLink(4, favors[2]) != null)
             {
                 Item eightLink = Solver.getBestLink(4, favors[2]);
                 Item fourLink = Solver.getBestLink(4, favors[0]);
 
                 favorSchedules.add(List.of(fourLink, favors[0], favors[1], favors[0], favors[1]));
                 favorSchedules.add(List.of(fourLink, favors[0], favors[1], favors[0], favors[1]));
-                if(eightLink == null)
-                {
-                    eightLink = Solver.getBestLink(6, favors[2]);
-                    favorSchedules.add(List.of(Solver.getBestLink(4, eightLink), eightLink, favors[2], eightLink));
-                    favorSchedules.add(List.of(favors[2], eightLink, favors[2]));
-                    favorSchedules.add(List.of(favors[2], eightLink, favors[2]));
-                }
-                else
-                {
-                    favorSchedules.add(List.of(eightLink, favors[2], eightLink, favors[2]));
-                    favorSchedules.add(List.of(eightLink, favors[2], eightLink, favors[2]));
-                }
-
+                favorSchedules.add(List.of(eightLink, favors[2], eightLink, favors[2]));
+                favorSchedules.add(List.of(eightLink, favors[2], eightLink, favors[2]));
             }
             else if(link48)
             {
@@ -250,63 +239,45 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
 
             }
+            else if(Solver.getBestLink(4, favors[2]) == null) //Mammettttttt
+            {
+                Item fourLink = Solver.getBestLink(4, favors[0]);
+                Item sixLink = Solver.getBestLink(4, favors[1]);
+                Item eightLink = Solver.getBestLink(6, favors[2]);
+                favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], favors[2]));
+                favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], favors[2]));
+                favorSchedules.add(List.of(sixLink, favors[1], eightLink, favors[2]));
+                favorSchedules.add(List.of(sixLink, favors[1], eightLink, favors[2]));
+                favorSchedules.add(List.of(sixLink, favors[1], eightLink, favors[2]));
+            }
             else
             {
-                Item fourEightLink = Solver.getBestLink(4, favors[2]);
                 Item sixFourLink = Solver.getBestLink(6, favors[0]);
-                if(fourEightLink != null && sixFourLink != null)
-                {
-                    Item fourLink = Solver.getBestLink(4, favors[0]);
-                    Item sixLink = Solver.getBestLink(4, favors[1]);
-                    Item fourSixLink = Solver.getBestLink(4, sixLink);
+                Item fourLink = Solver.getBestLink(4, favors[0]);
+                Item sixLink = Solver.getBestLink(4, favors[1]);
+                Item fourSixLink = Solver.getBestLink(4, sixLink);
+                Item eightLink = Solver.getBestLink(4, favors[2]);
 
-                    favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], fourLink, favors[0]));
-                    favorSchedules.add(List.of(fourSixLink, sixLink, favors[1], sixLink, favors[1]));
+                favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], fourLink, favors[0]));
+                favorSchedules.add(List.of(fourSixLink, sixLink, favors[1], sixLink, favors[1]));
 
-                    Item potential4 = Solver.getBestLink(4,favors[1], sixFourLink);
-                    Item potential6 = sixFourLink;
-                    if(potential4 == null)
-                    {
-                        potential4 = sixLink;
-                        potential6 = Solver.getBestLink(6, favors[0], potential4);
-                        if(potential6 == null)
-                            potential6 = sixFourLink;
-                    }
-
-
-                    favorSchedules.add(List.of(fourLink, favors[0], potential6, potential4, favors[1]));
-                    favorSchedules.add(List.of(fourEightLink, favors[2], fourEightLink, favors[2]));
-                    favorSchedules.add(List.of(fourEightLink, favors[2], fourEightLink, favors[2]));
-
+                Item potential4 = Solver.getBestLink(4, favors[1], sixFourLink);
+                Item potential6 = sixFourLink;
+                if (potential4 == null) {
+                    potential4 = sixLink;
+                    potential6 = Solver.getBestLink(6, favors[0], potential4);
+                    if (potential6 == null)
+                        potential6 = sixFourLink;
                 }
-                else
-                {
-                    Item fourLink = Solver.getBestLink(4, favors[0]);
-                    Item eightLink = Solver.getBestLink(6, favors[2] ,favors[1]);
-                    Item sixLink = Solver.getBestLink(4, favors[1]);
-                    if(eightLink == null)
-                    {
-                        eightLink = Solver.getBestLink(4, favors[2], favors[1]);
-
-                        if(eightLink == null)
-                        {
-                            eightLink = Solver.getBestLink(6, favors[2]);
-                        }
-                        else
-                        {
-                            sixLink = Solver.getBestLink(6, favors[1]);
-                        }
-                    }
 
 
-                    favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], favors[2]));
-                    favorSchedules.add(List.of(fourLink, favors[0], fourLink, favors[0], favors[2]));
-                    favorSchedules.add(List.of(sixLink, favors[1], eightLink, favors[2]));
-                    favorSchedules.add(List.of(sixLink, favors[1], eightLink, favors[2]));
-                    favorSchedules.add(List.of(sixLink, favors[1], eightLink, favors[2]));
-                }
+                favorSchedules.add(List.of(fourLink, favors[0], potential6, potential4, favors[1]));
+                favorSchedules.add(List.of(eightLink, favors[2], eightLink, favors[2]));
+                favorSchedules.add(List.of(eightLink, favors[2], eightLink, favors[2]));
 
             }
+
+
         }
         else if(favors[0] != null && favors[1] != null)//4 and 6 hour given
         {
