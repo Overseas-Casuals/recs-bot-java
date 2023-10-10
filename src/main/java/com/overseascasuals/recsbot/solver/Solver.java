@@ -2239,7 +2239,7 @@ public class Solver
             }
         }
         List<Item> secondNonInterfering = new ArrayList<>();
-        if(islandRank >= 15)
+        if(islandRank >= 15 && sortedSchedules.size()>1)
         {
             for (Entry<WorkshopSchedule, WorkshopValue> sortedSchedule : sortedSemiSafe)
             {
