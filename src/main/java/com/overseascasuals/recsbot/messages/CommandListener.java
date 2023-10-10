@@ -133,7 +133,15 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
     private InteractionReplyEditMono deferredFavors(ChatInputInteractionEvent event)
     {
-        List<Item> favorsRaw = getItemsFromEvent(event, "favor");
+        List<Item> favorsRaw = null;
+        try{
+            favorsRaw = getItemsFromEvent(event, "favor");
+        }
+        catch(IllegalArgumentException e)
+        {
+            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+            return event.editReply(e.getMessage());
+        }
 
         boolean link48 = false;
         boolean link68 = false;
