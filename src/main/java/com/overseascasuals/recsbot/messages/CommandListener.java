@@ -202,13 +202,25 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             }
             else if(link48)
             {
+                favorSchedules.add(List.of(favors[0], favors[2], favors[0], favors[2]));
+                favorSchedules.add(List.of(favors[0], favors[2], favors[0], favors[2]));
                 Item sixLink= Solver.getBestLink(8, favors[1]);
                 if(sixLink == null)
                     sixLink = Solver.getBestLink(6, favors[1]);
-                favorSchedules.add(List.of(favors[0], favors[2], favors[0], favors[2]));
-                favorSchedules.add(List.of(favors[0], favors[2], favors[0], favors[2]));
-                favorSchedules.add(List.of(favors[0], favors[1], sixLink, favors[1]));
-                favorSchedules.add(List.of(favors[0], favors[1], sixLink, favors[1]));
+                if(sixLink == null)
+                {
+                    sixLink = Solver.getBestLink(4, favors[1]);
+                    favorSchedules.add(List.of(favors[0], sixLink, favors[1], sixLink, favors[1]));
+                    favorSchedules.add(List.of(favors[0], sixLink, favors[1], sixLink, favors[1]));
+                }
+                else
+                {
+                    favorSchedules.add(List.of(favors[0], favors[1], sixLink, favors[1]));
+                    favorSchedules.add(List.of(favors[0], favors[1], sixLink, favors[1]));
+                }
+
+
+
             }
             else if(link68)
             {

@@ -2311,10 +2311,6 @@ public class Solver
             return;
         }
 
-
-
-
-
         if(!workshop.usesTooMany(limitedUse, false, verboseSolverLogging))
         {
             WorkshopValue mainValue = workshop.getValueWithGrooveEstimate(day, groove, restedAlready(), reservedHelpers, false);
