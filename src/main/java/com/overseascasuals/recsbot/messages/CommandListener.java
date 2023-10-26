@@ -61,10 +61,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
     //Crafting around really annoying materials exclusion list
     private final Map<Material, List<Item>> caramelMap = Map.of(
             Material.Laver, List.of(Item.SharkOil, Item.EssentialDraught, Item.VegetableJuice, Item.CawlCennin, Item.Dressing, Item.BoiledEgg, Item.PickledZucchini, Item.GrilledClam),
-            Material.Sap, List.of(Item.BakedPumpkin, Item.SharkOil, Item.SweetPopoto, Item.ParsnipSalad, Item.Jam, Item.Honey, Item.DriedFlowers, Item.Dressing),
-            Material.Copper, List.of(Item.Barbut, Item.BronzeSheep, Item.GarnetRapier, Item.SpruceRoundShield, Item.Ribbon, Item.Lantern, Item.Spectacles),
-            Material.RockSalt, List.of(Item.Sauerkraut, Item.Butter, Item.SaltCod, Item.SquidInk, Item.OnionSoup, Item.Isloaf, Item.RunnerBeanSaute, Item.Natron),
-            Material.Sugarcane, List.of(Item.Caramels, Item.Jam, Item.TomatoRelish, Item.Pie, Item.CornFlakes, Item.PickledRadish, Item.CoconutJuice),
+            Material.Sap, List.of(Item.BakedPumpkin, Item.SharkOil, Item.SweetPopoto, Item.ParsnipSalad, Item.IsleberryJam, Item.Honey, Item.DriedFlowers, Item.Dressing),
+            Material.Copper, List.of(Item.Barbut, Item.BronzeSheep, Item.GarnetRapier, Item.SpruceRoundShield, Item.Ribbon, Item.Lantern, Item.Spectacles, Item.BrassServingDish),
+            Material.RockSalt, List.of(Item.Sauerkraut, Item.Butter, Item.SaltCod, Item.SquidInk, Item.OnionSoup, Item.Isloaf, Item.RunnerBeanSaute, Item.Natron, Item.Peperoncino),
+            Material.Sugarcane, List.of(Item.Caramels, Item.IsleberryJam, Item.TomatoRelish, Item.IslefishPie, Item.CornFlakes, Item.PickledRadish, Item.CoconutJuice, Item.SweetPopotoPie),
             Material.Cotton, List.of(Item.Ribbon, Item.CavaliersHat, Item.SheepfluffRug, Item.Bed, Item.ScaleFingers, Item.FossilDisplay),
             Material.Tinsand, List.of(Item.BronzeSheep, Item.GarnetRapier, Item.SilverEarCuffs)
     );
