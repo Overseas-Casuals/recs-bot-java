@@ -33,8 +33,8 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
             return;
 
         boolean verboseLogging = false;
-        //if(day == 5 && get(0).getKey().getItems().get(1)==Item.SharkOil &&get(0).getKey().getItems().get(2)==Item.Pie && get(0).getKey().getItems().get(1)==Item.PumpkinPudding)
-            //verboseLogging = true;
+        /*if(get(0).getKey().getItems().get(0)==Item.BoiledEgg &&get(0).getKey().getItems().get(1)==Item.SheepfluffRug && get(0).getKey().getItems().get(2)==Item.Bed)
+            verboseLogging = true;*/
         bestRec.setForFirstThreeWorkshops(get(0).getKey().getItems());
         bestRec.setFourthWorkshop(bestSubItems);
         bestRec.setGrooveBonus(rested, reservedHelpers);

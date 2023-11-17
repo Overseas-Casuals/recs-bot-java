@@ -1100,7 +1100,7 @@ public class Solver
         bestSchedule.setFourthWorkshop(recs.getBestSubItems());
         addCraftedFromCycle(day, null, rank, false);
         var newRec = new DailyRecommendation(day, rank, recs, bestSchedule, true);
-        LOG.info("Resting for late-week rec {}", newRec);
+        LOG.info("Resting for late-week C{} ", day+1);
         recommendations.add(newRec);
     }
     public List<DailyRecommendation> getLateDays(int rank, Map<Item, Integer> limitedUse)
@@ -1181,18 +1181,13 @@ public class Solver
 
         if(startingGroove == -1)
             startingGroove = getStartingGroove(4, rank);
-        var cycle5Sched = getBestBruteForceSchedules(4, startingGroove, limitedUse, 6, alternatives, rank);
-        var cycle6Sched = getBestBruteForceSchedules(5, startingGroove, limitedUse, 6, alternatives, rank);
-        var cycle7Sched = getBestBruteForceSchedules(6, startingGroove, limitedUse, 6, alternatives, rank);
-
-        if(cycle5Sched == null || cycle5Sched.size() == 0 || cycle6Sched == null || cycle6Sched.size() == 0 || cycle7Sched == null || cycle7Sched.size() == 0)
-            return null;
+        BruteForceSchedules cycle5Sched, cycle6Sched, cycle7Sched;
 
         // I'm just hardcoding this, This could almost certainly be improved
-
         List<DailyRecommendation> c5Recs = new ArrayList<>();
         //if (bestDay == 4) // Day 5 is best
         {
+            cycle5Sched = getBestBruteForceSchedules(4, startingGroove, limitedUse, 6, alternatives, rank);
             LOG.info("Calcing based on c5");
             addDailyRecToList(cycle5Sched, 4, startingGroove, rank, c5Recs);
 
@@ -1242,6 +1237,7 @@ public class Solver
         List<DailyRecommendation> c7Recs = new ArrayList<>();
         //else if (bestDay == 6) // Day 7 is best
         {
+            cycle7Sched = getBestBruteForceSchedules(6, startingGroove, limitedUse, 6, alternatives, rank);
             LOG.info("Calcing based on c7");
             Map<Item,Integer> reserved7Set = cycle7Sched.getBestRec().getLimitedUses(limitedUse);
 
@@ -1314,6 +1310,7 @@ public class Solver
         List<DailyRecommendation> c6Recs = new ArrayList<>();
         //else // Best day is Day 6
         {
+            cycle6Sched = getBestBruteForceSchedules(5, startingGroove, limitedUse, 6, alternatives, rank);
             LOG.info("Calcing based on c6");
             addCraftedFromCycle(5, cycle6Sched.getBestRec(), rank, false);
 
