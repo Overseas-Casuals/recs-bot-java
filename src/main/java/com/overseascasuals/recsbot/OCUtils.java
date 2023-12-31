@@ -22,7 +22,11 @@ public class OCUtils
     private static String getDateStr(int season)
     {
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d");
-        Calendar calendar = Calendar.getInstance();
+
+        TimeZone timeZone = TimeZone.getTimeZone("UTC");
+        Calendar calendar = Calendar.getInstance(timeZone);
+        sdf.setTimeZone(timeZone);
+
         calendar.setTime(new Date(1661241600000L));
         calendar.add(Calendar.DAY_OF_YEAR, (season-1)*7);
         var month = calendar.get(Calendar.MONTH);

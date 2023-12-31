@@ -98,6 +98,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                     return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredRerunCommand(event)));
                 }
                 case "alts" -> {
+                    LOG.info("Alts");
                     return event.deferReply().then(Mono.defer(() -> deferredAltsCommand(event)));
                 }
                 case "push_peaks" -> {
@@ -118,6 +119,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         catch(Exception e)
         {
             LOG.error("Exception handling /"+command, e);
+        }
+        finally
+        {
+            LOG.info("Initial defer for "+command+" command");
         }
         try
         {
@@ -293,8 +298,8 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         {
             if(link46)
             {
-                favorSchedules.add(List.of(favors[1], favors[0], favors[1], favors[0]));
-                favorSchedules.add(List.of(favors[1], favors[0], favors[1], favors[0]));
+                favorSchedules.add(List.of(favors[0], favors[1], favors[0], favors[1], favors[0]));
+                favorSchedules.add(List.of(favors[0], favors[1], favors[0], favors[1], favors[0]));
             }
             else
             {
@@ -521,7 +526,8 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                     .map(ApplicationCommandInteractionOptionValue::asLong).get());
         }
 
-        var calendar = Calendar.getInstance();
+        TimeZone timeZone = TimeZone.getTimeZone("UTC");
+        Calendar calendar = Calendar.getInstance(timeZone);
         calendar.setTime(new Date());
         var hour = calendar.get(Calendar.HOUR_OF_DAY);
         if(hour < 8)
@@ -624,89 +630,97 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
     private InteractionReplyEditMono deferredAltsCommand(ChatInputInteractionEvent event)
     {
-        int rank = maxIslandRank;
-        if(event.getOption("rank").isPresent())
-        {
-            rank = Math.toIntExact(event.getOption("rank")
-                    .flatMap(ApplicationCommandInteractionOption::getValue)
-                    .map(ApplicationCommandInteractionOptionValue::asLong).get());
-        }
+        try{
+            int rank = maxIslandRank;
+            if(event.getOption("rank").isPresent())
+            {
+                rank = Math.toIntExact(event.getOption("rank")
+                        .flatMap(ApplicationCommandInteractionOption::getValue)
+                        .map(ApplicationCommandInteractionOptionValue::asLong).get());
+            }
 
-        List<Item> items;
-        try
-        {
-            items = getItemsFromEvent(event);
-        }
-        catch(IllegalArgumentException e)
-        {
+            List<Item> items;
+            try
+            {
+                items = getItemsFromEvent(event);
+            }
+            catch(IllegalArgumentException e)
+            {
+                LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+                return event.editReply(e.getMessage());
+            }
+
+
+            var calendar = Calendar.getInstance();
+            calendar.setTime(new Date());
+
+            var d1 = new Date(1661241600000L);
+            var d2 = new Date();
+
+            int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
+            int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+
+
+
+            if(day == 6)
+            {
+                LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+                return event.editReply("It's Cycle 7! Set Cycle 1 of next season to rest, like always.");
+            }
+
+            //If we don't have this, it's because we haven't run recs at all
+            //So run recs to get things all set up
+            if(!solver.hasRunRecs)
+            {
+                LOG.info("Haven't run recs yet. Doing so now.");
+                solver.getDailyRecommendations(week, day, true);
+            }
+
+            if(Math.min(3,day) > solver.getDay() || week != solver.getWeek())
+            {
+                LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+                return event.editReply("Don't have peak info for the current day. Wait until recs get run!");
+            }
+
+
+            String content = "";
+            if(items.size()>0)
+                content = "Not using "+ items.stream().map(Item::getDisplayName).collect(Collectors.joining(", "));
+
+
+            List<DailyRecommendation> recs = solver.getRecForSingleDay(day+1, rank, items, false);
+            if(recs == null || recs.size() == 0 || recs.stream().anyMatch(Objects::isNull))
+            {
+                LOG.warn("Null/no recs in cache? Trying again");
+                recs = solver.getRecForSingleDay(day+1, rank, items, true);
+            }
+
+            if(recs == null || recs.size() == 0 || recs.stream().anyMatch(Objects::isNull))
+            {
+                LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+                return event.editReply("No alt recs returned. <@"+miennaID+">");
+            }
+            else if(day == 4 && recs.size() == 3)
+            {
+                recs.remove(0);
+            }
+
+            List<EmbedCreateSpec> embeds = new ArrayList<>();
+            for(var rec : recs)
+            {
+                embeds.add(OCUtils.getGeneralRecEmbed(week, rec.withRank(rank), false));
+            }
+
             LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-            return event.editReply(e.getMessage());
+
+            return event.editReply(content).withEmbedsOrNull(embeds);
         }
-
-
-        var calendar = Calendar.getInstance();
-        calendar.setTime(new Date());
-
-        var d1 = new Date(1661241600000L);
-        var d2 = new Date();
-
-        int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
-        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
-
-
-
-        if(day == 6)
+        catch(Exception e)
         {
-            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-            return event.editReply("It's Cycle 7! Set Cycle 1 of next season to rest, like always.");
+            LOG.error("Error running alts: ", e);
+            return event.editReply("Error running alts. Please open up a recsbot ticket.");
         }
 
-        //If we don't have this, it's because we haven't run recs at all
-        //So run recs to get things all set up
-        if(!solver.hasRunRecs)
-        {
-            LOG.info("Haven't run recs yet. Doing so now.");
-            solver.getDailyRecommendations(week, day, true);
-        }
-
-        if(Math.min(3,day) > solver.getDay() || week != solver.getWeek())
-        {
-            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-            return event.editReply("Don't have peak info for the current day. Wait until recs get run!");
-        }
-
-
-        String content = "";
-        if(items.size()>0)
-            content = "Not using "+ items.stream().map(Item::getDisplayName).collect(Collectors.joining(", "));
-
-
-        List<DailyRecommendation> recs = solver.getRecForSingleDay(day+1, rank, items, false);
-        if(recs == null || recs.size() == 0 || recs.stream().anyMatch(Objects::isNull))
-        {
-            LOG.warn("Null/no recs in cache? Trying again");
-            recs = solver.getRecForSingleDay(day+1, rank, items, true);
-        }
-
-        if(recs == null || recs.size() == 0 || recs.stream().anyMatch(Objects::isNull))
-        {
-            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-            return event.editReply("No alt recs returned. <@"+miennaID+">");
-        }
-        else if(day == 4 && recs.size() == 3)
-        {
-            recs.remove(0);
-        }
-
-        List<EmbedCreateSpec> embeds = new ArrayList<>();
-        for(var rec : recs)
-        {
-            embeds.add(OCUtils.getGeneralRecEmbed(week, rec.withRank(rank), false));
-        }
-
-        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-
-        return event.editReply(content).withEmbedsOrNull(embeds);
     }
 
     public InteractionReplyEditMono deferredPushPeaks(ChatInputInteractionEvent event)
