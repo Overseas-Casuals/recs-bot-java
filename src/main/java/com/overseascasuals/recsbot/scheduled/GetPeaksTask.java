@@ -296,6 +296,8 @@ public class GetPeaksTask implements ScheduledTask
 
                 LOG.warn("Peaks were invalid. Rescheduling");
                 int delay = 15;
+                long timestamp = System.currentTimeMillis() + delay * 1000 * 60;
+                peakChannel.createMessage("Peaks were invalid. Rescheduling for <t:"+timestamp/1000+":t>").subscribe();
                 scheduler.schedule(this, delay, TimeUnit.MINUTES);
                 scheduler.shutdown();
                 return;
@@ -313,7 +315,8 @@ public class GetPeaksTask implements ScheduledTask
 
                 ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
                 int delay = 15;
-
+                long timestamp = System.currentTimeMillis() + delay * 1000 * 60;
+                peakChannel.createMessage("Error running recs. Rescheduling for <t:"+timestamp/1000+":t>").subscribe();
                 scheduler.schedule(this, delay, TimeUnit.MINUTES);
                 scheduler.shutdown();
                 return;
