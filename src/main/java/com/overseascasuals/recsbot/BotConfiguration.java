@@ -92,8 +92,9 @@ public class BotConfiguration implements CommandLineRunner
 
 
 
-        //registerCommands(client);
         //deregisterCommands(client);
+
+        //registerCommands(client);
 
         this.taskList = taskList;
 
@@ -125,6 +126,7 @@ public class BotConfiguration implements CommandLineRunner
 
     private void registerCommands(GatewayDiscordClient client)
     {
+        long guildId = 1034534280757522442L;
 
         List<ApplicationCommandRequest> commands = new ArrayList<>();
         Long applicationId = client.getRestClient().getApplicationId().block();
@@ -347,9 +349,9 @@ public class BotConfiguration implements CommandLineRunner
 
         /* Bulk overwrite commands.
         */
-        client.getRestClient().getApplicationService().bulkOverwriteGlobalApplicationCommand(applicationId, commands)
-                .doOnNext(cmd -> LOG.info("Successfully registered Global Command " + cmd.name()))
-                .doOnError(e -> LOG.error("Failed to register global commands", e))
+        client.getRestClient().getApplicationService().bulkOverwriteGuildApplicationCommand(applicationId, guildId, commands)
+                .doOnNext(cmd -> LOG.info("Successfully registered Guild Command " + cmd.name()))
+                .doOnError(e -> LOG.error("Failed to register guild commands", e))
                 .subscribe();
     }
 
@@ -357,7 +359,7 @@ public class BotConfiguration implements CommandLineRunner
     {
         Long applicationId = client.getRestClient().getApplicationId().block();
 
-        List<String> commandsToRemove = Arrays.asList("push_peaks","set_peak","rerun","set_schedule");
+        List<String> commandsToRemove = Arrays.asList("alts");
 
         var commandIDs = client.getRestClient()
                 .getApplicationService()

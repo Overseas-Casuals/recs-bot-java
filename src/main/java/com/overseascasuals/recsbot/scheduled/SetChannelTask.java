@@ -38,7 +38,8 @@ public class SetChannelTask implements ScheduledTask
 
     @Override
     public void run() {
-        var d1 = new Date(1661241600000l);
+        var d1 = new Date(1661241600000L-100000L); //Subtract 100s just to be sure we're getting the right day
+        // since apparently the cron job likes to run a couple seconds early >:(
         var d2 = new Date();
 
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
