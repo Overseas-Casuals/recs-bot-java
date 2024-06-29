@@ -660,6 +660,7 @@ public class GetPeaksTask implements ScheduledTask
             return valid;
         }
 
+        int expected7 = firstGroup?5:1;
         int num6Strong = 0;
         int num7Weak = 0;
         int num7Strong = 0;
@@ -713,16 +714,86 @@ public class GetPeaksTask implements ScheduledTask
                 numEarlier++;
             }
         }
-        int expected7 = firstGroup?5:1;
-        valid = num5Weak == expectedSinglePeaks && num5Strong == expectedSinglePeaks && num6Strong == expectedSinglePeaks && num7Weak == expected7 && num7Strong == expected7 && numEarlier == expectedSinglePeaks*7;
 
+
+        valid = num5Weak == expectedSinglePeaks && num5Strong == expectedSinglePeaks && num6Strong == expectedSinglePeaks && num7Weak == expected7 && num7Strong == expected7 && numEarlier == expectedSinglePeaks*7;
+        LOG.info("peaks for {}-{} C4"+", num5Weak = "+num5Weak+"/{}"+", num5Strong = "+num5Strong+"/{}"
+                +", num6Strong = "+num6Strong+"/{}"+", num7Weak = "+num7Weak+"/{}"
+                +", num7Strong = "+num7Strong+"/{} Peaked earlier: {}",firstItem, lastItem, expectedSinglePeaks, expectedSinglePeaks, expectedSinglePeaks, expected7, expected7, numEarlier);
+
+        //I will almost certainly never use this again, but this is how you determine peaks from C4 if you're missing C3
+        /*int num6Strong = 0;
+        int num67Weak = 0;
+        int num7Strong = 0;
+        int num45Weak = 0;
+        int num4Strong = 0;
+        int num5Strong = 0;
+        int num3Weak=0;
+        int numEarlier=0;
+
+        for(int i=firstItem-1; i<lastItem; i++)
+        {
+            CraftPeaks currentPeak = newPeaks.get(i);
+            currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
+            ItemSupply supply = tcDays.get(3).getObjects().get(i + 1);
+
+            if (currentPeak.getPeak().equals("67"))
+            {
+                if(supply.getDemand()==Plummeting)
+                {
+                    currentPeak.setPeak("3W");
+                    num3Weak++;
+                }
+                else if(supply.getDemand()==Increasing)
+                {
+                    num67Weak++;
+                    currentPeak.setPeak("6W");
+                }
+                else if(supply.getDemand()==None)
+                {
+                    num7Strong++;
+                    currentPeak.setPeak("7S");
+                }
+                else if(supply.getDemand()==Skyrocketing)
+                {
+                    num6Strong++;
+                    currentPeak.setPeak("6S");
+                }
+            }
+            else if(currentPeak.getPeak().equals("45"))
+            {
+                if(supply.getDemand()==Increasing)
+                {
+                    num45Weak++;
+                    currentPeak.setPeak("4W");
+                }
+                else if(supply.getSupply()==Nonexistent)
+                {
+                    num4Strong++;
+                    currentPeak.setPeak("4S");
+                }
+                else if(supply.getDemand()==Skyrocketing)
+                {
+                    num5Strong++;
+                    currentPeak.setPeak("5S");
+                }
+            }
+            else
+            {
+                numEarlier++;
+            }
+        }
+
+        valid = num4Strong == expectedSinglePeaks && num3Weak == expectedSinglePeaks && num45Weak == expectedSinglePeaks*2 && num5Strong == expectedSinglePeaks && num6Strong == expectedSinglePeaks && num67Weak == expected7 + expectedSinglePeaks && num7Strong == expected7;
+        LOG.info("peaks for {}-{} C4"+", num3Weak={}/{} num45Weak = "+num45Weak+"/{}, num4Strong={}/{}, num5Strong = "+num5Strong+"/{}"
+                +", num6Strong = "+num6Strong+"/{}"+", num67Weak = "+num67Weak+"/{}"
+                +", num7Strong = "+num7Strong+"/{} Peaked earlier: {}",firstItem, lastItem, num3Weak, expectedSinglePeaks, expectedSinglePeaks*2, num4Strong, expectedSinglePeaks, expectedSinglePeaks, expectedSinglePeaks, expected7+expectedSinglePeaks, expected7, numEarlier);
+*/
         String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>=firstItem && peak.getPeakID().getItemID()<=lastItem).map(CraftPeaks::getPeak).collect(Collectors.joining(", "));
 
         LOG.info("As of day 4, {}-{} safe? {}, Peaks: {}, ", firstItem, lastItem, valid, peaks);
 
-        LOG.info("peaks for {}-{} C4"+", num5Weak = "+num5Weak+"/{}"+", num5Strong = "+num5Strong+"/{}"
-                +", num6Strong = "+num6Strong+"/{}"+", num7Weak = "+num7Weak+"/{}"
-                +", num7Strong = "+num7Strong+"/{} Peaked earlier: {}",firstItem, lastItem, expectedSinglePeaks, expectedSinglePeaks, expectedSinglePeaks, expected7, expected7, numEarlier);
+
         return valid;
     }
 }
