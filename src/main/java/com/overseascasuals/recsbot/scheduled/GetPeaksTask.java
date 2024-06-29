@@ -472,11 +472,10 @@ public class GetPeaksTask implements ScheduledTask
         }
         for(int i=firstItem-1; i<lastItem; i++)
         {
-            int itemID = oldPeaks.get(i).getPeakID().getItemID();
-            var observed = tcDays.get(day).getObjects().get(itemID);
+            var observed = tcDays.get(day).getObjects().get(i+1);
             if(observed.getSupply() == InvalidSupply || observed.getDemand() == InvalidDemand)
             {
-                LOG.warn("Invalid supply/demand found for item {}: {} {}", itemID, observed.getSupply(), observed.getDemand());
+                LOG.warn("Invalid supply/demand found for item {}: {} {}", i+1, observed.getSupply(), observed.getDemand());
                 return false;
             }
         }
@@ -489,12 +488,18 @@ public class GetPeaksTask implements ScheduledTask
             int num2Unk = 0;
             for(int i=firstItem-1; i<lastItem; i++)
             {
-                var lastWeekPeak = oldPeaks.get(i);
-                ItemSupply supply = tcDays.get(0).getObjects().get(lastWeekPeak.getPeakID().getItemID());
+
+                boolean lastWeekReliable = false;
+                if(oldPeaks!=null && oldPeaks.size()>i)
+                {
+                    lastWeekReliable = oldPeaks.get(i).getPeakEnum().isReliable;
+                }
+
+                ItemSupply supply = tcDays.get(0).getObjects().get(i+1);
                 String peakString;
                 if(supply.getSupply() == Insufficient)
                 {
-                    if(supply.getDemand() == Skyrocketing && lastWeekPeak.getPeakEnum().isReliable)
+                    if(supply.getDemand() == Skyrocketing && lastWeekReliable)
                     {
                         num2Strong++;
                         peakString = "2S";

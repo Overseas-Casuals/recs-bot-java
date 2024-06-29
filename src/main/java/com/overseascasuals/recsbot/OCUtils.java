@@ -507,6 +507,8 @@ public class OCUtils
 
     public static String newArchiveContent(int nextWeek)
     {
+        if(nextWeek==97)
+            nextWeek++;
         return "**__Season "+nextWeek+" ("+getDateStr(nextWeek)+")__**";
     }
 }
