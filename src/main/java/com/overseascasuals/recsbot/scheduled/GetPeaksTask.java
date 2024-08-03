@@ -184,16 +184,19 @@ public class GetPeaksTask implements ScheduledTask
                 else
                     peaksByDay = new ArrayList<>();
                 List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
+                List<CraftPeaks> lastYearsPeaks = null;
+                if(week>100)
+                    lastYearsPeaks = peakRepository.findPeaksByDay(week-100, 3);
 
 
-                validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay, 1,50);
+                validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays, week, recDay, 1,50);
 
                 if(validTCPeaks)
-                    validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,51,62);
+                    validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays, week, recDay,51,62);
                 if(validTCPeaks)
-                    validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,63,74);
+                    validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays, week, recDay,63,74);
                 if(validTCPeaks)
-                    validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,75,86);
+                    validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays, week, recDay,75,86);
 
                 if(!validTCPeaks)
                 {
@@ -225,14 +228,14 @@ public class GetPeaksTask implements ScheduledTask
                         else
                             peaksByDay = new ArrayList<>();
 
-                        validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, chinaDays, week, recDay, 1,50);
+                        validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, chinaDays, week, recDay, 1,50);
 
                         if(validTCPeaks)
-                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, chinaDays, week, recDay,51,62);
+                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, chinaDays, week, recDay,51,62);
                         if(validTCPeaks)
-                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,63,74);
+                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays, week, recDay,63,74);
                         if(validTCPeaks)
-                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay,75,86);
+                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays, week, recDay,75,86);
                     }
                 }
 
@@ -454,7 +457,7 @@ public class GetPeaksTask implements ScheduledTask
         }
     }
 
-    private boolean validatePeaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<TCDay> tcDays, int week, int day, int firstItem, int lastItem)
+    private boolean validatePeaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<CraftPeaks> lastYearPeaks, List<TCDay> tcDays, int week, int day, int firstItem, int lastItem)
     {
         boolean firstGroup = firstItem==1;
 
@@ -488,44 +491,57 @@ public class GetPeaksTask implements ScheduledTask
             int num2Unk = 0;
             for(int i=firstItem-1; i<lastItem; i++)
             {
+                CraftPeaks newCraft;
 
-                boolean lastWeekReliable = false;
-                if(oldPeaks!=null && oldPeaks.size()>i)
+                if(lastYearPeaks != null && lastYearPeaks.size()>i)
                 {
-                    lastWeekReliable = oldPeaks.get(i).getPeakEnum().isReliable;
-                }
-
-                ItemSupply supply = tcDays.get(0).getObjects().get(i+1);
-                String peakString;
-                if(supply.getSupply() == Insufficient)
-                {
-                    if(supply.getDemand() == Skyrocketing && lastWeekReliable)
-                    {
+                    newCraft = lastYearPeaks.get(i);
+                    if(newCraft.getPeakEnum() == PeakCycle.Cycle2Strong)
                         num2Strong++;
-                        peakString = "2S";
-                    }
-                    else if (supply.getDemand() == Increasing)
-                    {
+                    else if(newCraft.getPeakEnum() == PeakCycle.Cycle2Weak)
                         num2Weak++;
-                        peakString = "2W";
-                    }
-                    else if (supply.getDemand() == None) { //This will never happen. RIP.
-                        num2Strong++;
-                        peakString = "2S";
-                    }
-                    else
-                    {
-                        num2Unk++;
-                        peakString = "2U";
-                    }
-
                 }
                 else
-                    peakString = "U1";
+                {
+                    boolean lastWeekReliable = false;
+                    if(oldPeaks!=null && oldPeaks.size()>i)
+                    {
+                        lastWeekReliable = oldPeaks.get(i).getPeakEnum().isReliable;
+                    }
 
-                CraftPeaks newCraft = new CraftPeaks();
-                newCraft.setPeak(peakString);
-                newCraft.setPeakID(new PeakID(week, day, supply.getId()));
+                    ItemSupply supply = tcDays.get(0).getObjects().get(i+1);
+                    String peakString;
+                    if(supply.getSupply() == Insufficient)
+                    {
+                        if(supply.getDemand() == Skyrocketing && lastWeekReliable)
+                        {
+                            num2Strong++;
+                            peakString = "2S";
+                        }
+                        else if (supply.getDemand() == Increasing)
+                        {
+                            num2Weak++;
+                            peakString = "2W";
+                        }
+                        else if (supply.getDemand() == None) { //This will never happen. RIP.
+                            num2Strong++;
+                            peakString = "2S";
+                        }
+                        else
+                        {
+                            num2Unk++;
+                            peakString = "2U";
+                        }
+
+                    }
+                    else
+                        peakString = "U1";
+
+                    newCraft = new CraftPeaks();
+                    newCraft.setPeak(peakString);
+                    newCraft.setPeakID(new PeakID(week, day, supply.getId()));
+
+                }
                 newPeaks.add(newCraft);
             }
 
@@ -563,7 +579,12 @@ public class GetPeaksTask implements ScheduledTask
                 CraftPeaks currentPeak = newPeaks.get(i);
                 currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
                 ItemSupply supply = tcDays.get(1).getObjects().get(i+1);
-                if (supply.getSupply() == Nonexistent) {
+                PeakCycle currentEnum = currentPeak.getPeakEnum();
+                if(currentEnum == PeakCycle.Cycle3Weak || currentEnum == PeakCycle.Cycle6Weak || currentEnum == PeakCycle.Cycle6Strong || currentEnum == PeakCycle.Cycle7Strong || currentEnum == PeakCycle.Cycle7Weak)
+                    num67++;
+                else if(currentEnum == PeakCycle.Cycle4Weak || currentEnum == PeakCycle.Cycle4Strong || currentEnum == PeakCycle.Cycle5Weak || currentEnum == PeakCycle.Cycle5Strong)
+                    num45++;
+                else if (supply.getSupply() == Nonexistent) {
                     num2Strong++;
                     currentPeak.setPeak("2S");
                 }
@@ -580,7 +601,7 @@ public class GetPeaksTask implements ScheduledTask
                 else if(supply.getDemand() == Increasing)
                 {
                     num67++;
-                    currentPeak.setPeak("67");;
+                    currentPeak.setPeak("67");
                 }
                 else
                 {
@@ -615,7 +636,20 @@ public class GetPeaksTask implements ScheduledTask
                 CraftPeaks currentPeak = newPeaks.get(i);
                 currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
                 ItemSupply supply = tcDays.get(2).getObjects().get(i + 1);
-                if (currentPeak.getPeak().equals("45"))
+                PeakCycle currentEnum = currentPeak.getPeakEnum();
+                if(currentEnum == PeakCycle.Cycle4Strong)
+                    num4Strong++;
+                else if(currentEnum == PeakCycle.Cycle4Weak)
+                    num4Weak++;
+                else if(currentEnum==PeakCycle.Cycle5Strong || currentEnum == PeakCycle.Cycle5Weak)
+                    num5++;
+                else if(currentEnum==PeakCycle.Cycle3Weak)
+                    num3Weak++;
+                else if(currentEnum==PeakCycle.Cycle6Weak)
+                    num6Weak++;
+                else if(currentEnum==PeakCycle.Cycle6Strong || currentEnum==PeakCycle.Cycle7Strong || currentEnum==PeakCycle.Cycle7Weak)
+                    num67++;
+                else if (currentPeak.getPeak().equals("45"))
                 {
                     if (supply.getDemand() == Skyrocketing)
                     {
@@ -681,7 +715,18 @@ public class GetPeaksTask implements ScheduledTask
             currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
             ItemSupply supply = tcDays.get(3).getObjects().get(i + 1);
 
-            if (currentPeak.getPeak().equals("67"))
+            PeakCycle currentEnum = currentPeak.getPeakEnum();
+            if(currentEnum == PeakCycle.Cycle6Strong)
+                num6Strong++;
+            else if(currentEnum == PeakCycle.Cycle7Strong)
+                num7Strong++;
+            else if(currentEnum == PeakCycle.Cycle7Weak)
+                num7Weak++;
+            else if(currentEnum == PeakCycle.Cycle5Weak)
+                num5Weak++;
+            else if(currentEnum == PeakCycle.Cycle5Strong)
+                num5Strong++;
+            else if (currentPeak.getPeak().equals("67"))
             {
                 if(supply.getSupply() == Sufficient || supply.getSupply() == Surplus)
                 {

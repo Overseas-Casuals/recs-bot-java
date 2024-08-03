@@ -953,7 +953,7 @@ public class Solver
         int cap = 0;
         for(var next : bestItemsEntries)
         {
-            if(day==1 && next.getKey().peaksOnDay(day+1))
+            if(day==1 && !next.getKey().peaksOnDay(1))
             {
                currFullWeek++;
                current = currFullWeek;
@@ -961,13 +961,13 @@ public class Solver
             }
             else if(day==2)
             {
-                if(next.getKey().peaksOnDay(3))
+                if(next.getKey().peaksOnDay(3) || next.getKey().peaksOnDay(4))
                 {
                     curr45++;
                     current = curr45;
                     cap = res45;
                 }
-                else if(next.getKey().peaksOnDay(5))
+                else if(next.getKey().peaksOnDay(5) || next.getKey().peaksOnDay(6))
                 {
                     curr67++;
                     current = curr67;
@@ -984,7 +984,7 @@ public class Solver
                     current = curr5;
                     cap = resSingle;
                 }
-                else if(next.getKey().peaksOnDay(5))
+                else if(next.getKey().peaksOnDay(5) || next.getKey().peaksOnDay(6))
                 {
                     curr67++;
                     current = curr67;
@@ -1013,7 +1013,7 @@ public class Solver
 
             if(current <= cap)
             {
-                LOG.info("Reserving item {} ({})", next.getKey(), next.getValue());
+                LOG.info("Reserving item {} ({})", next.getKey().item, next.getValue());
                 reservedItems.add(next.getKey().item);
             }
             if (current <= cap/2)
