@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.overseascasuals.recsbot.OCUtils;
 import com.overseascasuals.recsbot.data.DailyRecommendation;
+import com.overseascasuals.recsbot.data.PeakCycle;
 import com.overseascasuals.recsbot.json.ItemSupply;
 import com.overseascasuals.recsbot.json.RestService;
 import com.overseascasuals.recsbot.json.TCDay;
