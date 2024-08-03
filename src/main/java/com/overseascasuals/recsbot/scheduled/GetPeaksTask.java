@@ -360,8 +360,6 @@ public class GetPeaksTask implements ScheduledTask
             }
             else
             {
-                var lastArchiveMessageID = archiveChannel.getRestChannel().getData().map(ChannelData::lastMessageId).block().get().orElseThrow();
-
                 if(list.get(0).getOldRec() != null)
                 {
                     var recs = list.get(0);

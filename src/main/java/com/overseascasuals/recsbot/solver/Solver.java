@@ -278,8 +278,7 @@ public class Solver
             Integer[] popularities = csvImporter.popularityRatios[currentPop];
             for(int i=0;i<items.length&&i<peaks.size();i++)
             {
-                items[i].popularityRatio = popularities[i];
-                items[i].peak = peaks.get(i).getPeakEnum();
+                items[i].setInitialData(popularities[i], peaks.get(i).getPeakEnum());
 
                 LOG.info("Setting item {} to ratio {} and peak {}", items[i].item, items[i].popularityRatio, items[i].peak);
             }
@@ -1627,12 +1626,6 @@ public class Solver
             reservedSet = solution.getLimitedUses(reservedSet);
         }
 
-        if(restOfWeekRank.size() == 5) //If we're at day 1, we have no real idea, so put our best guess at C6, the second-best day to craft
-        {
-            var best = restOfWeekRank.set(0, restOfWeekRank.get(3));
-            restOfWeekRank.set(3, best);
-        }
-
         for(var list : restOfWeekRank) {
             LOG.info("rest of week ({}): {}", rank, list);
         }
@@ -1649,24 +1642,59 @@ public class Solver
 
         //generate vacation recs
         var popData = popularityRepository.findByWeek(currentWeek);
+        if(!"live".equals(activeProfile))
+            return popData.getPopularity();
+
         LOG.info("Getting popularity data for next week: {}", popData.getNextPopularity());
         int nextPop = popData.getNextPopularity();
 
         Integer[] popularities = csvImporter.popularityRatios[nextPop];
 
+        List<CraftPeaks> nextWeekPeaks = null;
+        if(currentWeek > 99)
+        {
+            LOG.info("Getting peak data for next week: {}", currentWeek-99);
+            nextWeekPeaks = peakRepository.findPeaksByDay(currentWeek-99, 3);
+        }
+
+
+
         for(int i=0;i<items.length;i++)
         {
             int ratio = popularities[i];
             //LOG.info("Setting {} to initial data of {} and {}", items[i].item, ratio, Unknown);
-            items[i].setInitialData(ratio, Unknown);
+            PeakCycle peak = Unknown;
+            if(nextWeekPeaks!=null && nextWeekPeaks.size()>i)
+                peak = nextWeekPeaks.get(i).getPeakEnum();
+
+            items[i].setInitialData(ratio, peak);
         }
 
+        int[] ranks = {5,9,11,15,18};
 
-        vacationRecs.put(5, vacationRecsHelper(5));
-        vacationRecs.put(9, vacationRecsHelper(9));
-        vacationRecs.put(11, vacationRecsHelper(11));
-        vacationRecs.put(15, vacationRecsHelper(15));
-        vacationRecs.put(18, vacationRecsHelper(18));
+        if(nextWeekPeaks == null)
+        {
+            LOG.error("No nextWeekPeaks found for week {}. Using old next week algo.", currentWeek-99);
+            for(int rank : ranks)
+                vacationRecs.put(rank, vacationRecsHelper(rank));
+        }
+        else
+        {
+            LOG.info("Some peaks found, so generating next week schedules as if it were this week");
+            for(int rank : ranks)
+            {
+                var c2 = getBestSchedule(1, 0, null, rank);
+                addCraftedFromCycle(1, c2, rank, false);
+
+                var recs = getRestOfWeekRecs(rank, null, true);
+                List<CycleSchedule> schedules = recs.getRecs();
+                schedules.set(recs.getWorstIndex(), null);
+                schedules.add(0,c2);
+
+                vacationRecs.put(rank, schedules);
+            }
+            groove = 0;
+        }
 
 
         return popData.getPopularity();

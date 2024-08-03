@@ -345,12 +345,26 @@ public class OCUtils
         //var messageSpec = MessageCreateSpec.builder();
 
         builder.color(Color.SUMMER_SKY);
-        addPredictiveRec(builder, recs.get(1), 2, false);
-        addPredictiveRec(builder, recs.get(4), 3, false);
-        addPredictiveRec(builder, recs.get(2), 4, false);
-        addPredictiveRec(builder, recs.get(3), 5, false);
-        addPredictiveRec(builder, recs.get(0), 6, false);
-        builder.addField("Cycle 7", getRestText(),true);
+        if(recs.size() == 5) //Old next week, no supply info
+        {
+            addPredictiveRec(builder, recs.get(1), 2, false);
+            addPredictiveRec(builder, recs.get(4), 3, false);
+            addPredictiveRec(builder, recs.get(2), 4, false);
+            addPredictiveRec(builder, recs.get(3), 5, false);
+            addPredictiveRec(builder, recs.get(0), 6, false);
+            builder.addField("Cycle 7", getRestText(),true);
+        }
+        else if(recs.size()==6) //New next week, supply info!
+        {
+            for(int i=0;i<recs.size();i++)
+            {
+                if(recs.get(i) == null)
+                    builder.addField("Cycle "+(i+2), getRestText(), rank<15);
+                else
+                    addPredictiveRec(builder, recs.get(i), i+2, false);
+            }
+        }
+
 
         //messageSpec.addEmbed(builder.build());
         return builder.build();
