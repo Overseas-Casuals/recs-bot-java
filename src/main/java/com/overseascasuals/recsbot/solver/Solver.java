@@ -178,7 +178,8 @@ public class Solver
     {
         return items[item.ordinal()].time;
     }
-    
+
+    public List<ArchiveSchedule> archiveRecs = null;
     private int groove = 0;
     public int rested = -1;
     private boolean c5WorstFuture = false;
@@ -270,6 +271,7 @@ public class Solver
             vacationRecs.clear();
             totalValue = 0;
             dailySchedules.clear();
+            archiveRecs = null;
 
             int currentPop = generateVacationRecs(week);
 
@@ -798,24 +800,42 @@ public class Solver
     }
     public int generateTotalValue(List<DailyRecommendation> lateWeekRecs, int rank)
     {
+        archiveRecs = new ArrayList<>();
         int total = 0;
         for(int day = 1; day < 4; day++)
         {
             //var crafts = craftRepository.findCraftsByDay(week, day, maxIslandRank);
-            CycleSchedule sched = new CycleSchedule(day, getStartingGroove(day, rank), rank);
+            CycleSchedule sched = new CycleSchedule(day, 0, rank);
             sched.setForFirstThreeWorkshops(dailySchedules.get(day).items);
             sched.setFourthWorkshop(dailySchedules.get(day).subItems);
+            int grooveless = sched.getValue();
+            sched.setStartingGroove(getStartingGroove(day, rank));
             int today = sched.getValue();
+            ArchiveSchedule rec = new ArchiveSchedule(sched.getItems(), sched.getSubItems(), grooveless, today, sched.getStartingGroove());
+            archiveRecs.add(rec);
             LOG.info("Getting total for day {}, crafts {}, subcrafts {}: {} cowries", day+1, sched.getItems(), sched.getSubItems(), today);
             total += today;
         }
         for(var rec : lateWeekRecs)
         {
-            if(rec.getMaxRank() == maxIslandRank && !rec.isRestRecommended() && rec.getDay() > 3)
+            if(rec.getMaxRank() == maxIslandRank && rec.getDay() > 3)
             {
-                LOG.info("Getting total for day {}, crafts {}, subcrafts {}: {} cowries", rec.getDay()+1, rec.getBestRec().getItems(), rec.getBestRec().getSubItems(), rec.getDailyValue());
-                total+=rec.getDailyValue();
+
+                if(!rec.isRestRecommended())
+                {
+                    LOG.info("Getting total for day {}, crafts {}, subcrafts {}: {} cowries", rec.getDay()+1, rec.getBestRec().getItems(), rec.getBestRec().getSubItems(), rec.getDailyValue());
+                    total+=rec.getDailyValue();
+                    ArchiveSchedule archive = new ArchiveSchedule(rec.getBestRec().getItems(), rec.getBestRec().getSubItems(), rec.getGroovelessValue(), rec.getDailyValue(), rec.getBestRec().getStartingGroove());
+                    archiveRecs.add(archive);
+                }
+                else
+                {
+                    ArchiveSchedule archive = new ArchiveSchedule(new ArrayList<>(), new ArrayList<>(), 0, 0,0);
+                    archiveRecs.add(archive);
+                }
+
             }
+
         }
         LOG.info("Season total: {}", total);
 

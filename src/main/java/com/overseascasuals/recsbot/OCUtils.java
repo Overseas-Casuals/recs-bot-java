@@ -459,56 +459,38 @@ public class OCUtils
         MessageEditSpec messageEditSpec = MessageEditSpec.builder().contentOrNull(corrected).build();
         return messageEditSpec;
     }
-    public static MessageEditSpec addCurrentDay(int day, DailyRecommendation rec, Message origMessage)
-    {
-        String content = origMessage.getContent();
-        content += getArchiveContent(day, rec);
-        MessageEditSpec messageEditSpec = MessageEditSpec.builder().contentOrNull(content).build();
-        return messageEditSpec;
-    }
 
-    public static MessageEditSpec addFinalTotal(List<DailyRecommendation> recs, int week, int total, Message origMessage)
+    public static String newArchiveContent(int thisWeek, List<ArchiveSchedule> recs, int total)
     {
-        String content = origMessage.getContent();
-        for(int i=0; i<3; i++)
+        StringBuilder sb = new StringBuilder("**__Season "+thisWeek+" ("+getDateStr(thisWeek)+")__**");
+
+        for(int day = 0; day < recs.size(); day++)
         {
-            content += getArchiveContent(4+i, recs.get(i));
+            ArchiveSchedule rec = recs.get(day);
+            sb.append("\n* **C"+(day+2)+":** ");
+            if(rec.getItems().size() == 0)
+            {
+                sb.append("Rest");
+            }
+            else
+            {
+                boolean ws3Diff = !rec.getItems().equals(rec.getSubItems());
+                sb.append(rec.getGroovelessValue()+cowriesEmoji);
+                if(rec.getStartingGroove() > 0)
+                    sb.append(" ("+rec.getValue()+cowriesEmoji+" "+rec.getStartingGroove()+" Groove)");
+
+                sb.append(": " + rec.getItems().stream().map(Item::getDisplayName)
+                        .collect(Collectors.joining(" - ")));
+
+                if(ws3Diff)
+                {
+                    sb.append("\n * WS4: "+rec.getSubItems().stream().map(Item::getDisplayName)
+                            .collect(Collectors.joining(" - ")));
+                }
+            }
+
         }
-        content+="\n**Season "+week+" Total:** "+ String.format("%,d", total)+cowriesEmoji;
-        MessageEditSpec messageEditSpec = MessageEditSpec.builder().contentOrNull(content).build();
-        return messageEditSpec;
-    }
-
-    private static String getArchiveContent(int day, DailyRecommendation rec)
-    {
-        String content="\n* **C"+(day+1)+":** ";
-        if(rec.isRestRecommended())
-        {
-            content += "Rest";
-            return content;
-        }
-
-        boolean ws3Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems());
-        content+=rec.getGroovelessValue()+cowriesEmoji;
-        if(rec.getBestRec().getStartingGroove() > 0)
-            content+=" ("+rec.getDailyValue()+cowriesEmoji+" "+rec.getBestRec().getStartingGroove()+" Groove)";
-
-        content+=": " + rec.getBestRec().getItems().stream().map(Item::getDisplayName)
-                .collect(Collectors.joining(" - "));
-
-        if(ws3Diff)
-        {
-            content+="\n * WS4: "+rec.getBestRec().getSubItems().stream().map(Item::getDisplayName)
-                    .collect(Collectors.joining(" - "));
-        }
-
-        return content;
-    }
-
-    public static String newArchiveContent(int nextWeek)
-    {
-        if(nextWeek==97)
-            nextWeek++;
-        return "**__Season "+nextWeek+" ("+getDateStr(nextWeek)+")__**";
+        sb.append("\n**Season "+thisWeek+" Total:** "+ String.format("%,d", total)+cowriesEmoji);
+        return sb.toString();
     }
 }

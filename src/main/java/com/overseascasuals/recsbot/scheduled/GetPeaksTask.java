@@ -375,13 +375,6 @@ public class GetPeaksTask implements ScheduledTask
                     }
 
                     list.remove(0);
-
-                    if(recs.getMaxRank()==Solver.maxIslandRank)
-                    {
-                        //Add to archive
-                        var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
-                        archive.edit(OCUtils.addCurrentDay(recDay, recs, archive)).subscribe(message -> {LOG.info("Successfully posted new day to archive: {}", message.getContent());}, error -> { LOG.error("Error posting new archive day:",error);});
-                    }
                 }
                 if(recDay == 3)
                 {
@@ -406,9 +399,6 @@ public class GetPeaksTask implements ScheduledTask
                             {
                                 trySendTweet(week, list.get(d));
                             }
-
-                            var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
-                            archive.edit(OCUtils.addFinalTotal(list, week, solver.totalValue, archive)).subscribe(message -> {LOG.info("Successfully posted final total to archive: {}", message.getContent());}, error -> { LOG.error("Error posting final total to archive:",error);});
                         }
 
                         list.remove(0);
@@ -419,7 +409,7 @@ public class GetPeaksTask implements ScheduledTask
                     {
                         fortuneChannel.createMessage("Season total: "+String.format("%,d", solver.fortuneValue)+OCUtils.cowriesEmoji).subscribe(message -> {LOG.info("Successfully posted fortune teller total: {}", message.getContent());}, error -> { LOG.error("Error posting fortune-teller total:",error);});
                     }
-                    archiveChannel.getRestChannel().createMessage(OCUtils.newArchiveContent(week+1)).subscribe(message -> {LOG.info("Successfully posted new archive post: {}", message.content());}, error -> { LOG.error("Error posting new archive post:",error);});
+                    archiveChannel.getRestChannel().createMessage(OCUtils.newArchiveContent(week, solver.archiveRecs, solver.totalValue)).subscribe(message -> {LOG.info("Successfully posted new archive post: {}", message.content());}, error -> { LOG.error("Error posting new archive post:",error);});
                 }
                 else
                 {
@@ -433,13 +423,7 @@ public class GetPeaksTask implements ScheduledTask
                     {
                         channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs, c1PeakRole, squawkboxRole)).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting recs:",error); });
                         trySendTweet(week, recs);
-                        if(recs.isRestRecommended() && recs.getMaxRank()==Solver.maxIslandRank)
-                        {
-                            var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
-                            archive.edit(OCUtils.addCurrentDay(recDay+1, recs, archive)).subscribe(message -> {LOG.info("Successfully posted new rest day to archive: {}", message.getContent());}, error -> { LOG.error("Error posting new rest day to archive:",error);});
-                        }
                     }
-
                 }
             }
         }
