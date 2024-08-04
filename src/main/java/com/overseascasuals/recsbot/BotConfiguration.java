@@ -93,7 +93,6 @@ public class BotConfiguration implements CommandLineRunner
 
 
         //deregisterCommands(client);
-
         //registerCommands(client);
 
         this.taskList = taskList;
@@ -178,6 +177,54 @@ public class BotConfiguration implements CommandLineRunner
                         .build())
                 .build();
         commands.add(nextWeekRequest);
+
+        ApplicationCommandRequest peakRequest = ApplicationCommandRequest.builder()
+                .name("peak")
+                .description("Displays what cycle a craft will peak, to the best of our knowledge")
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("craft1")
+                        .description("The name of a craft you want to check the peak of")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("craft2")
+                        .description("The name of a craft you want to check the peak of")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("craft3")
+                        .description("The name of a craft you want to check the peak of")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("craft4")
+                        .description("The name of a craft you want to check the peak of")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("craft5")
+                        .description("The name of a craft you want to check the peak of")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("craft6")
+                        .description("The name of a craft you want to check the peak of")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .build();
+        commands.add(peakRequest);
 
         ApplicationCommandRequest thisWeekRequest = ApplicationCommandRequest.builder()
                 .name("this_week")

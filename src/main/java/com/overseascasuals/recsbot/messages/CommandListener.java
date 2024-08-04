@@ -3,6 +3,8 @@ package com.overseascasuals.recsbot.messages;
 import com.overseascasuals.recsbot.OCUtils;
 import com.overseascasuals.recsbot.data.DailyRecommendation;
 import com.overseascasuals.recsbot.data.Item;
+import com.overseascasuals.recsbot.data.ItemInfo;
+import com.overseascasuals.recsbot.data.PeakCycle;
 import com.overseascasuals.recsbot.json.RestService;
 import com.overseascasuals.recsbot.mysql.PeakRepository;
 import com.overseascasuals.recsbot.mysql.PopularityRepository;
@@ -110,6 +112,9 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 case "favors" -> {
                     return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredFavors(event)));
                 }
+                case "peak" -> {
+                    return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredPeaks(event)));
+                }
             }
 
             LOG.info("Unknown command???");
@@ -136,6 +141,47 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 .then(event.editReply("Error handling event./"+command+"<@"+miennaID+">"));
     }
 
+    private InteractionReplyEditMono deferredPeaks(ChatInputInteractionEvent event)
+    {
+        List<Item> crafts;
+        try{
+            crafts = getItemsFromEvent(event, "craft");
+        }
+        catch(IllegalArgumentException e)
+        {
+            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+            return event.editReply(e.getMessage());
+        }
+
+        if(!solver.hasRunRecs)
+        {
+            var d1 = new Date(1661241600000L);
+            var d2 = new Date();
+
+            int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
+            int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+
+            LOG.info("Haven't run recs yet. Doing so now.");
+            solver.getDailyRecommendations(week, day, true);
+        }
+
+        List<ItemInfo> infos = new ArrayList<>();
+        for(Item craft : crafts)
+        {
+            infos.add(Solver.items[craft.ordinal()]);
+        }
+
+        if(infos.size()>0)
+        {
+            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+            return event.editReply().withEmbeds(OCUtils.getPeaksEmbed(infos, solver.getWeek()));
+        }
+        else
+        {
+            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+            return event.editReply("Please enter at least one craft you want to know the peak of!");
+        }
+    }
     private InteractionReplyEditMono deferredFavors(ChatInputInteractionEvent event)
     {
         List<Item> favorsRaw = null;
@@ -599,7 +645,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
     private List<Item> getItemsFromEvent(ChatInputInteractionEvent event, String prefix) throws IllegalArgumentException
     {
         List<Item> items = new ArrayList<>();
-        for(int i=1; i<=3; i++)
+        for(int i=1; i<=6; i++)
         {
             if(event.getOption(prefix+i).isPresent())
             {

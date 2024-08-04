@@ -87,6 +87,85 @@ public class OCUtils
         return messageSpec.build();
     }
 
+    public static EmbedCreateSpec getPeaksEmbed(List<ItemInfo> items, int week)
+    {
+        var builder = EmbedCreateSpec.builder().title("Peak Info for Season "+week);
+        builder.timestamp(Instant.now());
+        String peakStr;
+        for(int i=0; i<items.size(); i++)
+        {
+            ItemInfo info = items.get(i);
+            switch(info.popularityRatio)
+            {
+                case 140 ->{peakStr="<:OC_VeryHigh:1035399592004558878> Very High";}
+                case 120 ->{peakStr="<:OC_High:1035379587884003418> High";}
+                case 100 ->{peakStr="<:OC_Average:1035379549153800204> Average";}
+                case 80 ->{peakStr="<:OC_Low:1035379597052743700> Low";}
+                default -> {peakStr="";}
+            }
+            peakStr+="\n";
+            switch(info.peak)
+            {
+                case Unknown -> {
+                    peakStr+="Unknown Peak";
+                }
+                case Cycle2Weak -> {
+                    peakStr+="Cycle 2 Weak";
+                }
+                case Cycle2Strong -> {
+                    peakStr+="Cycle 2 Strong";
+                }
+                case Cycle3Weak -> {
+                    peakStr+="Cycle 3 Weak";
+                }
+                case Cycle3Strong -> {
+                    peakStr+="Cycle 3 Strong";
+                }
+                case Cycle4Weak -> {
+                    peakStr+="Cycle 4 Weak";
+                }
+                case Cycle4Strong -> {
+                    peakStr+="Cycle 4 Strong";
+                }
+                case Cycle5Weak -> {
+                    peakStr+="Cycle 5 Weak";
+                }
+                case Cycle5Strong -> {
+                    peakStr+="Cycle 5 Strong";
+                }
+                case Cycle6Weak -> {
+                    peakStr+="Cycle 6 Weak";
+                }
+                case Cycle6Strong -> {
+                    peakStr+="Cycle 6 Strong";
+                }
+                case Cycle7Weak -> {
+                    peakStr+="Cycle 7 Weak";
+                }
+                case Cycle7Strong -> {
+                    peakStr+="Cycle 7 Strong";
+                }
+                case Cycle45 -> {
+                    peakStr+="Cycle 4 or 5";
+                }
+                case Cycle5 -> {
+                    peakStr+="Cycle 5";
+                }
+                case Cycle67 -> {
+                    peakStr+="Cycle 6 or 7";
+                }
+                case Cycle2Unknown -> {
+                    peakStr+="Cycle 2";
+                }
+            }
+            if(i<items.size()-1)
+                peakStr+="\n\u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E";
+
+            builder.addField(info.item.getDisplayNameWithEmoji()+"\u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E", peakStr, true);
+        }
+        return builder.build();
+    }
+
     public static EmbedCreateSpec getGeneralRecEmbed(int season, DailyRecommendation rec, boolean mainrecs)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations for Rank "+rec.getMaxRank());
