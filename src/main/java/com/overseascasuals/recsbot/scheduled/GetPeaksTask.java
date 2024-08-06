@@ -259,6 +259,7 @@ public class GetPeaksTask implements ScheduledTask
 
             if(validTCPeaks)
             {
+                LOG.info("Saving peaks to DB");
                 //Send to DB
                 if(recDay==0)
                 {
@@ -479,6 +480,7 @@ public class GetPeaksTask implements ScheduledTask
                 if(lastYearPeaks != null && lastYearPeaks.size()>i)
                 {
                     newCraft = lastYearPeaks.get(i);
+                    newCraft.setPeakID(new PeakID(week, day, newCraft.getPeakID().getItemID()));
                     if(newCraft.getPeakEnum() == PeakCycle.Cycle2Strong)
                         num2Strong++;
                     else if(newCraft.getPeakEnum() == PeakCycle.Cycle2Weak)
