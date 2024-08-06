@@ -272,6 +272,7 @@ public class Solver
             totalValue = 0;
             dailySchedules.clear();
             archiveRecs = null;
+            this.day = 0; //Have it 0 while we generate vacation recs, then figure out what day it actually is
 
             int currentPop = generateVacationRecs(week);
 
