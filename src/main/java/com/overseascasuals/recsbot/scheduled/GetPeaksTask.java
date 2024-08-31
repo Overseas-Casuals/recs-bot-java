@@ -189,15 +189,14 @@ public class GetPeaksTask implements ScheduledTask
                 if(week>100)
                     lastYearsPeaks = peakRepository.findPeaksByDay(week-100, 3);
 
+                validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays.get(recDay).getObjects(), week, recDay, 1,50);
 
-                validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays, week, recDay, 1,50);
-
                 if(validTCPeaks)
-                    validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays, week, recDay,51,62);
+                    validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays.get(recDay).getObjects(), week, recDay,51,62);
                 if(validTCPeaks)
-                    validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays, week, recDay,63,74);
+                    validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays.get(recDay).getObjects(), week, recDay,63,74);
                 if(validTCPeaks)
-                    validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays, week, recDay,75,86);
+                    validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays.get(recDay).getObjects(), week, recDay,75,86);
 
                 if(!validTCPeaks)
                 {
@@ -229,14 +228,14 @@ public class GetPeaksTask implements ScheduledTask
                         else
                             peaksByDay = new ArrayList<>();
 
-                        validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, chinaDays, week, recDay, 1,50);
+                        validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, chinaDays.get(recDay).getObjects(), week, recDay, 1,50);
 
                         if(validTCPeaks)
-                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, chinaDays, week, recDay,51,62);
+                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, chinaDays.get(recDay).getObjects(), week, recDay,51,62);
                         if(validTCPeaks)
-                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays, week, recDay,63,74);
+                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, chinaDays.get(recDay).getObjects(), week, recDay,63,74);
                         if(validTCPeaks)
-                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDays, week, recDay,75,86);
+                            validTCPeaks = validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, chinaDays.get(recDay).getObjects(), week, recDay,75,86);
                     }
                 }
 
@@ -441,7 +440,7 @@ public class GetPeaksTask implements ScheduledTask
         }
     }
 
-    private boolean validatePeaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<CraftPeaks> lastYearPeaks, List<TCDay> tcDays, int week, int day, int firstItem, int lastItem)
+    private boolean validatePeaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<CraftPeaks> lastYearPeaks, List<ItemSupply> tcSupplies, int week, int day, int firstItem, int lastItem)
     {
         boolean firstGroup = firstItem==1;
 
@@ -452,14 +451,10 @@ public class GetPeaksTask implements ScheduledTask
 
         LOG.info("Validating TC peaks from day {} for items {}-{}", day+1, firstItem, lastItem);
 
-        if(day >= tcDays.size())
-        {
-            LOG.warn("Could not find today's data in TC data. Only found "+tcDays.size()+" days. Needed day "+(day+1));
-            return false;
-        }
+
         for(int i=firstItem-1; i<lastItem; i++)
         {
-            var observed = tcDays.get(day).getObjects().get(i+1);
+            var observed = tcSupplies.get(i+1);
             if(observed.getSupply() == InvalidSupply || observed.getDemand() == InvalidDemand)
             {
                 LOG.warn("Invalid supply/demand found for item {}: {} {}", i+1, observed.getSupply(), observed.getDemand());
@@ -494,7 +489,7 @@ public class GetPeaksTask implements ScheduledTask
                         lastWeekReliable = oldPeaks.get(i).getPeakEnum().isReliable;
                     }
 
-                    ItemSupply supply = tcDays.get(0).getObjects().get(i+1);
+                    ItemSupply supply = tcSupplies.get(i+1);
                     String peakString;
                     if(supply.getSupply() == Insufficient)
                     {
@@ -563,7 +558,7 @@ public class GetPeaksTask implements ScheduledTask
             {
                 CraftPeaks currentPeak = newPeaks.get(i);
                 currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
-                ItemSupply supply = tcDays.get(1).getObjects().get(i+1);
+                ItemSupply supply = tcSupplies.get(i+1);
                 PeakCycle currentEnum = currentPeak.getPeakEnum();
                 if(currentEnum == PeakCycle.Cycle3Weak || currentEnum == PeakCycle.Cycle6Weak || currentEnum == PeakCycle.Cycle6Strong || currentEnum == PeakCycle.Cycle7Strong || currentEnum == PeakCycle.Cycle7Weak)
                     num67++;
@@ -620,7 +615,7 @@ public class GetPeaksTask implements ScheduledTask
             {
                 CraftPeaks currentPeak = newPeaks.get(i);
                 currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
-                ItemSupply supply = tcDays.get(2).getObjects().get(i + 1);
+                ItemSupply supply = tcSupplies.get(i + 1);
                 PeakCycle currentEnum = currentPeak.getPeakEnum();
                 if(currentEnum == PeakCycle.Cycle4Strong)
                     num4Strong++;
@@ -698,7 +693,7 @@ public class GetPeaksTask implements ScheduledTask
 
             CraftPeaks currentPeak = newPeaks.get(i);
             currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
-            ItemSupply supply = tcDays.get(3).getObjects().get(i + 1);
+            ItemSupply supply = tcSupplies.get(i + 1);
 
             PeakCycle currentEnum = currentPeak.getPeakEnum();
             if(currentEnum == PeakCycle.Cycle6Strong)
