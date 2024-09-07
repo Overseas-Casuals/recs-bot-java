@@ -17,14 +17,11 @@ import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.MessageCreateSpec;
-import discord4j.discordjson.json.ChannelData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.helpers.MessageFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
 
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -94,7 +91,7 @@ public class GetPeaksTask implements ScheduledTask
 
     private GatewayDiscordClient client;
 
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    public static ObjectMapper objectMapper = new ObjectMapper();
 
     private MessageChannel channel;
     private MessageChannel peakChannel;
@@ -440,7 +437,7 @@ public class GetPeaksTask implements ScheduledTask
         }
     }
 
-    private boolean validatePeaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<CraftPeaks> lastYearPeaks, List<ItemSupply> tcSupplies, int week, int day, int firstItem, int lastItem)
+    public static boolean validatePeaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<CraftPeaks> lastYearPeaks, List<ItemSupply> tcSupplies, int week, int day, int firstItem, int lastItem)
     {
         boolean firstGroup = firstItem==1;
 

@@ -2,39 +2,14 @@ package com.overseascasuals.recsbot.json;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import java.util.Date;
 import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TCDay {
-    private Date start;
-    private Date updated;
-    private boolean lock;
     private int popularity;
     private int predictedPopularity;
-    private String appVersion;
     private List<ItemSupply> objects;
 
     public TCDay(){}
-
-    public Date getStart() {
-        return start;
-    }
-
-    public void setStart(Date start) {
-        this.start = start;
-    }
-
-    public Date getUpdated(){return updated; }
-
-    public void setUpdated(Date updated) {this.updated = updated; }
-
-    public boolean isLock() {
-        return lock;
-    }
-
-    public void setLock(boolean lock) {
-        this.lock = lock;
-    }
 
     public int getPopularity() {
         return popularity;
@@ -44,20 +19,11 @@ public class TCDay {
         this.popularity = popularity;
     }
 
-    public String getAppVersion() {
-        return appVersion;
-    }
-
-    public void setAppVersion(String appVersion) {
-        this.appVersion = appVersion;
-    }
-
     public List<ItemSupply> getObjects() {
         return objects;
     }
 
-    public void setObjects(List<ItemSupply> objects) {
-        this.objects = objects;
+    public void setObjects(List<ItemSupply> objects) {this.objects = objects;
     }
 
     public int getPredictedPopularity() {
@@ -68,14 +34,17 @@ public class TCDay {
         this.predictedPopularity = predictedPopularity;
     }
 
+    public void setSupplyDemand(List<ItemSupply> supplyDemand) {
+        this.objects = supplyDemand;
+    }
+
     @Override
     public String toString() {
 
         StringBuilder sb = new StringBuilder();
-        sb.append("TCDay{").append("start=").append(start).append(", lock=").append(lock)
+        sb.append("TCDay{")
                 .append(", popularity=").append(popularity)
                 .append(", predictedPopularity=").append(predictedPopularity)
-                .append(", appVersion='").append(appVersion).append('\'')
                 .append(", objects=[");
         for(var obj : objects)
         {
@@ -84,11 +53,9 @@ public class TCDay {
         sb.setLength(sb.length()-2);
         sb.append("]}");
         return "TCDay{" +
-                "start=" + start +
-                ", lock=" + lock +
-                ", popularity=" + popularity +
+
+                "popularity=" + popularity +
                 ", predictedPopularity=" + predictedPopularity +
-                ", appVersion='" + appVersion + '\'' +
                 ", objects=" + objects +
                 '}';
     }

@@ -1,6 +1,5 @@
 package com.overseascasuals.recsbot;
 
-import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.messages.EventListener;
 import com.overseascasuals.recsbot.mysql.*;
 import com.overseascasuals.recsbot.scheduled.ScheduledTask;
@@ -12,7 +11,6 @@ import discord4j.core.event.domain.Event;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
 import discord4j.core.object.command.ApplicationCommandOption;
 import discord4j.core.object.entity.User;
-import discord4j.discordjson.Id;
 import discord4j.discordjson.json.*;
 import discord4j.rest.request.RouteMatcher;
 import discord4j.rest.response.ResponseFunction;
@@ -29,10 +27,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.resources.ConnectionProvider;
 import reactor.retry.Retry;
 
-import java.time.Duration;
 import java.time.ZoneId;
 import java.util.*;
 
@@ -41,7 +37,7 @@ import java.util.*;
 @Profile("!test")
 public class BotConfiguration implements CommandLineRunner
 {
-    private static Logger LOG = LoggerFactory.getLogger(BotConfiguration.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BotConfiguration.class);
 
     @Autowired
     CraftRepository craftRepository;
@@ -393,6 +389,18 @@ public class BotConfiguration implements CommandLineRunner
                         .build())
                 .build();
         commands.add(clear_cache);
+
+        ApplicationCommandRequest push_peaks = ApplicationCommandRequest.builder()
+                .name("push_peaks")
+                .description("Pushes a given TC state to the peaks database (if it's valid)")
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("data")
+                        .description("The TC dump")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(true)
+                        .build())
+                .build();
+        commands.add(push_peaks);
 
         /* Bulk overwrite commands.
         */

@@ -1,13 +1,18 @@
 package com.overseascasuals.recsbot.messages;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.overseascasuals.recsbot.OCUtils;
 import com.overseascasuals.recsbot.data.DailyRecommendation;
 import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.data.ItemInfo;
-import com.overseascasuals.recsbot.data.PeakCycle;
 import com.overseascasuals.recsbot.json.RestService;
+import com.overseascasuals.recsbot.json.TCDay;
+import com.overseascasuals.recsbot.mysql.CraftPeaks;
 import com.overseascasuals.recsbot.mysql.PeakRepository;
+import com.overseascasuals.recsbot.mysql.Popularity;
 import com.overseascasuals.recsbot.mysql.PopularityRepository;
+import com.overseascasuals.recsbot.scheduled.GetPeaksTask;
 import com.overseascasuals.recsbot.solver.Solver;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
@@ -104,7 +109,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                     return event.deferReply().then(Mono.defer(() -> deferredAltsCommand(event)));
                 }
                 case "push_peaks" -> {
-                    return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredPushPeaks(event)));
+                    return event.deferReply().then(Mono.defer(() -> deferredPushPeaks(event)));
                 }
                 case "clear_cache" -> {
                     return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredClearCache(event)));
@@ -771,20 +776,83 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
     public InteractionReplyEditMono deferredPushPeaks(ChatInputInteractionEvent event)
     {
-        /*var d1 = new Date(1661241600000L);
+        if(event.getOption("data").isEmpty())
+            return event.editReply("No TC data present??");
+        String tcDump = event.getOption("data").flatMap(ApplicationCommandInteractionOption::getValue)
+                .map(ApplicationCommandInteractionOptionValue::asString)
+                .get();
+        var d1 = new Date(1661241600000L);
         var d2 = new Date();
 
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
-        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+        int recDay = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
 
-        var popularity = popularityRepository.findByWeek(week);
-        String popresponse = restService.postPopularity(week, popularity.getPopularity(), popularity.getNextPopularity());
+        TCDay tcDay;
+        try
+        {
+            tcDay = GetPeaksTask.objectMapper.readValue(tcDump, new TypeReference<>() {});
+        }
+        catch (JsonProcessingException e)
+        {
+            return event.editReply("Error reading TC data: "+e.getMessage());
+        }
 
-        var peaks = peakRepository.findPeaksByDay(week, day);
-        String peakresponse = restService.postPeaks(week, day, peaks);
+        List<CraftPeaks> peaksByDay;
+        if(recDay > 0)
+            peaksByDay = peakRepository.findPeaksByDay(week, recDay-1);
+        else
+            peaksByDay = new ArrayList<>();
+        List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
+        List<CraftPeaks> lastYearsPeaks = null;
+        if(week>100)
+            lastYearsPeaks = peakRepository.findPeaksByDay(week-100, 3);
 
-        return event.editReply("Posted popularity and peaks: "+popresponse+", "+peakresponse);*/
-        return event.editReply("Peak DB doesn't exist");
+        boolean validTCPeaks = GetPeaksTask.validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDay.getObjects(), week, recDay, 1,50);
+
+        if(validTCPeaks)
+            validTCPeaks = GetPeaksTask.validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDay.getObjects(), week, recDay,51,62);
+        else
+        {
+            return event.editReply("Failed to validate peaks 1-50: "+ peaksByDay.stream().filter(peak -> peak.getPeakID().getItemID()>=1 && peak.getPeakID().getItemID()<=50).map(CraftPeaks::getPeak).collect(Collectors.joining(", ")));
+        }
+        if(validTCPeaks)
+            validTCPeaks = GetPeaksTask.validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDay.getObjects(), week, recDay,63,74);
+        else
+        {
+            return event.editReply("Failed to validate peaks 51-62: "+ peaksByDay.stream().filter(peak -> peak.getPeakID().getItemID()>=51 && peak.getPeakID().getItemID()<=62).map(CraftPeaks::getPeak).collect(Collectors.joining(", ")));
+        }
+        if(validTCPeaks)
+            validTCPeaks = GetPeaksTask.validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDay.getObjects(), week, recDay,75,86);
+        else
+        {
+            return event.editReply("Failed to validate peaks 63-74: "+ peaksByDay.stream().filter(peak -> peak.getPeakID().getItemID()>=63 && peak.getPeakID().getItemID()<=74).map(CraftPeaks::getPeak).collect(Collectors.joining(", ")));
+        }
+
+        if(!validTCPeaks)
+        {
+            return event.editReply("Failed to validate peaks 75-86: "+ peaksByDay.stream().filter(peak -> peak.getPeakID().getItemID()>=75 && peak.getPeakID().getItemID()<=86).map(CraftPeaks::getPeak).collect(Collectors.joining(", ")));
+        }
+
+        LOG.info("Valid TC dump! peaks: "+peaksByDay.stream().map(CraftPeaks::getPeak).collect(Collectors.joining(", ")));
+
+        LOG.info("Saving peaks to DB");
+        //Send to DB
+        if(recDay==0)
+        {
+            //write popularity data
+            Popularity pop = new Popularity();
+            pop.setWeek(week);
+            pop.setPopularity(tcDay.getPopularity());
+            pop.setNextPopularity(tcDay.getPredictedPopularity());
+            popularityRepository.save(pop);
+        }
+
+        for(var singlePeak : peaksByDay)
+        {
+            peakRepository.save(singlePeak);
+        }
+
+        return event.editReply("Peaks saved successfully. <3");
     }
 
 }
