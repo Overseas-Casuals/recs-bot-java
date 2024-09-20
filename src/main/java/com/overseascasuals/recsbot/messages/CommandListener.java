@@ -529,8 +529,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
             return event.editReply("It's Cycle 7 so this week is over.");
         }
-        else if(day >= 3)
-            return deferredAltsCommand(event);
 
         if(!solver.hasRunRecs)
         {
@@ -549,7 +547,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             return event.editReply(e.getMessage());
         }
 
-        var recs = solver.getRestOfWeekRecs(rank, items,false);
+        var recs = solver.getThisWeekResult(rank, items);
 
         String content = "";
         if(items.size()>0)

@@ -421,6 +421,9 @@ public class GetPeaksTask implements ScheduledTask
                     }
                 }
             }
+
+
+            //peakChannel.createMessage(OCUtils.generateThisWeekEmbed(week, solver.getThisWeekResult(10, null), 10)).block();
         }
     }
 
