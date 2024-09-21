@@ -420,7 +420,7 @@ public class Solver
                     addCraftedFromCycle(2, c3.getBestRec(), ftRank, false);
                     List<CycleSchedule> schedules = new ArrayList<>();
                     schedules.add(c3.getBestRec());
-                    RestOfWeekRec restOfWeek = getRestOfWeekRecs(ftRank, null,true);
+                    RestOfWeekRec restOfWeek = getRestOfWeekRecs(ftRank, null);
                     schedules.addAll(restOfWeek.getRecs());
                     fortuneTellerRecs = new RestOfWeekRec(schedules, -1, true);
 
@@ -1609,7 +1609,12 @@ public class Solver
         if(dayToSolve < 4)
         {
             LOG.info("Solving rest of week with prediction");
-            var alt = getRecForSingleDay(dayToSolve, rank, limitedItems, false).get(0);
+
+            var singleDay = getRecForSingleDay(dayToSolve, rank, limitedItems, false);
+            if(singleDay == null || singleDay.size() == 0)
+                return null;
+
+            var alt = singleDay.get(0);
 
             if(alt.isRestRecommended())
                 addCraftedFromCycle(dayToSolve, null, rank, false);
@@ -1618,7 +1623,7 @@ public class Solver
 
             List<CycleSchedule> schedules = new ArrayList<>();
             schedules.add(alt.getBestRec());
-            RestOfWeekRec restOfWeekRec = getRestOfWeekRecs(rank, limitedItems,true);
+            RestOfWeekRec restOfWeekRec = getRestOfWeekRecs(rank, limitedItems);
             schedules.addAll(restOfWeekRec.getRecs());
             toReturn = new RestOfWeekRec(schedules, restOfWeekRec.getWorstIndex()+1, restedAlready() || alt.isRestRecommended());
         }
@@ -1637,26 +1642,16 @@ public class Solver
             toReturn = new RestOfWeekRec(schedules, worstIndex, worstIndex < 0);
         }
 
-
         restOfWeek.put(cacheKey, toReturn);
 
         return toReturn;
 
     }
 
-    public RestOfWeekRec getRestOfWeekRecs(int rank, List<Item> limitedItems,  boolean bypassCache)
+    public RestOfWeekRec getRestOfWeekRecs(int rank, List<Item> limitedItems)
     {
         if(rank > maxIslandRank)
             rank = maxIslandRank;
-
-        String cacheKey = getKeyForAltRequest(day+2, rank, limitedItems);
-
-        if(!bypassCache && restOfWeek.containsKey(cacheKey))
-        {
-            LOG.info("Returning rest of week from cache");
-            return restOfWeek.get(cacheKey);
-        }
-
 
         Map<Item,Integer> reservedSet = new HashMap<>();
         if(limitedItems!=null && limitedItems.size()>0)
@@ -1695,8 +1690,6 @@ public class Solver
             LOG.info("rest of week ({}): {}", rank, list);
         }
         var rec = new RestOfWeekRec(restOfWeekRank, worstIndex, rested > 0 && rested <= day + 1);
-        if(!bypassCache)
-            restOfWeek.put(cacheKey, rec);
 
         return rec;
     }
@@ -1751,7 +1744,7 @@ public class Solver
                 var c2 = getBestSchedule(1, 0, null, rank);
                 addCraftedFromCycle(1, c2, rank, false);
 
-                var recs = getRestOfWeekRecs(rank, null, true);
+                var recs = getRestOfWeekRecs(rank, null);
                 List<CycleSchedule> schedules = recs.getRecs();
                 schedules.set(recs.getWorstIndex(), null);
                 schedules.add(0,c2);
