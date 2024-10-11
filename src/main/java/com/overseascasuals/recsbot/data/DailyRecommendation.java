@@ -64,6 +64,9 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
     public boolean isRestRecommended() {
         return restRecommended;
     }
+    public void setRestRecommended(boolean rest) {
+        restRecommended = rest;
+    }
 
 
     public CycleSchedule getBestRec() {

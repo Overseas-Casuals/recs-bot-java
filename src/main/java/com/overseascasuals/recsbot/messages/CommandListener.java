@@ -753,6 +753,11 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             {
                 recs.remove(0);
             }
+            if(recs.size()==1)
+            {
+                //Force rest if we're only predicting single days. Boo.
+                recs.get(0).setRestRecommended(solver.rested==recs.get(0).getDay());
+            }
 
             List<EmbedCreateSpec> embeds = new ArrayList<>();
             for(var rec : recs)
