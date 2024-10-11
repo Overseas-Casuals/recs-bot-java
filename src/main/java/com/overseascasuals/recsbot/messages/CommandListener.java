@@ -737,11 +737,11 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 content = "Not using "+ items.stream().map(Item::getDisplayName).collect(Collectors.joining(", "));
 
 
-            List<DailyRecommendation> recs = solver.getRecForSingleDay(day+1, rank, items, false);
+            List<DailyRecommendation> recs = solver.getRecForSingleDay(day+1, rank, items, false, false);
             if(recs == null || recs.size() == 0 || recs.stream().anyMatch(Objects::isNull))
             {
                 LOG.warn("Null/no recs in cache? Trying again");
-                recs = solver.getRecForSingleDay(day+1, rank, items, true);
+                recs = solver.getRecForSingleDay(day+1, rank, items, true, false);
             }
 
             if(recs == null || recs.size() == 0 || recs.stream().anyMatch(Objects::isNull))

@@ -694,6 +694,10 @@ public class Solver
 
     public List<DailyRecommendation> getRecForSingleDay(int dayToSolve, int rank, List<Item> limitedItems, boolean force)
     {
+        return getRecForSingleDay(dayToSolve, rank, limitedItems, force, true);
+    }
+    public List<DailyRecommendation> getRecForSingleDay(int dayToSolve, int rank, List<Item> limitedItems, boolean force, boolean checkRest)
+    {
         String cacheKey = getKeyForAltRequest(dayToSolve, rank, limitedItems);
         if(!force && cachedAltRecs.containsKey(cacheKey))
         {
@@ -730,7 +734,7 @@ public class Solver
             var bestSchedule = todayRecs.getBestRec();
             boolean shouldRest = false;
 
-            if(!restedAlready(dayToSolve - 1)) //If we haven't already rested, check to see if we should now
+            if(checkRest && !restedAlready(dayToSolve - 1)) //If we haven't already rested, check to see if we should now
             {
                 if(day < 2 && isWorseThanAllFollowing(bestSchedule, dayToSolve, false, rank, limitedUse))
                     shouldRest = true;
