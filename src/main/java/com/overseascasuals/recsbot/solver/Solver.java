@@ -1625,7 +1625,7 @@ public class Solver
             schedules.add(alt.getBestRec());
             RestOfWeekRec restOfWeekRec = getRestOfWeekRecs(rank, limitedItems);
             schedules.addAll(restOfWeekRec.getRecs());
-            toReturn = new RestOfWeekRec(schedules, restOfWeekRec.getWorstIndex()+1, restedAlready() || alt.isRestRecommended());
+            toReturn = new RestOfWeekRec(schedules, alt.isRestRecommended()? 0 : restOfWeekRec.getWorstIndex()+1, restedAlready());
         }
         else
         {
