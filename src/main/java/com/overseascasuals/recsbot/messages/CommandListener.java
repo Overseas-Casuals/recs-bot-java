@@ -6,6 +6,7 @@ import com.overseascasuals.recsbot.OCUtils;
 import com.overseascasuals.recsbot.data.DailyRecommendation;
 import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.data.ItemInfo;
+import com.overseascasuals.recsbot.data.RestOfWeekRec;
 import com.overseascasuals.recsbot.json.RestService;
 import com.overseascasuals.recsbot.json.TCDay;
 import com.overseascasuals.recsbot.mysql.CraftPeaks;
@@ -547,7 +548,17 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             return event.editReply(e.getMessage());
         }
 
-        var recs = solver.getThisWeekResult(rank, items);
+        RestOfWeekRec recs = null;
+
+        try
+        {
+            recs = solver.getThisWeekResult(rank, items);
+        }
+        catch(NullPointerException e)
+        {
+            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+            return event.editReply("Not enough crafts to work with. Try ?stockpile.");
+        }
 
         String content = "";
         if(items.size()>0 && items != Solver.rareMatItems)
@@ -744,13 +755,24 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             else if(items.size()>0)
                 content = "Not using any rare materials.";
 
+            List<DailyRecommendation> recs = null;
 
-            List<DailyRecommendation> recs = solver.getRecForSingleDay(day+1, rank, items, false, false);
-            if(recs == null || recs.size() == 0 || recs.stream().anyMatch(Objects::isNull))
+            try
             {
-                LOG.warn("Null/no recs in cache? Trying again");
-                recs = solver.getRecForSingleDay(day+1, rank, items, true, false);
+                recs = solver.getRecForSingleDay(day+1, rank, items, false, false);
+                if(recs == null || recs.size() == 0 || recs.stream().anyMatch(Objects::isNull))
+                {
+                    LOG.warn("Null/no recs in cache? Trying again");
+                    recs = solver.getRecForSingleDay(day+1, rank, items, true, false);
+                }
             }
+            catch(NullPointerException e)
+            {
+                LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
+                return event.editReply("Not enough crafts to work with. Try ?stockpile.");
+            }
+
+
 
             if(recs == null || recs.size() == 0 || recs.stream().anyMatch(Objects::isNull))
             {
