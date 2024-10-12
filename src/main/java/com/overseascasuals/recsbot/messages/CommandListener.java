@@ -550,8 +550,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         var recs = solver.getThisWeekResult(rank, items);
 
         String content = "";
-        if(items.size()>0)
+        if(items.size()>0 && items != Solver.rareMatItems)
             content = "Not using "+ items.stream().map(Item::getDisplayName).collect(Collectors.joining(", "));
+        else if(items.size()>0)
+            content = "Not using any rare materials.";
 
         if(recs == null || recs.getRecs() == null || recs.getRecs().size() == 0)
         {
@@ -644,7 +646,11 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
     }
 
     private List<Item> getItemsFromEvent(ChatInputInteractionEvent event) throws IllegalArgumentException
-    { return getItemsFromEvent(event, "nocraft");}
+    {
+        if(event.getOption("noRareMats").isPresent() && event.getOption("noRareMats").flatMap(ApplicationCommandInteractionOption::getValue).map(ApplicationCommandInteractionOptionValue::asBoolean).get())
+            return Solver.rareMatItems;
+        return getItemsFromEvent(event, "nocraft");
+    }
     private List<Item> getItemsFromEvent(ChatInputInteractionEvent event, String prefix) throws IllegalArgumentException
     {
         List<Item> items = new ArrayList<>();
@@ -733,8 +739,10 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
 
             String content = "";
-            if(items.size()>0)
+            if(items.size()>0 && items != Solver.rareMatItems)
                 content = "Not using "+ items.stream().map(Item::getDisplayName).collect(Collectors.joining(", "));
+            else if(items.size()>0)
+                content = "Not using any rare materials.";
 
 
             List<DailyRecommendation> recs = solver.getRecForSingleDay(day+1, rank, items, false, false);

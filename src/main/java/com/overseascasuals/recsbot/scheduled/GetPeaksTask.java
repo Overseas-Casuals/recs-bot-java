@@ -423,7 +423,13 @@ public class GetPeaksTask implements ScheduledTask
             }
 
 
-            //peakChannel.createMessage(OCUtils.generateThisWeekEmbed(week, solver.getThisWeekResult(10, null), 10)).block();
+            /*List<DailyRecommendation> recs = solver.getRecForSingleDay(recDay+1, 10, Solver.rareMatItems, false, true);
+            if(recs.size() == 3)
+                peakChannel.createMessage(OCUtils.getGeneralRecEmbed(week, recs.get(0), false), OCUtils.getGeneralRecEmbed(week, recs.get(1), false), OCUtils.getGeneralRecEmbed(week, recs.get(2), false)).block();
+            else
+                peakChannel.createMessage(OCUtils.getGeneralRecEmbed(week, recs.get(0), false)).block();
+
+            peakChannel.createMessage(OCUtils.generateThisWeekEmbed(week, solver.getThisWeekResult(10, Solver.rareMatItems), 10)).block();*/
         }
     }
 

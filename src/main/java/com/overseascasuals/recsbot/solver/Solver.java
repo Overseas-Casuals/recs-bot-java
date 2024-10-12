@@ -167,6 +167,8 @@ public class Solver
             new ItemInfo(BuffaloBeanSalad, Foodstuffs, CreatureCreations, 52, 4, 18, Map.of(BuffaloBeans, 2, Milk, 2)),
     };
 
+    public final static List<Item> rareMatItems = Arrays.stream(items).filter(i -> i.materialsRequired != null).map(i -> i.item).collect(Collectors.toList());
+
     public static int getNumItems(int week)
     {
         if(week < 20)
@@ -684,11 +686,13 @@ public class Solver
             rank = 1;
         if(rank > maxIslandRank)
             rank = maxIslandRank;
-        String key =  dayToSolve+"-"+rank;
-        if(items != null && items.size() > 0)
-        {
+        String key = dayToSolve+"-"+rank;
+
+        if(items == rareMatItems)
+            key+="-all";
+        else if(items != null && items.size() > 0)
             key+="-"+items.stream().map(Item::toString).collect(Collectors.joining("-"));
-        }
+
         return key;
     }
 

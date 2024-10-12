@@ -291,6 +291,14 @@ public class BotConfiguration implements CommandLineRunner
                         .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cotton Boll").value(6).build())
                         .addChoice(ApplicationCommandOptionChoiceData.builder().name("Tinsand").value(0).build())
                         .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("noRareMats")
+                        .description("Exclude all rare materials (leavings, crops, etc.)")
+                        .type(ApplicationCommandOption.Type.BOOLEAN.getValue())
+                        .required(false)
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Yes").value(true).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("No").value(false).build())
+                        .build())
                 .build();
         commands.add(thisWeekRequest);
 
@@ -374,6 +382,14 @@ public class BotConfiguration implements CommandLineRunner
                         .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sugarcane").value(5).build())
                         .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cotton Boll").value(6).build())
                         .addChoice(ApplicationCommandOptionChoiceData.builder().name("Tinsand").value(0).build())
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("noRareMats")
+                        .description("Exclude all rare materials (leavings, crops, etc.)")
+                        .type(ApplicationCommandOption.Type.BOOLEAN.getValue())
+                        .required(false)
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Yes").value(true).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("No").value(false).build())
                         .build())
                 .build();
         commands.add(altsRequest);
