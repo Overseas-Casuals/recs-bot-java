@@ -647,7 +647,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
     private List<Item> getItemsFromEvent(ChatInputInteractionEvent event) throws IllegalArgumentException
     {
-        if(event.getOption("noRareMats").isPresent() && event.getOption("noRareMats").flatMap(ApplicationCommandInteractionOption::getValue).map(ApplicationCommandInteractionOptionValue::asBoolean).get())
+        if(event.getOption("no_rare_mats").isPresent() && event.getOption("no_rare_mats").flatMap(ApplicationCommandInteractionOption::getValue).map(ApplicationCommandInteractionOptionValue::asBoolean).get())
             return Solver.rareMatItems;
         return getItemsFromEvent(event, "nocraft");
     }
