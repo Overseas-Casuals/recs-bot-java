@@ -2330,7 +2330,7 @@ public class Solver
         }
 
         BruteForceSchedules schedules = new BruteForceSchedules(sortedSchedules.stream().limit(numToReturn).collect(Collectors.toList()), day, groove);
-        schedules.setBestSubItems(safeSchedules, restedAlready(), reservedHelpers, islandRank);
+        schedules.setBestSubItems(sortedSchedules, restedAlready(), reservedHelpers, islandRank);
 
         LOG.info("Ran brute force schedules in "+(System.currentTimeMillis()-start)+"ms.");
         return schedules;

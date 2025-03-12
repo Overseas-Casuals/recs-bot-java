@@ -25,7 +25,7 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
         this.startingGroove = startingGroove;
     }
 
-    public void setBestSubItems(HashMap<WorkshopSchedule, WorkshopValue> safeSchedules, boolean rested, Map<Item, ReservedHelper> reservedHelpers, int rank)
+    public void setBestSubItems(List<Map.Entry<WorkshopSchedule, WorkshopValue>> safeSchedules, boolean rested, Map<Item, ReservedHelper> reservedHelpers, int rank)
     {
         bestRec = new CycleSchedule(day, startingGroove, rank);
         if(size() == 0)
@@ -41,15 +41,30 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
 
         int bestValue = 0;
 
-        for(var schedule : safeSchedules.keySet())
+        int numChecked = 0;
+        int bestIndex = 0;
+        for(var schedule : safeSchedules)
         {
-            bestRec.setFourthWorkshop(schedule.getItems());
+            numChecked++;
+
+            bestRec.setFourthWorkshop(schedule.getKey().getItems());
             bestRec.setGrooveBonus(rested, reservedHelpers);
             int currentValue = bestRec.getWeightedValue();
+            if(numChecked > 15 && day == 1)
+            {
+                //LOG.info("Checking schedule "+schedule.getKey().getItems()+". Total day value: "+currentValue+". Best value: "+bestValue);
+            }
             if(currentValue > bestValue)
             {
+                //LOG.info("New best is the #"+numChecked+" schedule checked");
                 bestValue = currentValue;
-                bestSubItems = schedule.getItems();
+                bestSubItems = schedule.getKey().getItems();
+                bestIndex = numChecked;
+            }
+            if(numChecked - bestIndex > 500) //If we've checked this many past the last time we had a good schedule, it's safe to quit
+            {
+                //LOG.info("Checked the best "+numChecked+" out of "+safeSchedules.size()+". Quitting");
+                break;
             }
         }
 
@@ -59,34 +74,6 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
         if(verboseLogging)
             LOG.info("Best schedule for C{}: {} {} ({})", day+1, bestValue, bestRec.getItems(), bestRec.getSubItems());
 
-
-        //try second best
-        List<Item> secondBestSubItems = null;
-        var secondBest = new CycleSchedule(day, startingGroove, rank);
-        secondBest.setForFirstThreeWorkshops(get(1).getKey().getItems());
-        int secondBestValue = 0;
-        for(var schedule : safeSchedules.keySet())
-        {
-            secondBest.setFourthWorkshop(schedule.getItems());
-            secondBest.setGrooveBonus(rested, reservedHelpers);
-            int currentValue = secondBest.getWeightedValue();
-            if(currentValue > secondBestValue)
-            {
-                secondBestValue = currentValue;
-                secondBestSubItems = schedule.getItems();
-            }
-        }
-        secondBest.setFourthWorkshop(secondBestSubItems);
-        secondBest.setGrooveBonus(rested, reservedHelpers);
-
-       if(secondBestValue > bestValue)
-        {
-            if(verboseLogging)
-                LOG.info("Second best schedule with sub is worth more than best with sub");
-            this.bestSubItems = secondBestSubItems;
-            bestRec = secondBest;
-            bestValue = secondBestValue;
-        }
     }
 
     public List<Item> getBestSubItems()
