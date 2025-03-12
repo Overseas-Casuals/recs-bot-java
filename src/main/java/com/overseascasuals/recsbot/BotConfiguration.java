@@ -1,5 +1,6 @@
 package com.overseascasuals.recsbot;
 
+import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.messages.EventListener;
 import com.overseascasuals.recsbot.mysql.*;
 import com.overseascasuals.recsbot.scheduled.ScheduledTask;
@@ -466,7 +467,7 @@ public class BotConfiguration implements CommandLineRunner
 
 
 
-        //solver.getRestOfDayRecs(3, 20, 11, Item.GrowthFormula);
+        //solver.getRestOfDayRecs(0, 20, 19, null);
         //solver.getRestOfDayRecs(3, 22, 11, null);=
 
 
