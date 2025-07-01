@@ -1455,12 +1455,13 @@ public class Solver
         for (int d = day + 1; d < 7; d++)
         {
             CycleSchedule solution = getBestSchedule(d, groove, reservedSet, rank);
-            int solutionValue = solution.getWeightedValue();
             if(solution == null)
             {
                 LOG.error("Failed to get rest comparison for day {}. Abandoning rest checks.", d+1);
                 return false;
             }
+
+            int solutionValue = solution.getWeightedValue();
             if (day == 3 && d == 4) // We have a lot of info about this specific pair so
                                     // we might as well use it
             {
@@ -1679,7 +1680,7 @@ public class Solver
             if(solution==null)
             {
                 LOG.error("Failed to generate rest of week recs for day {}", d+1);
-                break;
+                return null;
             }
 
             int value = solution.getWeightedValue();
@@ -1752,6 +1753,9 @@ public class Solver
                 addCraftedFromCycle(1, c2, rank, false);
 
                 var recs = getRestOfWeekRecs(rank, null);
+                if(recs == null)
+                    continue;
+
                 List<CycleSchedule> schedules = recs.getRecs();
                 schedules.set(recs.getWorstIndex(), null);
                 schedules.add(0,c2);
