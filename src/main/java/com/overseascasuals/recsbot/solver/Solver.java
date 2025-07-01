@@ -892,6 +892,11 @@ public class Solver
 
     private void addCraftedFromCycle(int day, CycleSchedule schedule, int rank, boolean real)
     {
+        if(!isRunningRecs)
+        {
+            LOG.error("Trying to add crafted when not running real recs. Get outta here.");
+            return;
+        }
         LOG.info("Setting info for cycle schedule {} rank {} (real? {})", schedule, rank, real);
         if(schedule!=null)
         {
@@ -1450,12 +1455,13 @@ public class Solver
         for (int d = day + 1; d < 7; d++)
         {
             CycleSchedule solution = getBestSchedule(d, groove, reservedSet, rank);
-            int solutionValue = solution.getWeightedValue();
             if(solution == null)
             {
                 LOG.error("Failed to get rest comparison for day {}. Abandoning rest checks.", d+1);
                 return false;
             }
+
+            int solutionValue = solution.getWeightedValue();
             if (day == 3 && d == 4) // We have a lot of info about this specific pair so
                                     // we might as well use it
             {
@@ -1624,11 +1630,6 @@ public class Solver
 
             var alt = singleDay.get(0);
 
-            if(alt.isRestRecommended())
-                addCraftedFromCycle(dayToSolve, null, rank, false);
-            else
-                addCraftedFromCycle(dayToSolve, alt.getBestRec(), rank, false);
-
             List<CycleSchedule> schedules = new ArrayList<>();
             schedules.add(alt.getBestRec());
             RestOfWeekRec restOfWeekRec = getRestOfWeekRecs(rank, limitedItems);
@@ -1679,7 +1680,7 @@ public class Solver
             if(solution==null)
             {
                 LOG.error("Failed to generate rest of week recs for day {}", d+1);
-                break;
+                return null;
             }
 
             int value = solution.getWeightedValue();
@@ -1704,13 +1705,12 @@ public class Solver
 
     private int generateVacationRecs(int currentWeek)
     {
-        LOG.info("Generating vacation recs");
-
         //generate vacation recs
         var popData = popularityRepository.findByWeek(currentWeek);
         if(!"live".equals(activeProfile))
             return popData.getPopularity();
 
+        LOG.info("Generating vacation recs");
         LOG.info("Getting popularity data for next week: {}", popData.getNextPopularity());
         int nextPop = popData.getNextPopularity();
 
@@ -1753,6 +1753,9 @@ public class Solver
                 addCraftedFromCycle(1, c2, rank, false);
 
                 var recs = getRestOfWeekRecs(rank, null);
+                if(recs == null)
+                    continue;
+
                 List<CycleSchedule> schedules = recs.getRecs();
                 schedules.set(recs.getWorstIndex(), null);
                 schedules.add(0,c2);
