@@ -100,4 +100,17 @@ public enum Item
     public String getDisplayNameWithEmoji() { return emoji + " " + displayName; }
     public String getDisplayWithEmojiAndTime() { return emoji + " " + displayName + " ("+Solver.getHoursForItem(this)+"h)"; }
     public String getEmoji() { return emoji; }
+
+    public static Item getEnum(String name)
+    {
+        Item item;
+        if(name.equals("Jam"))
+            item = Item.IsleberryJam;
+        else if(name.equals("Pie"))
+            item = Item.IslefishPie;
+        else
+            item = Item.valueOf(name);
+
+        return item;
+    }
 }

@@ -36,7 +36,7 @@ public class CSVImporter
                     itemStr = itemStr.replace("'", "");
                     
                     if(!itemStr.isBlank())
-                        items.add(Item.valueOf(itemStr));
+                        items.add(Item.getEnum(itemStr));
                     
                 }
                 allEfficientChains.add(items);

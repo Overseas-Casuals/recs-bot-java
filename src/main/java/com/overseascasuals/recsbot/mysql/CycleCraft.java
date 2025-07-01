@@ -142,7 +142,9 @@ public class CycleCraft
             String name = array[c];
             if (name.isEmpty())
                 break;
-            Item item = Item.valueOf(name);
+
+            Item item = Item.getEnum(name);
+
             items.add(item);
         }
         return items;
@@ -156,7 +158,7 @@ public class CycleCraft
             String name = array[c];
             if (name.isEmpty())
                 break;
-            Item item = Item.valueOf(name);
+            Item item = Item.getEnum(name);
             items.add(item);
         }
         return items;

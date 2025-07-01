@@ -674,7 +674,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                         .get().replace(" ","");
                 try
                 {
-                    items.add(Item.valueOf(itemName));
+                    items.add(Item.getEnum(itemName));
                 }
                 catch(IllegalArgumentException e)
                 {
