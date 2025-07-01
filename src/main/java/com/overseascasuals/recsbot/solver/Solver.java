@@ -892,6 +892,11 @@ public class Solver
 
     private void addCraftedFromCycle(int day, CycleSchedule schedule, int rank, boolean real)
     {
+        if(!isRunningRecs)
+        {
+            LOG.error("Trying to add crafted when not running real recs. Get outta here.");
+            return;
+        }
         LOG.info("Setting info for cycle schedule {} rank {} (real? {})", schedule, rank, real);
         if(schedule!=null)
         {
@@ -1624,11 +1629,6 @@ public class Solver
 
             var alt = singleDay.get(0);
 
-            if(alt.isRestRecommended())
-                addCraftedFromCycle(dayToSolve, null, rank, false);
-            else
-                addCraftedFromCycle(dayToSolve, alt.getBestRec(), rank, false);
-
             List<CycleSchedule> schedules = new ArrayList<>();
             schedules.add(alt.getBestRec());
             RestOfWeekRec restOfWeekRec = getRestOfWeekRecs(rank, limitedItems);
@@ -1704,13 +1704,12 @@ public class Solver
 
     private int generateVacationRecs(int currentWeek)
     {
-        LOG.info("Generating vacation recs");
-
         //generate vacation recs
         var popData = popularityRepository.findByWeek(currentWeek);
         if(!"live".equals(activeProfile))
             return popData.getPopularity();
 
+        LOG.info("Generating vacation recs");
         LOG.info("Getting popularity data for next week: {}", popData.getNextPopularity());
         int nextPop = popData.getNextPopularity();
 
