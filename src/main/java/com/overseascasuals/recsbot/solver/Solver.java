@@ -283,7 +283,7 @@ public class Solver
             {
                 items[i].setInitialData(popularities[i], peaks.get(i).getPeakEnum());
 
-                LOG.info("Setting item {} to ratio {} and peak {}", items[i].item, items[i].popularityRatio, items[i].peak);
+                //LOG.info("Setting item {} to ratio {} and peak {}", items[i].item, items[i].popularityRatio, items[i].peak);
             }
 
             //Load previous crafts from db
@@ -847,7 +847,7 @@ public class Solver
         }
         LOG.info("Season total: {}", total);
 
-        fortuneValue = 0;
+        /*fortuneValue = 0;
         try
         {
             CycleSchedule crime2 = new CycleSchedule(1, 0, maxIslandRank);
@@ -885,7 +885,7 @@ public class Solver
             LOG.error("Exception determining value of FT recs for week: ",e);
         }
         LOG.info("FT total: {}", fortuneValue);
-        setCraftedFromHistory();
+        setCraftedFromHistory();*/
 
         return total;
     }
@@ -956,7 +956,7 @@ public class Solver
         int resSingle=4;
 
         reservedItems.clear();
-        Map<ItemInfo, Integer> itemValues = new HashMap<>();
+        /*Map<ItemInfo, Integer> itemValues = new HashMap<>();
         for (ItemInfo item : items)
         {
             if (item.peaksOnOrBeforeDay(day, null))
@@ -1047,10 +1047,10 @@ public class Solver
             }
             if (current <= cap/2)
                 itemsThatGetReservations.add(next.getKey().item);
-        }
+        }*/
 
         reservedHelpers.clear();
-        for (int i = 0; i < itemsThatGetReservations.size(); i++)
+        /*for (int i = 0; i < itemsThatGetReservations.size(); i++)
         {
             Item itemEnum = itemsThatGetReservations.get(i);
             ItemInfo mainItem = items[itemEnum.ordinal()];
@@ -1090,7 +1090,7 @@ public class Solver
 
                 reservedHelpers.put(itemEnum, new ReservedHelper(bestHelper, finalPenalty));
             }
-        }
+        }*/
     }
 
     private int getGrooveMadeWithSchedule(ScheduleSet previous)
@@ -1770,7 +1770,7 @@ public class Solver
     {
         Map<Item,Integer> reservedSet = null;
         var vacationRecs = new ArrayList<CycleSchedule>();
-        for (int d = 0; d < 5; d++)
+        /*for (int d = 0; d < 5; d++)
         {
             var schedule = getBestSchedule(3, getMaxGroove(rank)/2, reservedSet, rank);
             if(schedule == null)
@@ -1780,7 +1780,7 @@ public class Solver
             }
             vacationRecs.add(schedule);
             reservedSet = schedule.getLimitedUses(reservedSet);
-        }
+        }*/
         //set sub schedules too
         return vacationRecs;
     }

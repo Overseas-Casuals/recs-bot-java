@@ -3,6 +3,7 @@ package com.overseascasuals.recsbot.scheduled;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.overseascasuals.recsbot.OCUtils;
+import com.overseascasuals.recsbot.data.ArchiveSchedule;
 import com.overseascasuals.recsbot.data.DailyRecommendation;
 import com.overseascasuals.recsbot.data.PeakCycle;
 import com.overseascasuals.recsbot.json.ItemSupply;
@@ -42,7 +43,7 @@ public class GetPeaksTask implements ScheduledTask
     @Value("${discord.peaksChannel}")
     private String peaksChannel;
 
-    @Value("${discord.archiveChannel}")
+    @Value("${discord.realArchive}")
     private String archiveChannelID;
 
     @Value("${discord.fortunetellerChannelID}")
@@ -138,9 +139,47 @@ public class GetPeaksTask implements ScheduledTask
                 week = weekOverride;
         }
 
-        LOG.info("Getting info on day {} with start day {}, end day {}, and week {}\nOverrides: start {} end {} week {}", actualDay, startDay, endDay, week, startDayOverride, endDayOverride, weekOverride);
-        for(int recDay = startDay; recDay<= endDay; recDay++)
+        var firstPinned = archiveChannel.getRestChannel().getPinnedMessages().blockFirst();
+        Map<Integer, Integer> seasonToTotal = new HashMap<>();
+        if(firstPinned!=null)
         {
+            var firstPinnedID = Snowflake.of(firstPinned.id());
+            var allArchives = archiveChannel.getRestChannel().getMessagesAfter(firstPinnedID).collectList().block();
+            for(var archive : allArchives)
+            {
+                if(archive.content().indexOf('\n') !=-1 && archive.content().startsWith("**__Season "))
+                {
+                    String seasonStr = archive.content().substring(10, archive.content().indexOf('(')).trim();
+                    try{
+                        int season = Integer.parseInt(seasonStr);
+                        if(season >= 59)
+                        {
+                            String totalStr = archive.content().substring(archive.content().lastIndexOf("Total:**")+8, archive.content().lastIndexOf("<")).trim().replace(",","");
+                            try{
+                                int total = Integer.parseInt(totalStr);
+                                seasonToTotal.put(season, total);
+                                LOG.info("Season {} has a total of {} cowries", season, total);
+                            }
+                            catch (Exception e)
+                            {
+                                LOG.info("Failed to parse total {} as int", totalStr, e);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        LOG.error("Failed to parse season {} as int", seasonStr, e);
+                    }
+                }
+            }
+        }
+
+        List<String> brokenSeasons = new ArrayList<>();
+        LOG.info("Getting info on day {} with start day {}, end day {}, and week {}\nOverrides: start {} end {} week {}", actualDay, startDay, endDay, week, startDayOverride, endDayOverride, weekOverride);
+        for(var season : seasonToTotal.keySet())
+        {
+            week = season;
+            int recDay = 4;
             boolean validTCPeaks = false;
             List<TCDay> tcDays = null;
             boolean alreadyHavePeaks = false;
@@ -308,7 +347,14 @@ public class GetPeaksTask implements ScheduledTask
 
             try
             {
-                list = solver.getDailyRecommendations(week, recDay, false, peaksByDay);
+                list = solver.getDailyRecommendations(week, recDay, true, peaksByDay);
+
+                int total = solver.archiveRecs.stream().collect(Collectors.summingInt(ArchiveSchedule::getValue));
+                if(total != seasonToTotal.get(week))
+                {
+                    brokenSeasons.add(String.valueOf(week));
+                    LOG.error("Error: Week {} archive total of {} does not match calculated total of {}", week, seasonToTotal.get(week), total);
+                }
             }
             catch(Exception e)
             {
@@ -323,7 +369,9 @@ public class GetPeaksTask implements ScheduledTask
                 return;
             }
 
-            var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).limit(Solver.getNumItems(week)).toArray();
+            LOG.error("Total list of seasons with incorrect archives: "+brokenSeasons.stream().collect(Collectors.joining(", ")));
+
+            /*var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).limit(Solver.getNumItems(week)).toArray();
             peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
             if(list == null || list.size() == 0)
@@ -420,7 +468,7 @@ public class GetPeaksTask implements ScheduledTask
                         trySendTweet(week, recs);
                     }
                 }
-            }
+            }*/
 
 
             /*List<DailyRecommendation> recs = solver.getRecForSingleDay(recDay+1, 10, Solver.rareMatItems, false, true);
