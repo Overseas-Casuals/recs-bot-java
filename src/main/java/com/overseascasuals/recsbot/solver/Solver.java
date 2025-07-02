@@ -2277,7 +2277,7 @@ public class Solver
         //LOG.info("Evaluating {} schedules for day {}", filteredItemLists.size(), day+1);
         for (List<Item> list : filteredItemLists)
         {
-            addToScheduleMap(list, day, groove, islandRank, limitedUse, safeSchedules, false);
+            addToScheduleMap(list, day, groove, islandRank, limitedUse, safeSchedules, semiSafeSchedules, false);
         }
 
         if(safeSchedules.size() == 0)
@@ -2286,7 +2286,7 @@ public class Solver
 
             for (List<Item> list : filteredItemLists)
             {
-                addToScheduleMap(list, day, groove, islandRank, limitedUse, safeSchedules, true);
+                addToScheduleMap(list, day, groove, islandRank, limitedUse, safeSchedules, semiSafeSchedules, true);
             }
 
             if(safeSchedules.size() == 0)
@@ -2294,6 +2294,11 @@ public class Solver
         }
 
         var sortedSchedules = safeSchedules
+                .entrySet().stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .collect(Collectors.toList());
+
+        var sortedSemiSafe = semiSafeSchedules
                 .entrySet().stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .collect(Collectors.toList());
@@ -2333,7 +2338,7 @@ public class Solver
         }
 
         BruteForceSchedules schedules = new BruteForceSchedules(sortedSchedules.stream().limit(numToReturn).collect(Collectors.toList()), day, groove);
-        schedules.setBestSubItems(sortedSchedules, restedAlready(), reservedHelpers, islandRank);
+        schedules.setBestSubItems(sortedSemiSafe, restedAlready(), reservedHelpers, islandRank);
 
         LOG.info("Ran brute force schedules in "+(System.currentTimeMillis()-start)+"ms.");
         return schedules;
@@ -2379,7 +2384,7 @@ public class Solver
         return schedule.stream().mapToInt(item -> items[item.ordinal()].time).sum();
     }
     private void addToScheduleMap(List<Item> list, int day, int groove, int rank, Map<Item,Integer> limitedUse,
-            HashMap<WorkshopSchedule, WorkshopValue> safeSchedules, boolean verboseSolverLogging)
+            HashMap<WorkshopSchedule, WorkshopValue> safeSchedules, Map<WorkshopSchedule, WorkshopValue> semiSafeSchedules, boolean verboseSolverLogging)
     {
         if(verboseSolverLogging)
             LOG.info("Checking schedule {} against {} safe schedules", list, safeSchedules.size());
@@ -2417,5 +2422,17 @@ public class Solver
                 LOG.info("Not replacing because old value {} is higher than {}", oldValue, mainValue.getWeighted());
             }
         }
+        WorkshopValue subValue = workshop.getValueWithGrooveEstimate(day, groove, restedAlready(), reservedHelpers, true);
+        int oldSubValue = -99999;
+        if(semiSafeSchedules.containsKey(workshop))
+            oldSubValue = semiSafeSchedules.get(workshop).getWeighted();
+
+        if (oldSubValue < subValue.getWeighted())
+        {
+            semiSafeSchedules.remove(workshop); // It doesn't seem to update the key when updating the value, so we delete the key first
+            semiSafeSchedules.put(workshop, subValue);
+        }
+
+
     }
 }

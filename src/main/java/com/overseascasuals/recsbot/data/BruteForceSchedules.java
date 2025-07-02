@@ -50,20 +50,22 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
             bestRec.setFourthWorkshop(schedule.getKey().getItems());
             bestRec.setGrooveBonus(rested, reservedHelpers);
             int currentValue = bestRec.getWeightedValue();
-            if(numChecked > 15 && day == 1)
-            {
-                //LOG.info("Checking schedule "+schedule.getKey().getItems()+". Total day value: "+currentValue+". Best value: "+bestValue);
-            }
             if(currentValue > bestValue)
             {
-                //LOG.info("New best is the #"+numChecked+" schedule checked");
+                if(verboseLogging)
+                    LOG.info("New best is the #"+numChecked+" schedule checked ({}): {}", currentValue, schedule.getKey().getItems());
                 bestValue = currentValue;
                 bestSubItems = schedule.getKey().getItems();
                 bestIndex = numChecked;
             }
+            else if(verboseLogging)
+            {
+                //LOG.info("#{} is worse ({}): {}", numChecked, currentValue, schedule.getKey().getItems());
+            }
             if(numChecked - bestIndex > 500) //If we've checked this many past the last time we had a good schedule, it's safe to quit
             {
-                //LOG.info("Checked the best "+numChecked+" out of "+safeSchedules.size()+". Quitting");
+                if(verboseLogging)
+                    LOG.info("Checked the best "+numChecked+" out of "+safeSchedules.size()+". Quitting");
                 break;
             }
         }
