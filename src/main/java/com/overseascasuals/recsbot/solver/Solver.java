@@ -2211,7 +2211,7 @@ public class Solver
     private BruteForceSchedules getBestBruteForceSchedules(int day, int groove,
                                                            Map<Item,Integer> limitedUse, int allowUpToDay, int numToReturn, Item startingItem, int hoursLeft, int islandRank)
     {
-        long start = System.currentTimeMillis();
+        //long start = System.currentTimeMillis();
         if(numToReturn<2)
             numToReturn = 2; //We need at least 2 to do the 4th schedule thing
 
@@ -2340,7 +2340,7 @@ public class Solver
         BruteForceSchedules schedules = new BruteForceSchedules(sortedSchedules.stream().limit(numToReturn).collect(Collectors.toList()), day, groove);
         schedules.setBestSubItems(sortedSemiSafe, restedAlready(), reservedHelpers, islandRank);
 
-        LOG.info("Ran brute force schedules in "+(System.currentTimeMillis()-start)+"ms.");
+        //LOG.info("Ran brute force schedules in "+(System.currentTimeMillis()-start)+"ms.");
         return schedules;
     }
 
