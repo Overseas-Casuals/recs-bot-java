@@ -107,10 +107,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 }
                 case "alts" -> {
                     LOG.info("Alts");
-                    return event.deferReply().then(Mono.defer(() -> deferredAltsCommand(event)));
-                }
-                case "push_peaks" -> {
-                    return event.deferReply().then(Mono.defer(() -> deferredPushPeaks(event)));
+                    return event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event)));
                 }
                 case "clear_cache" -> {
                     return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredClearCache(event)));
@@ -572,7 +569,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             return event.editReply("No rest of week recs returned. <@"+miennaID+">");
         }
 
-        var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs, rank);
+        var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs, rank, -1);
         LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
 
         return event.editReply(content).withEmbeds(embed);
@@ -806,86 +803,4 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         }
 
     }
-
-    public InteractionReplyEditMono deferredPushPeaks(ChatInputInteractionEvent event)
-    {
-        if(event.getOption("data").isEmpty())
-            return event.editReply("No TC data present??");
-        String tcDump = event.getOption("data").flatMap(ApplicationCommandInteractionOption::getValue)
-                .map(ApplicationCommandInteractionOptionValue::asString)
-                .get();
-        var d1 = new Date(1661241600000L);
-        var d2 = new Date();
-
-        int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
-        int recDay = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
-
-        TCDay tcDay;
-        try
-        {
-            tcDay = GetPeaksTask.objectMapper.readValue(tcDump, new TypeReference<>() {});
-        }
-        catch (JsonProcessingException e)
-        {
-            return event.editReply("Error reading TC data: "+e.getMessage());
-        }
-
-        List<CraftPeaks> peaksByDay;
-        if(recDay > 0)
-            peaksByDay = peakRepository.findPeaksByDay(week, recDay-1);
-        else
-            peaksByDay = new ArrayList<>();
-        List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
-        List<CraftPeaks> lastYearsPeaks = null;
-        if(week>100)
-            lastYearsPeaks = peakRepository.findPeaksByDay(week-100, 3);
-
-        boolean validTCPeaks = GetPeaksTask.validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDay.getObjects(), week, recDay, 1,50);
-
-        if(validTCPeaks)
-            validTCPeaks = GetPeaksTask.validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDay.getObjects(), week, recDay,51,62);
-        else
-        {
-            return event.editReply("Failed to validate peaks 1-50: "+ peaksByDay.stream().filter(peak -> peak.getPeakID().getItemID()>=1 && peak.getPeakID().getItemID()<=50).map(CraftPeaks::getPeak).collect(Collectors.joining(", ")));
-        }
-        if(validTCPeaks)
-            validTCPeaks = GetPeaksTask.validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDay.getObjects(), week, recDay,63,74);
-        else
-        {
-            return event.editReply("Failed to validate peaks 51-62: "+ peaksByDay.stream().filter(peak -> peak.getPeakID().getItemID()>=51 && peak.getPeakID().getItemID()<=62).map(CraftPeaks::getPeak).collect(Collectors.joining(", ")));
-        }
-        if(validTCPeaks)
-            validTCPeaks = GetPeaksTask.validatePeaks(peaksByDay, lastWeeksPeaks, lastYearsPeaks, tcDay.getObjects(), week, recDay,75,86);
-        else
-        {
-            return event.editReply("Failed to validate peaks 63-74: "+ peaksByDay.stream().filter(peak -> peak.getPeakID().getItemID()>=63 && peak.getPeakID().getItemID()<=74).map(CraftPeaks::getPeak).collect(Collectors.joining(", ")));
-        }
-
-        if(!validTCPeaks)
-        {
-            return event.editReply("Failed to validate peaks 75-86: "+ peaksByDay.stream().filter(peak -> peak.getPeakID().getItemID()>=75 && peak.getPeakID().getItemID()<=86).map(CraftPeaks::getPeak).collect(Collectors.joining(", ")));
-        }
-
-        LOG.info("Valid TC dump! peaks: "+peaksByDay.stream().map(CraftPeaks::getPeak).collect(Collectors.joining(", ")));
-
-        LOG.info("Saving peaks to DB");
-        //Send to DB
-        if(recDay==0)
-        {
-            //write popularity data
-            Popularity pop = new Popularity();
-            pop.setWeek(week);
-            pop.setPopularity(tcDay.getPopularity());
-            pop.setNextPopularity(tcDay.getPredictedPopularity());
-            popularityRepository.save(pop);
-        }
-
-        for(var singlePeak : peaksByDay)
-        {
-            peakRepository.save(singlePeak);
-        }
-
-        return event.editReply("Peaks saved successfully. <3");
-    }
-
 }

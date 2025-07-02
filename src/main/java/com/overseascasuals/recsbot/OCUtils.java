@@ -3,7 +3,6 @@ package com.overseascasuals.recsbot;
 import com.overseascasuals.recsbot.data.*;
 import com.overseascasuals.recsbot.solver.CycleSchedule;
 import com.overseascasuals.recsbot.solver.Solver;
-import com.overseascasuals.recsbot.solver.WorkshopSchedule;
 import discord4j.core.object.entity.Message;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.MessageCreateSpec;
@@ -349,14 +348,14 @@ public class OCUtils
         return breaks;
     }
 
-    public static EmbedCreateSpec createCombinedC4Post(int season, List<DailyRecommendation> recs, int total)
+    public static EmbedCreateSpec createCombinedRecPost(int season, List<DailyRecommendation> recs, int total)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Cycle 5-7 Recommendations"/*+" for Rank "+recs.get(0).getMaxRank()*/);
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Recommendations"/*+" for Rank "+recs.get(0).getMaxRank()*/);
         builder.timestamp(Instant.now());
 
         builder.color(Color.SEA_GREEN);
 
-        for(int i=0; i<3; i++)
+        for(int i=0; i<recs.size(); i++)
         {
             if(i>0)
                 builder.addField("","",false);
@@ -365,28 +364,18 @@ public class OCUtils
             boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems())&& rec.getBestRec().getSubItems().size()>0;
             if(rec.isRestRecommended())
             {
-                builder.addField("Cycle "+(i+5),getRestText(), false);
-                String title = ws4Diff?"First 3 Workshops":"All Workshops";
-                //Show one alt
-                builder.addField("If You Can't Rest...", "||**"+title+":**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
-                if(ws4Diff && rec.getBestRec().getSubItems().size()>0)
-                    builder.addField(".", "||**4th Workshop**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
-                builder.addField("Grooveless Value","||"+rec.getGroovelessValue()+"||", true);
+                builder.addField("Cycle "+(i+2),getRestText(), false);
             }
             else
             {
                 String title = ws4Diff?"First 3 Workshops":"All Workshops";
-                builder.addField("Cycle "+(i+5), "**"+title+"**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+                builder.addField("Cycle "+(i+2), "**"+title+"**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
                 if(ws4Diff && rec.getBestRec().getSubItems().size()>0)
                     builder.addField(".", "**4th Workshop**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
 
-                builder.addField("","",false)
+               /* builder.addField("","",false)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
-                        .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue()+ cowriesEmoji, true);
-                /*if(rec.getBestRec().getGrooveBonus() > 0)
-                {
-                    builder.addField("Estimated Bonus", String.valueOf(rec.getBestRec().getGrooveBonus()), true);
-                }*/
+                        .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue()+ cowriesEmoji, true);*/
             }
         }
 
@@ -444,7 +433,6 @@ public class OCUtils
             }
         }
 
-
         //messageSpec.addEmbed(builder.build());
         return builder.build();
     }
@@ -478,7 +466,7 @@ public class OCUtils
         return "<:zzz:1068453995816964176> Rest <:zzz:1068453995816964176>";
     }
 
-    public static EmbedCreateSpec generateThisWeekEmbed(int season, RestOfWeekRec recs, int rank)
+    public static EmbedCreateSpec generateThisWeekEmbed(int season, RestOfWeekRec recs, int rank, int total)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations for Rank "+rank);
         if(rank<0)
@@ -494,8 +482,11 @@ public class OCUtils
             addPredictiveRec(builder, rec, startDay+i, !recs.isRested() && i==recs.getWorstIndex());
         }
 
-        if(rank<0)
-            builder.addField("Info", "This is a _predictive_ schedule. It's an educated guess, but still a guess at the rest of the season. If you want optimal recommendations, check daily in <#1034941158993952809>.", false);
+        if(total > 0)
+        {
+            builder.addField("","",false);
+            builder.addField("Total Weekly Value", String.format("%,d", total)+cowriesEmoji, false);
+        }
 
         return builder.build();
     }
