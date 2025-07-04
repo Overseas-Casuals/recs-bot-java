@@ -39,10 +39,11 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
         if(rank < 15)
         {
             bestRec.setGrooveBonus(rested, reservedHelpers);
+            bestSubItems = new ArrayList<>();
             return;
         }
 
-        int bestValue = 0;
+        int bestValue = -9999;
 
         int numChecked = 0;
         int bestIndex = 0;

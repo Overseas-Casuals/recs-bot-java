@@ -743,11 +743,6 @@ public class Solver
 
     private void addCraftedFromCycle(int day, CycleSchedule schedule, int rank, boolean real)
     {
-        if(!isRunningRecs)
-        {
-            LOG.error("Trying to add crafted when not running real recs. Get outta here.");
-            return;
-        }
         LOG.info("Setting info for cycle schedule {} rank {} (real? {})", schedule, rank, real);
         if(schedule!=null)
         {
