@@ -269,20 +269,28 @@ public class OCUtils
     {
         return _getFlavorText(rec.getRecs());
     }
+
+    public static String getFlavorText(List<ScheduleSet> schedules)
+    {
+        List<CycleSchedule> cycles = new ArrayList<>();
+        for(int i=0; i<schedules.size(); i++)
+        {
+            CycleSchedule sched = new CycleSchedule(i+1, 0, Solver.maxIslandRank);
+            if(schedules.get(i).getItems().size() > 0)
+            {
+                sched.setForFirstThreeWorkshops(schedules.get(i).getItems());
+                sched.setFourthWorkshop(schedules.get(i).getSubItems());
+                cycles.add(sched);
+            }
+        }
+        return _getFlavorText(cycles);
+    }
     public static String getFlavorText(DailyRecommendation rec)
     {
         List<CycleSchedule> recs = new ArrayList<>();
         if(!rec.isRestRecommended())
             recs.add(rec.getBestRec());
         return _getFlavorText(recs);
-    }
-    public static String getFlavorText(List<DailyRecommendation> recs)
-    {
-        List<CycleSchedule> cycles = new ArrayList<>();
-        for(var rec : recs)
-            if(!rec.isRestRecommended())
-                cycles.add(rec.getBestRec());
-        return _getFlavorText(cycles);
     }
     private static String _getFlavorText(List<CycleSchedule> list)
     {
@@ -348,7 +356,7 @@ public class OCUtils
         return breaks;
     }
 
-    public static EmbedCreateSpec createCombinedRecPost(int season, List<DailyRecommendation> recs, int total)
+    public static EmbedCreateSpec createCombinedRecPost(int season, List<ScheduleSet> recs, int total)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Recommendations"/*+" for Rank "+recs.get(0).getMaxRank()*/);
         builder.timestamp(Instant.now());
@@ -361,17 +369,17 @@ public class OCUtils
                 builder.addField("","",false);
             var rec = recs.get(i);
 
-            boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems())&& rec.getBestRec().getSubItems().size()>0;
-            if(rec.isRestRecommended())
+            boolean ws4Diff = !rec.getItems().equals(rec.getSubItems())&& rec.getSubItems().size()>0;
+            if(rec.getItems().size() == 0)
             {
                 builder.addField("Cycle "+(i+2),getRestText(), false);
             }
             else
             {
                 String title = ws4Diff?"First 3 Workshops":"All Workshops";
-                builder.addField("Cycle "+(i+2), "**"+title+"**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
-                if(ws4Diff && rec.getBestRec().getSubItems().size()>0)
-                    builder.addField(".", "**4th Workshop**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+                builder.addField("Cycle "+(i+2), "**"+title+"**\n"+rec.getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+                if(ws4Diff && rec.getSubItems().size()>0)
+                    builder.addField(".", "**4th Workshop**\n"+rec.getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
 
                /* builder.addField("","",false)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
@@ -468,7 +476,7 @@ public class OCUtils
 
     public static EmbedCreateSpec generateThisWeekEmbed(int season, RestOfWeekRec recs, int rank, int total)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations for Rank "+rank);
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Recommendations for Rank "+rank);
         if(rank<0)
             builder.title("Season "+season+" ("+getDateStr(season)+") Fortune-Telling Recommendations");
         builder.timestamp(Instant.now());

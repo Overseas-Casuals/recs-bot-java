@@ -39,8 +39,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 {
     Logger LOG = LoggerFactory.getLogger(CommandListener.class);
 
-    @Value("${discord.c1HelperRole}")
-    String c1PeakRole;
     @Value("${discord.squawkboxRole}")
     String squawkboxRole;
     @Value("${discord.recsChannel}")
@@ -89,7 +87,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         try {
             if (solver.isRunningRecs) {
                 LOG.info("Telling them to chill for a sec");
-                return event.deferReply().withEphemeral(true).then(event.editReply("Recs bot is running recs right now. Please try again in a minute or so!"));
+                return event.deferReply().withEphemeral(true).then(event.editReply("Squawkbot is running recs right now. Please try again in a minute or so!"));
             }
 
             switch (command) {
@@ -101,9 +99,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 }
                 case "today" -> {
                     return event.deferReply().then(Mono.defer(() -> deferredTodayCommand(event)));
-                }
-                case "rerun" -> {
-                    return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredRerunCommand(event)));
                 }
                 case "alts" -> {
                     LOG.info("Alts");
@@ -619,38 +614,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
 
         return event.editReply().withEmbeds(embed);
-    }
-
-    private InteractionReplyEditMono deferredRerunCommand(ChatInputInteractionEvent event)
-    {
-        var d1 = new Date(1661241600000L);
-        var d2 = new Date();
-
-        int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
-        int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
-
-        LOG.info("Rerunning recs for today");
-        var recs = solver.getDailyRecommendations(week, day, true);
-
-        if(recs== null || recs.size() == 0)
-        {
-            return event.editReply("No recs returned. <@"+miennaID+">");
-        }
-        NewsChannel channel = event.getClient().getChannelById(Snowflake.of(recsChannelID))
-                .cast(NewsChannel.class).block();
-
-
-        for (var rec: recs)
-        {
-            if(rec.getOldRec()==null)
-                channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec.withRank(-1), c1PeakRole, squawkboxRole))
-                    .flatMap(Message::publish).subscribe();
-            else
-                channel.createMessage(OCUtils.generateRecEmbedMessage(solver.getWeek(), rec.withRank(-1), c1PeakRole, squawkboxRole))
-                        .subscribe();
-        }
-
-        return event.editReply("Re-ran recs successfully. Check <#"+recsChannelID+">");
     }
 
     private List<Item> getItemsFromEvent(ChatInputInteractionEvent event) throws IllegalArgumentException

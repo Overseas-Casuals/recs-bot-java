@@ -24,6 +24,14 @@ public class ScheduleSet
         return items.size();
     }
 
+    public List<Item> getItems() {
+        return items;
+    }
+
+    public List<Item> getSubItems() {
+        return subItems;
+    }
+
     @Override
     public String toString() {
         return "ScheduleSet{" +
