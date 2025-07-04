@@ -42,7 +42,7 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
             return;
         }
 
-        int bestValue = 0;
+        int bestValue = -9999;
 
         int numChecked = 0;
         int bestIndex = 0;
