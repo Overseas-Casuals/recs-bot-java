@@ -82,7 +82,7 @@ public class GetPeaksTask implements ScheduledTask
     @Autowired
     Solver solver;
 
-    private String cron = "10 0 8 ? * TUE";
+    private String cron = "10 0 8 ? * *";
 
     private GatewayDiscordClient client;
 
@@ -121,13 +121,18 @@ public class GetPeaksTask implements ScheduledTask
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int actualDay = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
 
+        int startDay = actualDay;
+        int endDay = actualDay;
+
         if(local)
         {
             if(weekOverride != -1)
                 week = weekOverride;
+            startDay = startDayOverride;
+            endDay = endDayOverride;
         }
 
-        LOG.info("Getting info on week {}\nOverrides: week {}",  week, weekOverride);
+        LOG.info("Getting info on week {}\nOverrides: week {}, startDay {}, endDay {}",  week, weekOverride, startDayOverride, endDayOverride);
         if(week < 159)
         {
             LOG.error("This is exclusively 159 and over code. Please leave.");
@@ -141,46 +146,51 @@ public class GetPeaksTask implements ScheduledTask
             return;
         }
 
-        List<ScheduleSet> list;
-
-        try
+        for(int day=startDay; day<=endDay; day++)
         {
-            list = solver.getDailyRecommendations(week, 0, true, peaksByDay);
+            List<ScheduleSet> list;
+
+            try
+            {
+                list = solver.getDailyRecommendations(week, day, false, peaksByDay);
+            }
+            catch(Exception e)
+            {
+                LOG.error("Error running recs. Rescheduling. ", e);
+
+                ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+                int delay = 15;
+                long timestamp = System.currentTimeMillis() + delay * 1000 * 60;
+                peakChannel.createMessage("Error running recs. Rescheduling for <t:"+timestamp/1000+":t>").subscribe();
+                scheduler.schedule(this, delay, TimeUnit.MINUTES);
+                scheduler.shutdown();
+                return;
+            }
+
+            var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).limit(Solver.getNumItems(week)).toArray();
+            peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
+
+            if(list == null || list.size() == 0)
+            {
+                if(day==0)
+                    peakChannel.createMessage("<@" + miennaID + "> No recs returned").subscribe();
+                continue;
+            }
+
+            //Post FT
+            var embed = OCUtils.generateThisWeekEmbed(week, solver.fortuneTellerRecs, -1, solver.fortuneValue);
+            fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&"+clairvoyantRole+">" + OCUtils.getFlavorText(solver.fortuneTellerRecs)).addEmbed(embed).build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted fortune teller recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting fortune-teller recs:",error);});
+
+            //Post recs
+            var combinedPost = MessageCreateSpec.builder().content("<@&"+squawkboxRole+">" + OCUtils.getFlavorText(list));
+            var recsMessage = OCUtils.createCombinedRecPost(week, list, solver.totalValue);
+            combinedPost.addEmbed(recsMessage);
+            channel.createMessage(combinedPost.build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting combined post:",error); });
+
+            //Post archive
+            archiveChannel.getRestChannel().createMessage(OCUtils.newArchiveContent(week, solver.archiveRecs, solver.totalValue)).subscribe(message -> {LOG.info("Successfully posted new archive post: {}", message.content());}, error -> { LOG.error("Error posting new archive post:",error);});
         }
-        catch(Exception e)
-        {
-            LOG.error("Error running recs. Rescheduling. ", e);
 
-            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-            int delay = 15;
-            long timestamp = System.currentTimeMillis() + delay * 1000 * 60;
-            peakChannel.createMessage("Error running recs. Rescheduling for <t:"+timestamp/1000+":t>").subscribe();
-            scheduler.schedule(this, delay, TimeUnit.MINUTES);
-            scheduler.shutdown();
-            return;
-        }
-
-        var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).limit(Solver.getNumItems(week)).toArray();
-        peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
-
-        if(list == null || list.size() == 0)
-        {
-            peakChannel.createMessage("<@" + miennaID + "> No recs returned").subscribe();
-            return;
-        }
-
-        //Post FT
-        var embed = OCUtils.generateThisWeekEmbed(week, solver.fortuneTellerRecs, -1, solver.fortuneValue);
-        fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&"+clairvoyantRole+">" + OCUtils.getFlavorText(solver.fortuneTellerRecs)).addEmbed(embed).build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted fortune teller recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting fortune-teller recs:",error);});
-
-        //Post recs
-        var combinedPost = MessageCreateSpec.builder().content("<@&"+squawkboxRole+">" + OCUtils.getFlavorText(list));
-        var recsMessage = OCUtils.createCombinedRecPost(week, list, solver.totalValue);
-        combinedPost.addEmbed(recsMessage);
-        channel.createMessage(combinedPost.build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting combined post:",error); });
-
-        //Post archive
-        archiveChannel.getRestChannel().createMessage(OCUtils.newArchiveContent(week, solver.archiveRecs, solver.totalValue)).subscribe(message -> {LOG.info("Successfully posted new archive post: {}", message.content());}, error -> { LOG.error("Error posting new archive post:",error);});
 
         //Test commands
         /*{

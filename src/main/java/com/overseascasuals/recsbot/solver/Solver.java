@@ -366,121 +366,118 @@ public class Solver
             isRunningRecs = false;
             return listOfRecs;
         }
-        int rank = maxIslandRank;
-        groove = 0;
 
-        //Get FT recs
+        if(day == 0)
         {
-            clearDayUsage(List.of(1));
-            int ftRank = maxIslandRank;
-            var c3 = getBestBruteForceSchedules(2, 0,
-                    null, 2, 1, ftRank);
-            addCraftedFromCycle(2, c3.getBestRec(), ftRank, false);
-            List<CycleSchedule> schedules = new ArrayList<>();
-            schedules.add(c3.getBestRec());
-            RestOfWeekRec restOfWeek = getRestOfWeekRecs(ftRank, 1, null);
-            schedules.addAll(restOfWeek.getRecs());
-            fortuneTellerRecs = new RestOfWeekRec(schedules, -1, true);
+            int rank = maxIslandRank;
+            groove = 0;
 
-            int index = 2;
-            for(var sched : schedules)
+            //Get FT recs
             {
-                if("live".equals(activeProfile)) {
-                    CycleCraft crafts = new CycleCraft();
-                    crafts.setCraftID(new CraftID(week, index, -1));
-                    crafts.setCrafts(sched.getItems());
-                    crafts.setSubcrafts(sched.getSubItems());
-                    craftRepository.save(crafts);
+                clearDayUsage(List.of(1));
+                int ftRank = maxIslandRank;
+                var c3 = getBestBruteForceSchedules(2, 0,
+                        null, 2, 1, ftRank);
+                addCraftedFromCycle(2, c3.getBestRec(), ftRank, false);
+                List<CycleSchedule> schedules = new ArrayList<>();
+                schedules.add(c3.getBestRec());
+                RestOfWeekRec restOfWeek = getRestOfWeekRecs(ftRank, 1, null);
+                schedules.addAll(restOfWeek.getRecs());
+                fortuneTellerRecs = new RestOfWeekRec(schedules, -1, true);
+
+                int index = 2;
+                for(var sched : schedules)
+                {
+                    if("live".equals(activeProfile)) {
+                        CycleCraft crafts = new CycleCraft();
+                        crafts.setCraftID(new CraftID(week, index, -1));
+                        crafts.setCrafts(sched.getItems());
+                        crafts.setSubcrafts(sched.getSubItems());
+                        craftRepository.save(crafts);
+                    }
+                    LOG.info("Fortuneteller rec for week {}, day {}: {}", week, index+1, sched);
+                    index++;
                 }
-                LOG.info("Fortuneteller rec for week {}, day {}: {}", week, index+1, sched);
-                index++;
+                setCraftedFromHistory();
             }
-            setCraftedFromHistory();
+
+            //Check 100 weeks' ago's recs
+            List<ScheduleSet> previousRecs = new ArrayList<>();
+            for(int i=1; i<=6; i++)
+            {
+                CycleCraft crafts = craftRepository.findCraftsByDay(week-100, i, maxIslandRank);
+                if (crafts == null)
+                {
+                    LOG.info("No history found for week {} day {}, assuming we need to run recs", week-100, i + 1);
+                    break;
+                }
+
+                LOG.info("Found history for week {} day {}: {}", week-100, i + 1, crafts);
+                if (crafts.getCraft1() == null || crafts.getCraft1().isEmpty())
+                {
+                    LOG.info("Found rest day on day {}", i + 1);
+                    previousRecs.add(new ScheduleSet());
+                }
+                else
+                {
+                    var craftsAsItems = crafts.getCrafts();
+                    var subcraftsAsItems = crafts.getSubcrafts();
+                    previousRecs.add(new ScheduleSet(craftsAsItems, subcraftsAsItems));
+                }
+            }
+
+            LOG.info("Getting value for previous recs");
+            int previousTotal = getValueForWeek(previousRecs, maxIslandRank);
+
+            for(int dayToSolve = 1; dayToSolve < 4; dayToSolve++)
+            {
+                var recs = getRecForSingleDay(dayToSolve, rank, null, true);
+
+                if(recs == null || recs.size() == 0 || recs.get(0) == null)
+                {
+                    LOG.error("Null rec returned for day {} and rank {}", dayToSolve, rank);
+                    return null;
+                }
+                var rec = recs.get(0);
+
+                if(rec.isRestRecommended())
+                {
+                    rested = dayToSolve;
+                    listOfRecs.add(new ScheduleSet());
+                }
+                else
+                {
+                    listOfRecs.add(new ScheduleSet(rec.getBestRec().getItems(), rec.getBestRec().getSubItems()));
+                }
+
+                LOG.info("{}", rec);
+                addCraftedFromCycle(rec.getDay(), rec.isRestRecommended()?null:rec.getBestRec(), rank, true);
+            }
+            //Add days 5-7
+            var lateRecs = getRecForSingleDay(4, rank, null, true);
+            for(var lateRec : lateRecs)
+            {
+                if(lateRec.isRestRecommended())
+                {
+                    listOfRecs.add(new ScheduleSet());
+                }
+                else
+                {
+                    listOfRecs.add(new ScheduleSet(lateRec.getBestRec().getItems(), lateRec.getBestRec().getSubItems()));
+                }
+            }
+
+            LOG.info("Getting value for current week's recs");
+            int todayValue = getValueForWeek(listOfRecs, maxIslandRank);
+
+            if(previousTotal > todayValue)
+            {
+                LOG.info("We had a better schedule last time, just run that");
+                listOfRecs = previousRecs;
+            }
+
+            totalValue = setArchiveValues(listOfRecs, maxIslandRank);
         }
-
-        //Check 100 weeks' ago's recs
-        List<ScheduleSet> previousRecs = new ArrayList<>();
-        for(int i=1; i<=6; i++)
-        {
-            CycleCraft crafts = craftRepository.findCraftsByDay(week-100, i, maxIslandRank);
-            if (crafts == null)
-            {
-                LOG.info("No history found for week {} day {}, assuming we need to run recs", week-100, i + 1);
-                break;
-            }
-
-            LOG.info("Found history for week {} day {}: {}", week-100, i + 1, crafts);
-            if (crafts.getCraft1() == null || crafts.getCraft1().isEmpty())
-            {
-                LOG.info("Found rest day on day {}", i + 1);
-                previousRecs.add(new ScheduleSet());
-            }
-            else
-            {
-                var craftsAsItems = crafts.getCrafts();
-                var subcraftsAsItems = crafts.getSubcrafts();
-                previousRecs.add(new ScheduleSet(craftsAsItems, subcraftsAsItems));
-            }
-        }
-
-        LOG.info("Getting value for previous recs");
-        int previousTotal = getValueForWeek(previousRecs, maxIslandRank);
-
-        for(int dayToSolve = 1; dayToSolve < 4; dayToSolve++)
-        {
-            var recs = getRecForSingleDay(dayToSolve, rank, null, true);
-
-            if(recs == null || recs.size() == 0 || recs.get(0) == null)
-            {
-                LOG.error("Null rec returned for day {} and rank {}", dayToSolve, rank);
-                return null;
-            }
-            var rec = recs.get(0);
-
-            if(rec.isRestRecommended())
-            {
-                rested = dayToSolve;
-                listOfRecs.add(new ScheduleSet());
-            }
-            else
-            {
-                listOfRecs.add(new ScheduleSet(rec.getBestRec().getItems(), rec.getBestRec().getSubItems()));
-            }
-
-            LOG.info("{}", rec);
-            addCraftedFromCycle(rec.getDay(), rec.isRestRecommended()?null:rec.getBestRec(), rank, true);
-        }
-        //Add days 5-7
-        var lateRecs = getRecForSingleDay(4, rank, null, true);
-        for(var lateRec : lateRecs)
-        {
-            if(lateRec.isRestRecommended())
-            {
-                listOfRecs.add(new ScheduleSet());
-            }
-            else
-            {
-                listOfRecs.add(new ScheduleSet(lateRec.getBestRec().getItems(), lateRec.getBestRec().getSubItems()));
-            }
-        }
-
-        LOG.info("Getting value for current week's recs");
-        int todayValue = getValueForWeek(listOfRecs, maxIslandRank);
-
-        if(previousTotal > todayValue)
-        {
-            LOG.info("We had a better schedule last time, just run that");
-            listOfRecs = previousRecs;
-        }
-
-        totalValue = setArchiveValues(listOfRecs, maxIslandRank);
-
-
-        //Idk if I need this?
-        /*for(var rec : listOfRecs)
-        {
-            rec.getBestRec().setGrooveBonus(restedAlready(rec.getDay()), reservedHelpers);
-        }*/
 
         LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
 
