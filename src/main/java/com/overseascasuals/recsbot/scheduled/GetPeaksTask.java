@@ -133,15 +133,17 @@ public class GetPeaksTask implements ScheduledTask
         }
 
         LOG.info("Getting info on week {}\nOverrides: week {}, startDay {}, endDay {}",  week, weekOverride, startDayOverride, endDayOverride);
-        if(week < 159)
-        {
-            LOG.error("This is exclusively 159 and over code. Please leave.");
-            return;
-        }
+
         int peakWeek = (week - 59) % 100 + 59; //159 should be 59. 201 should be 101. 378 should be 78
         List<CraftPeaks> peaksByDay = peakRepository.findPeaksByDay(peakWeek, 3);
         if(peaksByDay == null || peaksByDay.size() < Solver.getNumItems(week))
         {
+            if(week < 159)
+            {
+                LOG.error("This is exclusively 159 and over code. Please leave.");
+                return;
+            }
+
             LOG.info("Peaks for week {} not found???? Help.", peakWeek);
             return;
         }
