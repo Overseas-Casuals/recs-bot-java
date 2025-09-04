@@ -344,10 +344,9 @@ public class Solver
                 startingGroovePerDay.put(i+1, groove);
             }
 
-            this.day = day;
             this.week = week;
         }
-
+        this.day = day;
 
         List<ScheduleSet> listOfRecs = new ArrayList<>();
 

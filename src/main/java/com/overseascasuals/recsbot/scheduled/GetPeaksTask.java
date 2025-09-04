@@ -155,15 +155,14 @@ public class GetPeaksTask implements ScheduledTask
             try
             {
                 list = solver.getDailyRecommendations(week, day, false, peaksByDay);
-            }
-            catch(Exception e)
+            } catch (Exception e)
             {
                 LOG.error("Error running recs. Rescheduling. ", e);
 
                 ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
                 int delay = 15;
                 long timestamp = System.currentTimeMillis() + delay * 1000 * 60;
-                peakChannel.createMessage("Error running recs. Rescheduling for <t:"+timestamp/1000+":t>").subscribe();
+                peakChannel.createMessage("Error running recs. Rescheduling for <t:" + timestamp / 1000 + ":t>").subscribe();
                 scheduler.schedule(this, delay, TimeUnit.MINUTES);
                 scheduler.shutdown();
                 return;
@@ -172,47 +171,25 @@ public class GetPeaksTask implements ScheduledTask
             var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).limit(Solver.getNumItems(week)).toArray();
             peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
-            if(list == null || list.size() == 0)
+            //Test commands
             {
-                if(day==0)
-                    peakChannel.createMessage("<@" + miennaID + "> No recs returned").subscribe();
-                continue;
-            }
-
-            //Post FT
-            var embed = OCUtils.generateThisWeekEmbed(week, solver.fortuneTellerRecs, -1, solver.fortuneValue);
-            fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&"+clairvoyantRole+">" + OCUtils.getFlavorText(solver.fortuneTellerRecs)).addEmbed(embed).build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted fortune teller recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting fortune-teller recs:",error);});
-
-            //Post recs
-            var combinedPost = MessageCreateSpec.builder().content("<@&"+squawkboxRole+">" + OCUtils.getFlavorText(list));
-            var recsMessage = OCUtils.createCombinedRecPost(week, list, solver.totalValue);
-            combinedPost.addEmbed(recsMessage);
-            channel.createMessage(combinedPost.build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting combined post:",error); });
-
-            //Post archive
-            archiveChannel.getRestChannel().createMessage(OCUtils.newArchiveContent(week, solver.archiveRecs, solver.totalValue)).subscribe(message -> {LOG.info("Successfully posted new archive post: {}", message.content());}, error -> { LOG.error("Error posting new archive post:",error);});
-        }
-
-
-        //Test commands
-        /*{
-            //next week
-            var nextWeekRecs = solver.getVacationRecs(17);
+                //next week
+            /*var nextWeekRecs = solver.getVacationRecs(17);
             var nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 17);
             channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level next week recs."), error -> LOG.error("Error posting high level next week:", error));
             nextWeekRecs = solver.getVacationRecs(6);
             nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 6);
             channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level next week recs."), error -> LOG.error("Error posting low level next week:", error));
 
-            //this week
-            var thisWeekRecs = solver.getThisWeekResult(10, null);
-            var thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 10, -1);
-            channel.createMessage(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level this week recs."), error -> LOG.error("Error posting low level this week:", error));
-            thisWeekRecs = solver.getThisWeekResult(17, null);
-            thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 17, -1);
-            channel.createMessage(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level this week recs."), error -> LOG.error("Error posting low level this week:", error));
+                //this week
+                var thisWeekRecs = solver.getThisWeekResult(10, null);
+                var thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 10, day+1);
+                channel.createMessage(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level this week recs."), error -> LOG.error("Error posting low level this week:", error));
+                thisWeekRecs = solver.getThisWeekResult(17, null);
+                thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 17, day+1);
+                channel.createMessage(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level this week recs."), error -> LOG.error("Error posting low level this week:", error));
 
-            //today
+                //today
             var todayRecs = solver.getRestOfDayRecs(1, 22, 10, null);
             var todayEmbed = OCUtils.generateTodayEmbed(week, 1, 22, todayRecs, 10);
             channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted low-level today recs."), error -> LOG.error("Error posting low level today:", error));
@@ -220,7 +197,40 @@ public class GetPeaksTask implements ScheduledTask
             todayEmbed = OCUtils.generateTodayEmbed(week, 1, 22, todayRecs, 20);
             channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted high-level today recs."), error -> LOG.error("Error posting high level today:", error));
 
-            channel.createMessage("All commands? posted").block();
-        }*/
+                channel.createMessage("All commands? posted").block();*/
+            }
+
+            if (list == null || list.size() == 0)
+            {
+                if (day == 0)
+                    peakChannel.createMessage("<@" + miennaID + "> No recs returned").subscribe();
+                continue;
+            }
+
+            //Post FT
+            var embed = OCUtils.generateThisWeekEmbed(week, solver.fortuneTellerRecs, -1, solver.fortuneValue);
+            fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&" + clairvoyantRole + ">" + OCUtils.getFlavorText(solver.fortuneTellerRecs)).addEmbed(embed).build()).flatMap(Message::publish).subscribe(message -> {
+                LOG.info("Successfully posted fortune teller recs: {}", message.getEmbeds());
+            }, error -> {
+                LOG.error("Error posting fortune-teller recs:", error);
+            });
+
+            //Post recs
+            var combinedPost = MessageCreateSpec.builder().content("<@&" + squawkboxRole + ">" + OCUtils.getFlavorText(list));
+            var recsMessage = OCUtils.createCombinedRecPost(week, list, solver.totalValue);
+            combinedPost.addEmbed(recsMessage);
+            channel.createMessage(combinedPost.build()).flatMap(Message::publish).subscribe(message -> {
+                LOG.info("Successfully posted recs: {}", message.getEmbeds());
+            }, error -> {
+                LOG.error("Error posting combined post:", error);
+            });
+
+            //Post archive
+            archiveChannel.getRestChannel().createMessage(OCUtils.newArchiveContent(week, solver.archiveRecs, solver.totalValue)).subscribe(message -> {
+                LOG.info("Successfully posted new archive post: {}", message.content());
+            }, error -> {
+                LOG.error("Error posting new archive post:", error);
+            });
+        }
     }
 }
