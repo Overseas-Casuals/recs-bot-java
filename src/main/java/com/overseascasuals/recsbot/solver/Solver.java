@@ -239,11 +239,11 @@ public class Solver
         }
     }
 
-    public List<ScheduleSet> getDailyRecommendations(int week, int day, boolean hardRefresh)
+    public List<ArchiveSchedule> getDailyRecommendations(int week, int day, boolean hardRefresh)
     {
         return getDailyRecommendations(week, day, hardRefresh, null);
     }
-    public List<ScheduleSet> getDailyRecommendations(int week, int day, boolean hardRefresh, List<CraftPeaks> peaks)
+    public List<ArchiveSchedule> getDailyRecommendations(int week, int day, boolean hardRefresh, List<CraftPeaks> peaks)
     {
         isRunningRecs = true;
         LOG.info("Getting recommendations for week {} day {}, hardrefresh? {}.", week, day, hardRefresh);
@@ -363,7 +363,7 @@ public class Solver
             setCraftedFromHistory();
             hasRunRecs = true;
             isRunningRecs = false;
-            return listOfRecs;
+            return null;
         }
 
         if(day == 0)
@@ -482,7 +482,10 @@ public class Solver
 
         hasRunRecs = true;
         isRunningRecs = false;
-        return listOfRecs;
+        if(day==0)
+            return archiveRecs;
+
+        return null;
     }
 
     private boolean restedAlready()

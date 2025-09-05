@@ -270,7 +270,7 @@ public class OCUtils
         return _getFlavorText(rec.getRecs());
     }
 
-    public static String getFlavorText(List<ScheduleSet> schedules)
+    public static String getFlavorText(List<ArchiveSchedule> schedules)
     {
         List<CycleSchedule> cycles = new ArrayList<>();
         for(int i=0; i<schedules.size(); i++)
@@ -356,17 +356,18 @@ public class OCUtils
         return breaks;
     }
 
-    public static EmbedCreateSpec createCombinedRecPost(int season, List<ScheduleSet> recs, int total)
+    public static List<EmbedCreateSpec> createCombinedRecPost(int season, List<ArchiveSchedule> recs, int total)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Recommendations"/*+" for Rank "+recs.get(0).getMaxRank()*/);
-        builder.timestamp(Instant.now());
 
-        builder.color(Color.SEA_GREEN);
+        List<EmbedCreateSpec> embeds = new ArrayList<>();
 
         for(int i=0; i<recs.size(); i++)
         {
             if(i>0)
                 builder.addField("","",false);
+            builder.color(Color.SEA_GREEN);
+
             var rec = recs.get(i);
 
             boolean ws4Diff = !rec.getItems().equals(rec.getSubItems())&& rec.getSubItems().size()>0;
@@ -381,9 +382,14 @@ public class OCUtils
                 if(ws4Diff && rec.getSubItems().size()>0)
                     builder.addField(".", "**4th Workshop**\n"+rec.getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
 
-               /* builder.addField("","",false)
+                builder.addField("","",false)
                         .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
-                        .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue()+ cowriesEmoji, true);*/
+                        .addField("With "+ rec.getStartingGroove() +" Groove", rec.getValue()+ cowriesEmoji, true);
+            }
+            if(i == 2)
+            {
+                embeds.add(builder.build());
+                builder = EmbedCreateSpec.builder();
             }
         }
 
@@ -396,8 +402,10 @@ public class OCUtils
         builder.addField("","",false);
         builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
                 "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);
+        builder.timestamp(Instant.now());
+        embeds.add(builder.build());
 
-        return builder.build();
+        return embeds;
     }
 
     public static EmbedCreateSpec favorsEmbed(int season, List<List<Item>> favorSchedules)

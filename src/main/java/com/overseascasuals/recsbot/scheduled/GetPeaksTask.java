@@ -2,6 +2,7 @@ package com.overseascasuals.recsbot.scheduled;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.overseascasuals.recsbot.OCUtils;
+import com.overseascasuals.recsbot.data.ArchiveSchedule;
 import com.overseascasuals.recsbot.data.ScheduleSet;
 import com.overseascasuals.recsbot.json.RestService;
 import com.overseascasuals.recsbot.mysql.*;
@@ -150,7 +151,7 @@ public class GetPeaksTask implements ScheduledTask
 
         for(int day=startDay; day<=endDay; day++)
         {
-            List<ScheduleSet> list;
+            List<ArchiveSchedule> list;
 
             try
             {
@@ -218,7 +219,7 @@ public class GetPeaksTask implements ScheduledTask
             //Post recs
             var combinedPost = MessageCreateSpec.builder().content("<@&" + squawkboxRole + ">" + OCUtils.getFlavorText(list));
             var recsMessage = OCUtils.createCombinedRecPost(week, list, solver.totalValue);
-            combinedPost.addEmbed(recsMessage);
+            combinedPost.addAllEmbeds(recsMessage);
             channel.createMessage(combinedPost.build()).flatMap(Message::publish).subscribe(message -> {
                 LOG.info("Successfully posted recs: {}", message.getEmbeds());
             }, error -> {
