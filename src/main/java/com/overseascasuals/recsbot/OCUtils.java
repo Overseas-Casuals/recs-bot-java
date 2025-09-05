@@ -431,11 +431,11 @@ public class OCUtils
         builder.color(Color.SUMMER_SKY);
         if(recs.size() == 5) //Old next week, no supply info
         {
-            addPredictiveRec(builder, recs.get(1), 2, false);
-            addPredictiveRec(builder, recs.get(4), 3, false);
-            addPredictiveRec(builder, recs.get(2), 4, false);
-            addPredictiveRec(builder, recs.get(3), 5, false);
-            addPredictiveRec(builder, recs.get(0), 6, false);
+            addPredictiveRec(builder, recs.get(1), 2, false, false);
+            addPredictiveRec(builder, recs.get(4), 3, false, false);
+            addPredictiveRec(builder, recs.get(2), 4, false, false);
+            addPredictiveRec(builder, recs.get(3), 5, false, false);
+            addPredictiveRec(builder, recs.get(0), 6, false, false);
             builder.addField("Cycle 7", getRestText(),true);
         }
         else if(recs.size()==6) //New next week, supply info!
@@ -445,7 +445,7 @@ public class OCUtils
                 if(recs.get(i) == null)
                     builder.addField("Cycle "+(i+2), getRestText(), rank<15);
                 else
-                    addPredictiveRec(builder, recs.get(i), i+2, false);
+                    addPredictiveRec(builder, recs.get(i), i+2, false, false);
             }
         }
 
@@ -453,7 +453,7 @@ public class OCUtils
         return builder.build();
     }
 
-    private static void addPredictiveRec(EmbedCreateSpec.Builder builder, CycleSchedule rec, int cycle, boolean rest)
+    private static void addPredictiveRec(EmbedCreateSpec.Builder builder, CycleSchedule rec, int cycle, boolean rest, boolean showValues)
     {
         boolean ws4Diff = !rec.getItems().equals(rec.getSubItems()) && rec.getSubItems().size() > 0;
         String recString;
@@ -475,6 +475,17 @@ public class OCUtils
             builder.addField(".", (rest?"||":"")+"**4th Workshop**\n"+rec.getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+(rest?"||":""), true);
         if(rec.getRank()>=15)
             builder.addField("", "", false);
+
+        if(showValues)
+        {
+            int groove = rec.getStartingGroove();
+            rec.setStartingGroove(0);
+            int grooveless = rec.getValue();
+            rec.setStartingGroove(groove);
+            builder.addField("Grooveless Value", (rest?"||":"") + grooveless + (rest?"||":""), true);
+            builder.addField("", "", false);
+        }
+
     }
 
     private static String getRestText()
@@ -482,20 +493,27 @@ public class OCUtils
         return "<:zzz:1068453995816964176> Rest <:zzz:1068453995816964176>";
     }
 
-    public static EmbedCreateSpec generateThisWeekEmbed(int season, RestOfWeekRec recs, int rank, int total)
+    public static List<EmbedCreateSpec> generateThisWeekEmbed(int season, RestOfWeekRec recs, int rank, int total)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Recommendations for Rank "+rank);
         if(rank<0)
             builder.title("Season "+season+" ("+getDateStr(season)+") Fortune-Telling Recommendations");
-        builder.timestamp(Instant.now());
 
-        builder.color(Color.SUMMER_SKY);
         int startDay = 8-recs.getRecs().size();
+
+        List<EmbedCreateSpec> embeds = new ArrayList<>();
 
         for(int i=0; i<recs.getRecs().size(); i++)
         {
+            builder.color(Color.SUMMER_SKY);
             CycleSchedule rec = recs.getRecs().get(i);
-            addPredictiveRec(builder, rec, startDay+i, !recs.isRested() && i==recs.getWorstIndex());
+            addPredictiveRec(builder, rec, startDay+i, !recs.isRested() && i==recs.getWorstIndex(), true);
+
+            if(recs.getRecs().size() > 4 && i == recs.getRecs().size()/2 - 1)
+            {
+                embeds.add(builder.build());
+                builder = EmbedCreateSpec.builder();
+            }
         }
 
         if(total > 0)
@@ -503,8 +521,10 @@ public class OCUtils
             builder.addField("","",false);
             builder.addField("Total Weekly Value", String.format("%,d", total)+cowriesEmoji, false);
         }
+        builder.timestamp(Instant.now());
+        embeds.add(builder.build());
 
-        return builder.build();
+        return embeds;
     }
     public static EmbedCreateSpec generateTodayEmbed(int season, int cycle, int hours, BruteForceSchedules recs, int rank)
     {

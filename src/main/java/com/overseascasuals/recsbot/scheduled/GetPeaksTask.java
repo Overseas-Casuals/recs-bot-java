@@ -173,33 +173,33 @@ public class GetPeaksTask implements ScheduledTask
             peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
             //Test commands
-            {
+            /*{
                 //next week
-            /*var nextWeekRecs = solver.getVacationRecs(17);
-            var nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 17);
-            channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level next week recs."), error -> LOG.error("Error posting high level next week:", error));
-            nextWeekRecs = solver.getVacationRecs(6);
-            nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 6);
-            channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level next week recs."), error -> LOG.error("Error posting low level next week:", error));
+                var nextWeekRecs = solver.getVacationRecs(17);
+                var nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 17);
+                channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level next week recs."), error -> LOG.error("Error posting high level next week:", error));
+                nextWeekRecs = solver.getVacationRecs(6);
+                nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 6);
+                channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level next week recs."), error -> LOG.error("Error posting low level next week:", error));
 
                 //this week
                 var thisWeekRecs = solver.getThisWeekResult(10, null);
                 var thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 10, day+1);
-                channel.createMessage(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level this week recs."), error -> LOG.error("Error posting low level this week:", error));
+                channel.createMessage().withEmbeds(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level this week recs."), error -> LOG.error("Error posting low level this week:", error));
                 thisWeekRecs = solver.getThisWeekResult(17, null);
                 thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 17, day+1);
-                channel.createMessage(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level this week recs."), error -> LOG.error("Error posting low level this week:", error));
+                channel.createMessage().withEmbeds(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level this week recs."), error -> LOG.error("Error posting low level this week:", error));
 
                 //today
-            var todayRecs = solver.getRestOfDayRecs(1, 22, 10, null);
-            var todayEmbed = OCUtils.generateTodayEmbed(week, 1, 22, todayRecs, 10);
-            channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted low-level today recs."), error -> LOG.error("Error posting low level today:", error));
-            todayRecs = solver.getRestOfDayRecs(1, 22, 20, null);
-            todayEmbed = OCUtils.generateTodayEmbed(week, 1, 22, todayRecs, 20);
-            channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted high-level today recs."), error -> LOG.error("Error posting high level today:", error));
+                var todayRecs = solver.getRestOfDayRecs(1, 22, 10, null);
+                var todayEmbed = OCUtils.generateTodayEmbed(week, 1, 22, todayRecs, 10);
+                channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted low-level today recs."), error -> LOG.error("Error posting low level today:", error));
+                todayRecs = solver.getRestOfDayRecs(1, 22, 20, null);
+                todayEmbed = OCUtils.generateTodayEmbed(week, 1, 22, todayRecs, 20);
+                channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted high-level today recs."), error -> LOG.error("Error posting high level today:", error));
 
-                channel.createMessage("All commands? posted").block();*/
-            }
+                channel.createMessage("All commands? posted").block();
+            }*/
 
             if (list == null || list.size() == 0)
             {
@@ -210,7 +210,7 @@ public class GetPeaksTask implements ScheduledTask
 
             //Post FT
             var embed = OCUtils.generateThisWeekEmbed(week, solver.fortuneTellerRecs, -1, solver.fortuneValue);
-            fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&" + clairvoyantRole + ">" + OCUtils.getFlavorText(solver.fortuneTellerRecs)).addEmbed(embed).build()).flatMap(Message::publish).subscribe(message -> {
+            fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&" + clairvoyantRole + ">" + OCUtils.getFlavorText(solver.fortuneTellerRecs)).addAllEmbeds(embed).build()).flatMap(Message::publish).subscribe(message -> {
                 LOG.info("Successfully posted fortune teller recs: {}", message.getEmbeds());
             }, error -> {
                 LOG.error("Error posting fortune-teller recs:", error);
