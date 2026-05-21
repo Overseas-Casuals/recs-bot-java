@@ -489,8 +489,6 @@ public class OCUtils
     public static List<EmbedCreateSpec> generateThisWeekEmbed(int season, List<DailyRecommendation> recs, int rank, int total)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Recommendations for Rank "+rank);
-        if(rank<0)
-            builder.title("Season "+season+" ("+getDateStr(season)+") Fortune-Telling Recommendations");
 
         int startDay = 8-recs.size();
 

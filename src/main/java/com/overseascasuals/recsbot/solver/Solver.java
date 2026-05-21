@@ -210,9 +210,7 @@ public class Solver
     private final Map<Integer, BruteForceSchedules> restOfDay = new HashMap<>();
     private final Map<Integer, Integer> hoursLeftInDay = new HashMap<>();
     private final Map<String, List<DailyRecommendation>> cachedAltRecs = new HashMap<>();
-    public RestOfWeekRec fortuneTellerRecs;
     public int totalValue = 0;
-    public int fortuneValue = 0;
     Map<Integer,ScheduleSet> dailySchedules = new HashMap<>();
 
     public static double strongRatio62 = 0;
@@ -369,35 +367,6 @@ public class Solver
         {
             int rank = maxIslandRank;
             groove = 0;
-/*
-            //Get FT recs
-            {
-                clearDayUsage(List.of(1));
-                int ftRank = maxIslandRank;
-                var c3 = getBestBruteForceSchedules(2, 0,
-                        null, 2, 1, ftRank);
-                addCraftedFromCycle(2, c3.getBestRec(), ftRank);
-                List<CycleSchedule> schedules = new ArrayList<>();
-                schedules.add(c3.getBestRec());
-                List<DailyRecommendation> restOfWeek = getRecForDayOn(ftRank, 1, null);
-                schedules.addAll(restOfWeek.getRecs());
-                fortuneTellerRecs = new RestOfWeekRec(schedules, -1, true);
-
-                int index = 2;
-                for(var sched : schedules)
-                {
-                    if("live".equals(activeProfile)) {
-                        CycleCraft crafts = new CycleCraft();
-                        crafts.setCraftID(new CraftID(week, index, -1));
-                        crafts.setCrafts(sched.getItems());
-                        crafts.setSubcrafts(sched.getSubItems());
-                        craftRepository.save(crafts);
-                    }
-                    LOG.info("Fortuneteller rec for week {}, day {}: {}", week, index+1, sched);
-                    index++;
-                }
-                setCraftedFromHistory();
-            }*/
 
             //Check 100 weeks' ago's recs
             List<ScheduleSet> previousRecs = new ArrayList<>();
@@ -734,46 +703,6 @@ public class Solver
             total += groovedValue;
         }
         LOG.info("Season total: {}", total);
-
-        /*fortuneValue = 0;
-        try
-        {
-            CycleSchedule crime2 = new CycleSchedule(1, 0, maxIslandRank);
-            crime2.setForFirstThreeWorkshops(new ArrayList<>());
-            crime2.setFourthWorkshop(new ArrayList<>());
-            addCraftedFromCycle(1, crime2, maxIslandRank, false);
-            for(int day=2; day<7; day++)
-            {
-                CycleSchedule sched = new CycleSchedule(day, groove, maxIslandRank);
-                if(fortuneTellerRecs == null)
-                {
-                    LOG.info("Getting FT recs from database");
-                    var crafts = craftRepository.findCraftsByDay(week, day, -1);
-                    sched.setForFirstThreeWorkshops(crafts.getCrafts());
-                    sched.setFourthWorkshop(crafts.getSubcrafts());
-                }
-                else
-                {
-                    LOG.info("Getting FT recs from local cache");
-                    var cachedSched = fortuneTellerRecs.getRecs().get(day-2);
-                    sched.setForFirstThreeWorkshops(cachedSched.getItems());
-                    sched.setFourthWorkshop(cachedSched.getSubItems());
-                }
-
-                addCraftedFromCycle(day, sched, maxIslandRank, false);
-
-                int today = sched.getValue();
-                LOG.info("Getting FT total for day {}, starting groove {} crafts {}, subcrafts {}: {} cowries", day+1, sched.getStartingGroove(), sched.getItems(), sched.getSubItems(), today);
-                fortuneValue += today;
-            }
-        }
-        catch(Exception e)
-        {
-            fortuneValue = -1;
-            LOG.error("Exception determining value of FT recs for week: ",e);
-        }
-        LOG.info("FT total: {}", fortuneValue);*/
-        setCraftedFromHistory();
 
         return total;
     }

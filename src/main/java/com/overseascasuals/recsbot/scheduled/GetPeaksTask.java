@@ -216,14 +216,6 @@ public class GetPeaksTask implements ScheduledTask
                 continue;
             }
 
-            //Post FT
-            var embed = OCUtils.generateThisWeekEmbed(week, solver.fortuneTellerRecs, -1, solver.fortuneValue);
-            fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&" + clairvoyantRole + ">" + OCUtils.getFlavorText(solver.fortuneTellerRecs)).addAllEmbeds(embed).build()).flatMap(Message::publish).subscribe(message -> {
-                LOG.info("Successfully posted fortune teller recs: {}", message.getEmbeds());
-            }, error -> {
-                LOG.error("Error posting fortune-teller recs:", error);
-            });
-
             //Post recs
             var combinedPost = MessageCreateSpec.builder().content("<@&" + squawkboxRole + ">" + OCUtils.getFlavorText(list));
             var recsMessage = OCUtils.createCombinedRecPost(week, list, solver.totalValue);
