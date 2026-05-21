@@ -38,53 +38,6 @@ public class OCUtils
         dateStr += " - " + sdf.format(calendar.getTime());
         return dateStr;
     }
-    public static MessageCreateSpec generateRecEmbedMessage(int season, DailyRecommendation rec, String c1PeakRole, String squawkboxRole)
-    {
-
-        var messageSpec = MessageCreateSpec.builder();
-
-
-        if(rec.isTentative())
-        {
-            var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations");
-            builder.timestamp(Instant.now());
-            messageSpec.content("Tentative rec detected! <@&"+c1PeakRole+">");
-
-            //builder.color(Color.RED);
-            if(rec.isRestRecommended())
-            {
-                builder.addField("Tentative Recommendation",getRestText(), false);
-            }
-
-            else
-            {
-                boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.getBestRec().getGrooveBonus() > 0);
-                builder.addField("Tentative Recommendation", rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), inline)
-                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
-
-                if(rec.getBestRec().getStartingGroove() != 0)
-                    builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue() + cowriesEmoji, true);
-
-                if(rec.getBestRec().getGrooveBonus() > 0)
-                    builder.addField("Estimated Bonus", String.valueOf(rec.getBestRec().getGrooveBonus()), true);
-            }
-            builder.addField("\u200B", "\u200B", false)
-                    .addField("Required Info", rec.getTroublemakers().stream().map(Item::getDisplayName).collect(Collectors.joining(", ")), true)
-                    .addField("Optional Info", rec.getBystanders().stream().map(Item::getDisplayName).collect(Collectors.joining(", ")), true);
-
-            /*var timeToComplete = Instant.now().truncatedTo(ChronoUnit.HOURS).plus(9, ChronoUnit.HOURS);
-            builder.addField("Estimated Completion", "<t:"+timeToComplete.getEpochSecond()+":R>", true);*/
-            messageSpec.addEmbed(builder.build());
-        }
-        else
-        {
-            messageSpec.content("<@&"+squawkboxRole+">"+getFlavorText(rec));
-            messageSpec.addEmbed(getGeneralRecEmbed(season, rec, true));
-        }
-
-
-        return messageSpec.build();
-    }
 
     public static EmbedCreateSpec getPeaksEmbed(List<ItemInfo> items, int week)
     {
@@ -164,112 +117,8 @@ public class OCUtils
         }
         return builder.build();
     }
-
-    public static EmbedCreateSpec getGeneralRecEmbed(int season, DailyRecommendation rec, boolean mainrecs)
-    {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations for Rank "+rec.getMaxRank());
-
-        if(mainrecs)
-            builder.title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations");
-        builder.timestamp(Instant.now());
-
-        if(rec.isRestRecommended())
-        {
-            builder.color(Color.SUMMER_SKY).addField("Main Recommendation",getRestText(), false);
-
-            boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems()) && rec.getBestRec().getSubItems().size()>0;
-            String title = ws4Diff?"First 3 Workshops":"All Workshops";
-            //Show one alt
-            builder.addField("If You Can't Rest...", "||**"+title+":**\n"+rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
-            if(ws4Diff)
-                builder.addField(".", "||**4th Workshop**\n"+rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true);
-            builder.addField("Grooveless Value","||"+rec.getGroovelessValue()+"||", true);
-        }
-        else
-        {
-            boolean ws4Diff = !rec.getBestRec().getItems().equals(rec.getBestRec().getSubItems()) && rec.getBestRec().getSubItems().size() > 0;
-
-            String title = ws4Diff?"First 3 Workshops":"All Workshops";
-            builder.color(Color.SEA_GREEN);
-            if(rec.getOldRec() != null)
-            {
-                builder.title("Cycle "+(rec.getDay()+1)+" Update!").color(Color.MOON_YELLOW);
-                title = "Updated Recommendation";
-            }
-
-            builder.addField(title, rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
-            if(ws4Diff)
-                builder.addField("4th Workshop", rec.getBestRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
-
-            builder.addField("", "", false);
-            builder.addField("Grooveless Value", rec.getGroovelessValue() + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
-
-            if(rec.getBestRec().getStartingGroove() != 0)
-                    builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue() + cowriesEmoji, true);
-
-            if(rec.getBestRec().getGrooveBonus() > 0)
-                builder.addField("Estimated Bonus", String.valueOf(rec.getBestRec().getGrooveBonus()), true);
-
-
-            if(rec.getOldRec() != null)
-            {
-                builder.addField("", "", false);
-
-                builder.addField("Original Recommendation", rec.getOldRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
-                builder.addField("4th Workshop", rec.getOldRec().getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
-
-                builder.addField("", "", false);
-                builder.addField("Grooveless Value", rec.getOldGrooveless()+(rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
-
-                if(rec.getBestRec().getStartingGroove() != 0)
-                        builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getOldRec().getValue()+ cowriesEmoji, true);
-
-                if(rec.getOldRec().getGrooveBonus() > 0)
-                    builder.addField("Estimated Bonus", String.valueOf(rec.getOldRec().getGrooveBonus()), true);
-            }
-        }
-
-
-
-        if(rec.size() > 1 && rec.getOldRec() == null)
-        {
-            if(!mainrecs)
-            {
-                //Add alts also
-                //builder.addField("\u200B", "\u200B", false);
-                builder.addField("", "", false);
-
-                StringBuilder altSb = new StringBuilder();
-                StringBuilder grossSb = new StringBuilder();
-                for(int i = 0; i < altsToDisplay && i < rec.size(); i++)
-                {
-                    var alt = rec.get(i);
-                    String altText = "**"+alt.getValue().getWeighted() +"**\u00A0\u00A0" + alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
-                    altSb.append(altText).append('\n');
-                    grossSb.append(alt.getValue().getWeighted()).append('\n');
-                }
-                altSb.setLength(altSb.length()-1);
-                grossSb.setLength(grossSb.length()-1);
-
-                builder.addField("Alternatives by Value", altSb.toString(), true);
-                       // .addField("Weighted Value", grossSb.toString(), true);
-                //.addField("Net", netSb.toString(), true);
-            }
-            else
-            {
-                builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
-                        "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);
-            }
-        }
-        return builder.build();
-    }
     private static List<String> squawks = List.of("*squawk*", "*brawk*", "*SQUAWK*", "*braaaaawk*", "*SQUAAAAAWK*", "*squawk*", "*brawk*","*squawk*", "*brawk*","*squawk*");
     private static List<String> comfort = List.of(" It's okay.", " Don't worry.", " It's intended.", " It's fine.", " Everything's fine.", " *squawk*", "");
-    public static String getFlavorText(RestOfWeekRec rec)
-    {
-        return _getFlavorText(rec.getRecs());
-    }
-
     public static String getFlavorText(List<ArchiveSchedule> schedules)
     {
         List<CycleSchedule> cycles = new ArrayList<>();
@@ -284,13 +133,6 @@ public class OCUtils
             }
         }
         return _getFlavorText(cycles);
-    }
-    public static String getFlavorText(DailyRecommendation rec)
-    {
-        List<CycleSchedule> recs = new ArrayList<>();
-        if(!rec.isRestRecommended())
-            recs.add(rec.getBestRec());
-        return _getFlavorText(recs);
     }
     private static String _getFlavorText(List<CycleSchedule> list)
     {
@@ -383,8 +225,10 @@ public class OCUtils
                     builder.addField(".", "**4th Workshop**\n"+rec.getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
 
                 builder.addField("","",false)
-                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
-                        .addField("With "+ rec.getStartingGroove() +" Groove", rec.getValue()+ cowriesEmoji, true);
+                        .addField("Grooveless Value", rec.getGroovelessValue() + (rec.getStartingGroove() == 0? cowriesEmoji : ""), true);
+
+                if(rec.getStartingGroove() != 0)
+                    builder.addField("With "+ rec.getStartingGroove() +" Groove", rec.getValue() + cowriesEmoji, true);
             }
             if(i == 2)
             {
@@ -474,11 +318,11 @@ public class OCUtils
             int grooveless = rec.getValue();
             rec.setStartingGroove(groove);
             int grooveful = rec.getValue();
-            builder.addField("Grooveless Value", (rest?"||":"") + grooveless + (rest?"||":""), true);
-            builder.addField("With "+groove+" Groove", (rest?"||":"") + grooveful + (rest?"||":""), true);
+            builder.addField("Grooveless Value", (rest?"||":"") + grooveless + (rest?"||":groove==0?cowriesEmoji:""), true);
+            if(!rest && groove > 0)
+                builder.addField("With "+groove+" Groove", grooveful+cowriesEmoji, true);
             builder.addField("", "", false);
         }
-
     }
 
     private static String getRestText()
