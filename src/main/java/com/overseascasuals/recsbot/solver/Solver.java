@@ -286,62 +286,65 @@ public class Solver
                 LOG.info("Setting item {} to ratio {} and peak {}", items[i].item, items[i].popularityRatio, items[i].peak);
             }
 
-            //Load previous crafts from db
-            for(int i=1; i<=6; i++)
+            if("live".equals(activeProfile))
             {
-                CycleCraft crafts = craftRepository.findCraftsByDay(week, i, maxIslandRank);
-                if(crafts == null)
+                //Load previous crafts from db
+                for(int i=1; i<=6; i++)
                 {
-                    LOG.info("No history found for day {}, assuming we need to run recs", i+1);
-                    continue;
-                }
-
-                LOG.info("Found history for day {}: {}", i+1, crafts);
-                if(crafts.getCraft1() == null || crafts.getCraft1().isEmpty())
-                {
-                    LOG.info("Found rest day on day {}", i+1);
-                    rested = i;
-                    dailySchedules.put(i, new ScheduleSet());
-                }
-                else
-                {
-                    List<ItemInfo> todaysItems = new ArrayList<>();
-                    var craftsAsItems = crafts.getCrafts();
-                    var subcraftsAsItems = crafts.getSubcrafts();
-                    for(int c=0; c<craftsAsItems.size(); c++)
+                    CycleCraft crafts = craftRepository.findCraftsByDay(week, i, maxIslandRank);
+                    if(crafts == null)
                     {
-                        Item item = craftsAsItems.get(c);
-                        ItemInfo itemInfo = items[item.ordinal()];
-                        todaysItems.add(itemInfo);
-                        int numToAdd = 3;
-                        if(c>0 && itemInfo.getsEfficiencyBonus(todaysItems.get(c-1)))
-                        {
-                            numToAdd = 6;
-                            groove+=3;
-                        }
-
-                        itemInfo.setCrafted(numToAdd + itemInfo.getCraftedOnDay(i), i);
+                        LOG.info("No history found for day {}, assuming we need to run recs", i+1);
+                        continue;
                     }
-                    todaysItems.clear();
-                    for(int c=0; c<subcraftsAsItems.size(); c++)
+
+                    LOG.info("Found history for day {}: {}", i+1, crafts);
+                    if(crafts.getCraft1() == null || crafts.getCraft1().isEmpty())
                     {
-                        Item item = subcraftsAsItems.get(c);
-                        ItemInfo itemInfo = items[item.ordinal()];
-                        todaysItems.add(itemInfo);
-                        int numToAdd = 1;
-                        if(c>0 && itemInfo.getsEfficiencyBonus(todaysItems.get(c-1)))
-                        {
-                            numToAdd = 2;
-                            groove++;
-                        }
-
-                        itemInfo.setCrafted(numToAdd + itemInfo.getCraftedOnDay(i), i);
+                        LOG.info("Found rest day on day {}", i+1);
+                        rested = i;
+                        dailySchedules.put(i, new ScheduleSet());
                     }
-                    groove = Math.min(groove, getMaxGroove(maxIslandRank));
-                    dailySchedules.put(i, new ScheduleSet(craftsAsItems, subcraftsAsItems));
+                    else
+                    {
+                        List<ItemInfo> todaysItems = new ArrayList<>();
+                        var craftsAsItems = crafts.getCrafts();
+                        var subcraftsAsItems = crafts.getSubcrafts();
+                        for(int c=0; c<craftsAsItems.size(); c++)
+                        {
+                            Item item = craftsAsItems.get(c);
+                            ItemInfo itemInfo = items[item.ordinal()];
+                            todaysItems.add(itemInfo);
+                            int numToAdd = 3;
+                            if(c>0 && itemInfo.getsEfficiencyBonus(todaysItems.get(c-1)))
+                            {
+                                numToAdd = 6;
+                                groove+=3;
+                            }
+
+                            itemInfo.setCrafted(numToAdd + itemInfo.getCraftedOnDay(i), i);
+                        }
+                        todaysItems.clear();
+                        for(int c=0; c<subcraftsAsItems.size(); c++)
+                        {
+                            Item item = subcraftsAsItems.get(c);
+                            ItemInfo itemInfo = items[item.ordinal()];
+                            todaysItems.add(itemInfo);
+                            int numToAdd = 1;
+                            if(c>0 && itemInfo.getsEfficiencyBonus(todaysItems.get(c-1)))
+                            {
+                                numToAdd = 2;
+                                groove++;
+                            }
+
+                            itemInfo.setCrafted(numToAdd + itemInfo.getCraftedOnDay(i), i);
+                        }
+                        groove = Math.min(groove, getMaxGroove(maxIslandRank));
+                        dailySchedules.put(i, new ScheduleSet(craftsAsItems, subcraftsAsItems));
+                    }
+                    LOG.info("groove after day {}: {}", i+1, groove);
+                    startingGroovePerDay.put(i+1, groove);
                 }
-                LOG.info("groove after day {}: {}", i+1, groove);
-                startingGroovePerDay.put(i+1, groove);
             }
 
             this.week = week;
