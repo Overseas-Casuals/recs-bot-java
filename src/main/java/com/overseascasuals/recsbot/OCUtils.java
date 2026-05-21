@@ -422,30 +422,21 @@ public class OCUtils
         return builder.build();
     }
 
-    public static EmbedCreateSpec generateNextWeekEmbed(int season, List<CycleSchedule> recs, int rank)
+    public static EmbedCreateSpec generateNextWeekEmbed(int season, List<DailyRecommendation> recs, int rank)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations for Rank "+rank);
         builder.timestamp(Instant.now());
         //var messageSpec = MessageCreateSpec.builder();
 
         builder.color(Color.SUMMER_SKY);
-        if(recs.size() == 5) //Old next week, no supply info
-        {
-            addPredictiveRec(builder, recs.get(1), 2, false, false);
-            addPredictiveRec(builder, recs.get(4), 3, false, false);
-            addPredictiveRec(builder, recs.get(2), 4, false, false);
-            addPredictiveRec(builder, recs.get(3), 5, false, false);
-            addPredictiveRec(builder, recs.get(0), 6, false, false);
-            builder.addField("Cycle 7", getRestText(),true);
-        }
-        else if(recs.size()==6) //New next week, supply info!
+        if(recs.size()==6) //New next week, supply info!
         {
             for(int i=0;i<recs.size();i++)
             {
-                if(recs.get(i) == null)
+                if(recs.get(i).isRestRecommended())
                     builder.addField("Cycle "+(i+2), getRestText(), rank<15);
                 else
-                    addPredictiveRec(builder, recs.get(i), i+2, false, false);
+                    addPredictiveRec(builder, recs.get(i).getBestRec(), i+2, false, false);
             }
         }
 
@@ -482,7 +473,9 @@ public class OCUtils
             rec.setStartingGroove(0);
             int grooveless = rec.getValue();
             rec.setStartingGroove(groove);
+            int grooveful = rec.getValue();
             builder.addField("Grooveless Value", (rest?"||":"") + grooveless + (rest?"||":""), true);
+            builder.addField("With "+groove+" Groove", (rest?"||":"") + grooveful + (rest?"||":""), true);
             builder.addField("", "", false);
         }
 
@@ -493,23 +486,23 @@ public class OCUtils
         return "<:zzz:1068453995816964176> Rest <:zzz:1068453995816964176>";
     }
 
-    public static List<EmbedCreateSpec> generateThisWeekEmbed(int season, RestOfWeekRec recs, int rank, int total)
+    public static List<EmbedCreateSpec> generateThisWeekEmbed(int season, List<DailyRecommendation> recs, int rank, int total)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Recommendations for Rank "+rank);
         if(rank<0)
             builder.title("Season "+season+" ("+getDateStr(season)+") Fortune-Telling Recommendations");
 
-        int startDay = 8-recs.getRecs().size();
+        int startDay = 8-recs.size();
 
         List<EmbedCreateSpec> embeds = new ArrayList<>();
 
-        for(int i=0; i<recs.getRecs().size(); i++)
+        for(int i=0; i<recs.size(); i++)
         {
             builder.color(Color.SUMMER_SKY);
-            CycleSchedule rec = recs.getRecs().get(i);
-            addPredictiveRec(builder, rec, startDay+i, !recs.isRested() && i==recs.getWorstIndex(), true);
+            CycleSchedule rec = recs.get(i).getBestRec();
+            addPredictiveRec(builder, rec, startDay+i, recs.get(i).isRestRecommended(), true);
 
-            if(recs.getRecs().size() > 4 && i == recs.getRecs().size()/2 - 1)
+            if(recs.size() > 3 && i == recs.size()/2 - 1)
             {
                 embeds.add(builder.build());
                 builder = EmbedCreateSpec.builder();

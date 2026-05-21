@@ -1,26 +1,18 @@
 package com.overseascasuals.recsbot.messages;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.overseascasuals.recsbot.OCUtils;
 import com.overseascasuals.recsbot.data.DailyRecommendation;
 import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.data.ItemInfo;
 import com.overseascasuals.recsbot.data.RestOfWeekRec;
 import com.overseascasuals.recsbot.json.RestService;
-import com.overseascasuals.recsbot.json.TCDay;
-import com.overseascasuals.recsbot.mysql.CraftPeaks;
 import com.overseascasuals.recsbot.mysql.PeakRepository;
-import com.overseascasuals.recsbot.mysql.Popularity;
 import com.overseascasuals.recsbot.mysql.PopularityRepository;
-import com.overseascasuals.recsbot.scheduled.GetPeaksTask;
 import com.overseascasuals.recsbot.solver.Solver;
-import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.NewsChannel;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.InteractionReplyEditMono;
 import org.slf4j.Logger;
@@ -540,11 +532,11 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             return event.editReply(e.getMessage());
         }
 
-        RestOfWeekRec recs = null;
+        List<DailyRecommendation> recs = null;
 
         try
         {
-            recs = solver.getThisWeekResult(rank, items);
+            recs = solver.getRecForDayOn(day+1, rank, items, false);
         }
         catch(NullPointerException e)
         {
@@ -558,7 +550,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         else if(items.size()>0)
             content = "Not using any rare materials.";
 
-        if(recs == null || recs.getRecs() == null || recs.getRecs().size() == 0)
+        if(recs == null || recs.size() == 0)
         {
             LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
             return event.editReply("No rest of week recs returned. <@"+miennaID+">");
@@ -652,118 +644,5 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             }
         }
         return items;
-    }
-
-    private InteractionReplyEditMono deferredAltsCommand(ChatInputInteractionEvent event)
-    {
-        try{
-            int rank = maxIslandRank;
-            if(event.getOption("rank").isPresent())
-            {
-                rank = Math.toIntExact(event.getOption("rank")
-                        .flatMap(ApplicationCommandInteractionOption::getValue)
-                        .map(ApplicationCommandInteractionOptionValue::asLong).get());
-            }
-
-            List<Item> items;
-            try
-            {
-                items = getItemsFromEvent(event);
-            }
-            catch(IllegalArgumentException e)
-            {
-                LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-                return event.editReply(e.getMessage());
-            }
-
-
-            var calendar = Calendar.getInstance();
-            calendar.setTime(new Date());
-
-            var d1 = new Date(1661241600000L);
-            var d2 = new Date();
-
-            int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
-            int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
-
-
-
-            if(day == 6)
-            {
-                LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-                return event.editReply("It's Cycle 7! Set Cycle 1 of next season to rest, like always.");
-            }
-
-            //If we don't have this, it's because we haven't run recs at all
-            //So run recs to get things all set up
-            if(!solver.hasRunRecs)
-            {
-                LOG.info("Haven't run recs yet. Doing so now.");
-                solver.getDailyRecommendations(week, day, true);
-            }
-
-            if(Math.min(3,day) > solver.getDay() || week != solver.getWeek())
-            {
-                LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-                return event.editReply("Don't have peak info for the current day. Wait until recs get run!");
-            }
-
-
-            String content = "";
-            if(items.size()>0 && items != Solver.rareMatItems)
-                content = "Not using "+ items.stream().map(Item::getDisplayName).collect(Collectors.joining(", "));
-            else if(items.size()>0)
-                content = "Not using any rare materials.";
-
-            List<DailyRecommendation> recs = null;
-
-            try
-            {
-                recs = solver.getRecForSingleDay(day+1, rank, items, false, false);
-                if(recs == null || recs.size() == 0 || recs.stream().anyMatch(Objects::isNull))
-                {
-                    LOG.warn("Null/no recs in cache? Trying again");
-                    recs = solver.getRecForSingleDay(day+1, rank, items, true, false);
-                }
-            }
-            catch(NullPointerException e)
-            {
-                LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-                return event.editReply("Not enough crafts to work with. Try ?stockpile.");
-            }
-
-
-
-            if(recs == null || recs.size() == 0 || recs.stream().anyMatch(Objects::isNull))
-            {
-                LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-                return event.editReply("No alt recs returned. <@"+miennaID+">");
-            }
-            else if(day == 4 && recs.size() == 3)
-            {
-                recs.remove(0);
-            }
-            if(recs.size()==1)
-            {
-                //Force rest if we're only predicting single days. Boo.
-                recs.get(0).setRestRecommended(solver.rested==recs.get(0).getDay());
-            }
-
-            List<EmbedCreateSpec> embeds = new ArrayList<>();
-            for(var rec : recs)
-            {
-                embeds.add(OCUtils.getGeneralRecEmbed(week, rec.withRank(rank), false));
-            }
-
-            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-
-            return event.editReply(content).withEmbedsOrNull(embeds);
-        }
-        catch(Exception e)
-        {
-            LOG.error("Error running alts: ", e);
-            return event.editReply("Error running alts. Please open up a recsbot ticket.");
-        }
-
     }
 }
