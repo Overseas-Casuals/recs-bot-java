@@ -266,7 +266,7 @@ public class OCUtils
         return builder.build();
     }
 
-    public static EmbedCreateSpec generateNextWeekEmbed(int season, List<DailyRecommendation> recs, int rank)
+    public static EmbedCreateSpec generateNextWeekEmbed(int season, List<DailyRecommendation> recs, int rank, int total)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations for Rank "+rank);
         builder.timestamp(Instant.now());
@@ -280,16 +280,23 @@ public class OCUtils
                 if(recs.get(i).isRestRecommended())
                     builder.addField("Cycle "+(i+2), getRestText(), rank<15);
                 else
-                    addPredictiveRec(builder, recs.get(i).getBestRec(), i+2, false, false);
+                    addPredictiveRec(builder, recs.get(i), i+2, false, true);
             }
         }
+
+        /*if(total > 0)
+        {
+            builder.addField("","",false);
+            builder.addField("Total Weekly Value", String.format("%,d", total)+cowriesEmoji, false);
+        }*/
 
         //messageSpec.addEmbed(builder.build());
         return builder.build();
     }
 
-    private static void addPredictiveRec(EmbedCreateSpec.Builder builder, CycleSchedule rec, int cycle, boolean rest, boolean showValues)
+    private static void addPredictiveRec(EmbedCreateSpec.Builder builder, DailyRecommendation fullRec, int cycle, boolean rest, boolean showValues)
     {
+        CycleSchedule rec = fullRec.getBestRec();
         boolean ws4Diff = !rec.getItems().equals(rec.getSubItems()) && rec.getSubItems().size() > 0;
         String recString;
         if(!ws4Diff)
@@ -314,13 +321,9 @@ public class OCUtils
         if(showValues)
         {
             int groove = rec.getStartingGroove();
-            rec.setStartingGroove(0);
-            int grooveless = rec.getValue();
-            rec.setStartingGroove(groove);
-            int grooveful = rec.getValue();
-            builder.addField("Grooveless Value", (rest?"||":"") + grooveless + (rest?"||":groove==0?cowriesEmoji:""), true);
+            builder.addField("Grooveless Value", (rest?"||":"") + fullRec.getGroovelessValue() + (rest?"||":groove==0?cowriesEmoji:""), true);
             if(!rest && groove > 0)
-                builder.addField("With "+groove+" Groove", grooveful+cowriesEmoji, true);
+                builder.addField("With "+groove+" Groove", fullRec.getDailyValue()+cowriesEmoji, true);
             builder.addField("", "", false);
         }
     }
@@ -341,10 +344,11 @@ public class OCUtils
         for(int i=0; i<recs.size(); i++)
         {
             builder.color(Color.SUMMER_SKY);
-            CycleSchedule rec = recs.get(i).getBestRec();
+            DailyRecommendation rec = recs.get(i);
             addPredictiveRec(builder, rec, startDay+i, recs.get(i).isRestRecommended(), true);
 
-            if(recs.size() > 3 && i == recs.size()/2 - 1)
+            //Add break after index 2 if size is 6, add break after index 2 if size is 5, index 1 if size is 4 or 3
+            if(recs.size() > 3 && i == (recs.size()-1)/2 )
             {
                 embeds.add(builder.build());
                 builder = EmbedCreateSpec.builder();
