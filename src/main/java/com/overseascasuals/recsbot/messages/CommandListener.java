@@ -496,7 +496,13 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         if(rank == maxIslandRank)
             rank++;
 
-        var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs, rank);
+        int total = 0;
+        for(DailyRecommendation rec : recs)
+        {
+            if(!rec.isRestRecommended())
+                total+=rec.getDailyValue();
+        }
+        var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs, rank, total);
         LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
         return event.editReply().withEmbeds(embed);
     }
@@ -572,7 +578,19 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
         if(rank == maxIslandRank)
             rank++;
-        var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs, rank, -1);
+        int total = -1;
+
+        if(day == 0)
+        {
+            total = 0;
+            for(DailyRecommendation rec : recs)
+            {
+                if(!rec.isRestRecommended())
+                    total+=rec.getDailyValue();
+            }
+        }
+
+        var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs, rank, total);
         LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
 
         return event.editReply(content).withEmbedsOrNull(embed);
