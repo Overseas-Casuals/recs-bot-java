@@ -693,7 +693,7 @@ public class Solver
             if("live".equals(activeProfile))
             {
                 CycleCraft crafts = new CycleCraft();
-                crafts.setCraftID(new CraftID(week, day, rank));
+                crafts.setCraftID(new CraftID(week, day+1, rank));
                 crafts.setCrafts(thisWeekRecs.get(day).items);
                 crafts.setSubcrafts(thisWeekRecs.get(day).subItems);
                 craftRepository.save(crafts);
