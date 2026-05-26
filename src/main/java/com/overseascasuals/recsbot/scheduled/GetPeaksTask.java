@@ -179,11 +179,11 @@ public class GetPeaksTask implements ScheduledTask
                 if (day == startDay)
                 {
                     var nextWeekRecs = solver.getVacationRecs(17);
-                    var nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 17);
-                    channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level next week recs."), error -> LOG.error("Error posting high level next week:", error));
+                    var nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 17, -1);
+                    channel.createMessage().withEmbeds(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level next week recs."), error -> LOG.error("Error posting high level next week:", error));
                     nextWeekRecs = solver.getVacationRecs(6);
-                    nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 6);
-                    channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level next week recs."), error -> LOG.error("Error posting low level next week:", error));
+                    nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 6, -1);
+                    channel.createMessage().withEmbeds(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level next week recs."), error -> LOG.error("Error posting low level next week:", error));
                 }
 
                 //this week
@@ -207,8 +207,8 @@ public class GetPeaksTask implements ScheduledTask
                 channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted high-level today recs."), error -> LOG.error("Error posting high level today:", error));
 
                 channel.createMessage("All commands? posted").block();
-            }*/
-
+            }
+*/
             if (list == null || list.size() == 0)
             {
                 if (day == 0)

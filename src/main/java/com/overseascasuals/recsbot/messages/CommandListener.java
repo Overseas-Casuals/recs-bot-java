@@ -504,7 +504,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         }
         var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs, rank, total);
         LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-        return event.editReply().withEmbeds(embed);
+        return event.editReply().withEmbedsOrNull(embed);
     }
 
     private InteractionReplyEditMono deferredThisWeekCommand(ChatInputInteractionEvent event)
