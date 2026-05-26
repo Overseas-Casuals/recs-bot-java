@@ -41,7 +41,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
     private final int maxIslandRank = Solver.maxIslandRank;
 
-
     @Autowired
     Solver solver;
 
@@ -460,9 +459,16 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         int rank = maxIslandRank;
         if(event.getOption("rank").isPresent())
         {
-            rank = Math.toIntExact(event.getOption("rank")
-                    .flatMap(ApplicationCommandInteractionOption::getValue)
-                    .map(ApplicationCommandInteractionOptionValue::asLong).get());
+            try
+            {
+                rank = Math.toIntExact(event.getOption("rank")
+                        .flatMap(ApplicationCommandInteractionOption::getValue)
+                        .map(ApplicationCommandInteractionOptionValue::asLong).get());
+            }
+            catch (Exception e)
+            {
+                return event.editReply("Try a rank between 1 and 20");
+            }
         }
         if(!solver.hasRunRecs)
         {
@@ -487,7 +493,8 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
               return event.editReply("Rank "+rank+" too low to use vacation presets. Check out ?leveling to get presets to use while you level!");
         }
 
-        LOG.info("Returning next week from cache");
+        if(rank == maxIslandRank)
+            rank++;
 
         var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs, rank);
         LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
@@ -499,9 +506,16 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         int rank = maxIslandRank;
         if(event.getOption("rank").isPresent())
         {
-            rank = Math.toIntExact(event.getOption("rank")
-                    .flatMap(ApplicationCommandInteractionOption::getValue)
-                    .map(ApplicationCommandInteractionOptionValue::asLong).get());
+            try
+            {
+                rank = Math.toIntExact(event.getOption("rank")
+                        .flatMap(ApplicationCommandInteractionOption::getValue)
+                        .map(ApplicationCommandInteractionOptionValue::asLong).get());
+            }
+            catch (Exception e)
+            {
+                return event.editReply("Try a rank between 1 and 20");
+            }
         }
 
         var d1 = new Date(1661241600000L);
@@ -556,6 +570,8 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             return event.editReply("No rest of week recs returned. <@"+miennaID+">");
         }
 
+        if(rank == maxIslandRank)
+            rank++;
         var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs, rank, -1);
         LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
 
@@ -567,9 +583,16 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         int rank = maxIslandRank;
         if(event.getOption("rank").isPresent())
         {
-            rank = Math.toIntExact(event.getOption("rank")
+            try
+            {
+                rank = Math.toIntExact(event.getOption("rank")
                     .flatMap(ApplicationCommandInteractionOption::getValue)
                     .map(ApplicationCommandInteractionOptionValue::asLong).get());
+            }
+            catch (Exception e)
+            {
+                return event.editReply("Try a rank between 1 and 20");
+            }
         }
 
         TimeZone timeZone = TimeZone.getTimeZone("UTC");
@@ -601,6 +624,8 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             return event.editReply("No rest of day recs returned. <@"+miennaID+">");
         }
 
+        if(rank == maxIslandRank)
+            rank++;
         var embed = OCUtils.generateTodayEmbed(week, day, hoursLeft, recs, rank);
 
         LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
