@@ -183,6 +183,7 @@ public class Solver
     public List<ArchiveSchedule> archiveRecs = null;
     private int groove = 0;
     public int rested = -1;
+    public int canonRested = -1;
     private boolean c5WorstFuture = false;
     private int c5AverageValue = 0;
     private final Set<Item> reservedItems = new HashSet<>();
@@ -261,6 +262,7 @@ public class Solver
             startingGroovePerDay.put(0,0);
             startingGroovePerDay.put(1,0);
             rested = -1;
+            canonRested = -1;
             groove = 0;
             c5WorstFuture = false;
             reservedItems.clear();
@@ -298,6 +300,7 @@ public class Solver
                     {
                         LOG.info("Found rest day on day {}", i+1);
                         rested = i;
+                        canonRested = i;
                         dailySchedules.put(i, new ScheduleSet());
                     }
                     else
@@ -428,6 +431,7 @@ public class Solver
             }
             totalValue = setArchiveValues(listOfRecs, maxIslandRank);
         }
+        rested = canonRested;
 
         LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
 
@@ -533,10 +537,6 @@ public class Solver
 
     public List<DailyRecommendation> getRecForDayOn(int dayToSolve, int rank, List<Item> limitedItems, boolean force)
     {
-        return getRecForDayOn(dayToSolve, rank, limitedItems, force, true);
-    }
-    public List<DailyRecommendation> getRecForDayOn(int dayToSolve, int rank, List<Item> limitedItems, boolean force, boolean checkRest)
-    {
         String cacheKey = getKeyForAltRequest(dayToSolve, rank, limitedItems);
         if(!force && cachedAltRecs.containsKey(cacheKey))
         {
@@ -552,82 +552,84 @@ public class Solver
             for(Item item: limitedItems)
                 limitedUse.put(item, 0);
         }
-        List<DailyRecommendation> recs = new ArrayList<>();
+
+
+        Map<Integer, List<DailyRecommendation>> recsByRestDay = new HashMap<>();
+        int bestDayToRest = -1;
+        int bestValueWhenResting = -1;
+        List<Integer> restDaysToCheck = new ArrayList<>();
+
         LOG.info("Solving recs for C{}, rank {}",(dayToSolve+1), rank);
 
-        while(dayToSolve < 7)
+        if(canonRested > 0 && canonRested < dayToSolve)
         {
-            if (dayToSolve == 4)
-            {
-                recs.addAll(getLateDays(rank, limitedUse));
-                break;
-            }
-            if(dayToSolve == 5)
-            {
-                recs.addAll(getLastTwoDays(rank, limitedUse));
-                break;
-            }
+            LOG.info("We have already rested. Don't worry too hard.");
+            rested = canonRested;
+            restDaysToCheck.add(canonRested);
+        }
+        else
+        {
+            for(int i=dayToSolve; i<7; i++)
+                restDaysToCheck.add(i);
+        }
+        int initialDayToSolve = dayToSolve;
 
-            DailyRecommendation rec;
-            var todayRecs =  getBestBruteForceSchedules(dayToSolve, getStartingGroove(dayToSolve, rank),
-                    limitedUse, dayToSolve, alternatives, rank);
-            if(todayRecs == null || todayRecs.size() == 0)
-                return null;
-            var bestSchedule = todayRecs.getBestRec();
-            boolean shouldRest = false;
+        for(int restDay : restDaysToCheck)
+        {
+            rested = restDay;
+            LOG.info("Checking best weekly value if resting on C"+(rested+1));
+            dayToSolve = initialDayToSolve;
+            List<DailyRecommendation> recs = new ArrayList<>();
 
-            if(checkRest && !restedAlready(dayToSolve - 1)) //If we haven't already rested, check to see if we should now
+            groove = getStartingGroove(dayToSolve, rank);
+
+            while(dayToSolve < 7)
             {
-                if(day < 2 && isWorseThanAllFollowing(bestSchedule, dayToSolve, false, rank, limitedUse))
-                    shouldRest = true;
-                else if(day == 2)
+                if (dayToSolve == 4)
                 {
-                    boolean worst = isWorseThanAllFollowing(bestSchedule,  dayToSolve, true, rank, limitedUse);
-                    if(c5WorstFuture)
-                    {
-                        LOG.info("C5 is the worst future day, so seeing if C4+C5 is better than C4 alone");
-                        var possibleRecs = getBestBruteForceSchedules(dayToSolve, getStartingGroove(dayToSolve, rank),  limitedUse, dayToSolve + 1, alternatives, rank);
-                        int recalced4Value = possibleRecs.getBestRec().getWeightedValue();
-                        if(recalced4Value > c5AverageValue)
-                        {
-                            todayRecs = possibleRecs;
-                            bestSchedule = todayRecs.getBestRec();
-                            LOG.info("It is! Using C4 schedule {} ({})", bestSchedule, bestSchedule.getWeightedValue());
-                        }
-                        else
-                        {
-                            LOG.info("Recalced C4 schedule {} ({}) is still worse. Resting.", possibleRecs.getBestRec(), recalced4Value);
-                            shouldRest = true;
-                        }
-                    }
-                    else if(worst)
-                        shouldRest = true;
-                    else
-                    {
-                        LOG.info("Can't guarantee resting C5 or C4");
-                    }
+                    recs.addAll(getLateDays(rank, limitedUse, groove, rested));
+                    break;
                 }
+                if(dayToSolve == 5)
+                {
+                    recs.addAll(getLastTwoDays(rank, limitedUse, groove, rested));
+                    break;
+                }
+
+                DailyRecommendation rec;
+                var todayRecs =  getBestBruteForceSchedules(dayToSolve, groove,
+                        limitedUse, dayToSolve, alternatives, rank);
+                if(todayRecs == null || todayRecs.size() == 0)
+                    return null;
+                var bestSchedule = todayRecs.getBestRec();
+                boolean shouldRest = dayToSolve == rested;
+
+                rec = new DailyRecommendation(dayToSolve, rank, todayRecs, bestSchedule, shouldRest);
+                recs.add(rec);
+                addCraftedFromCycle(rec.getDay(), rec.isRestRecommended()?null:rec.getBestRec(), rank);
+
+                dayToSolve++;
             }
 
-            if(shouldRest)
+            recsByRestDay.put(restDay, recs);
+            int value = getTotalForRecs(recs, true);
+            LOG.info("Value when resting C"+(restDay+1)+": "+value);
+            if(value > bestValueWhenResting)
             {
-                LOG.info("Should rest");
-                rested = dayToSolve;
+                LOG.info("Value better than previous rest day, saving as best");
+                bestValueWhenResting = value;
+                bestDayToRest = restDay;
             }
-
-            rec = new DailyRecommendation(dayToSolve, rank, todayRecs, bestSchedule, shouldRest);
-            recs.add(rec);
-            addCraftedFromCycle(rec.getDay(), rec.isRestRecommended()?null:rec.getBestRec(), rank);
-
-            dayToSolve++;
         }
 
 
+        LOG.info("Best day to rest is "+bestDayToRest);
+
         LOG.info("Caching results for "+cacheKey);
-        cachedAltRecs.put(cacheKey, new ArrayList<>(recs));
+        cachedAltRecs.put(cacheKey, new ArrayList<>(recsByRestDay.get(bestDayToRest))); //I don't think I actually need to do this anymore but I'm too scared to change it
+                                                                                        //Specifically, OCUtils no longer modifies the rec so it shouldn't matter?
 
-
-        return recs;
+        return recsByRestDay.get(bestDayToRest);
     }
 
     private void clearDayUsage(List<Integer> days)
@@ -682,6 +684,10 @@ public class Solver
             int groovelessValue = sched.getValue();
             sched.setStartingGroove(groove);
             int groovedValue = sched.getValue();
+
+            if(groovedValue == 0)
+                canonRested = day+1;
+
             addCraftedFromCycle(day+1, sched, maxIslandRank);
             dailySchedules.put(day+1, thisWeekRecs.get(day));
 
@@ -915,20 +921,14 @@ public class Solver
         LOG.info("Resting for late-week C{} ", day+1);
         recommendations.add(newRec);
     }
-    public List<DailyRecommendation> getLateDays(int rank, Map<Item, Integer> limitedUse)
+    public List<DailyRecommendation> getLastTwoDays(int rank, Map<Item, Integer> limitedUse, int startingGroove, int restDay)
     {
-        return getLateDays(rank, limitedUse, -1);
-    }
-
-    public List<DailyRecommendation> getLastTwoDays(int rank, Map<Item, Integer> limitedUse)
-    {
-        int startingGroove = getStartingGroove(5, rank);
         List<DailyRecommendation> recs = new ArrayList<>();
 
         var cycle6Sched = getBestBruteForceSchedules(5, startingGroove, limitedUse, 6, alternatives, rank);
         var cycle7Sched = getBestBruteForceSchedules(6, startingGroove, limitedUse, 6, alternatives, rank);
 
-        if(restedAlready(4))
+        if(restDay < 5) //Use both days
         {
             addCraftedFromCycle(5, cycle6Sched.getBestRec(), rank);
             int nextGroove6 = cycle6Sched.getBestRec().getEndingGroove();
@@ -946,47 +946,56 @@ public class Solver
 
             if(basedOn7Total > basedOn6Total)
             {
-                LOG.info("7 > 6 {}: {} + {}\n{}: {} + {}", basedOn7Total,recalced6Sched.get(0),updated7Sched.get(0), basedOn6Total, cycle6Sched.get(0), recalced7Sched.get(0));
+                //LOG.info("7 > 6 {}: {} + {}\n{}: {} + {}", basedOn7Total,recalced6Sched.get(0),updated7Sched.get(0), basedOn6Total, cycle6Sched.get(0), recalced7Sched.get(0));
                 addDailyRecToList(recalced6Sched, 5, startingGroove, rank, recs);
                 addDailyRecToList(updated7Sched, 6, nextGroove7, rank, recs);
             }
             else
             {
-                LOG.info("6 >= 7 {}: {} + {}\n{}: {} + {}",  basedOn6Total, cycle6Sched.get(0), recalced7Sched.get(0), basedOn7Total,recalced6Sched.get(0),updated7Sched.get(0));
+                //LOG.info("6 >= 7 {}: {} + {}\n{}: {} + {}",  basedOn6Total, cycle6Sched.get(0), recalced7Sched.get(0), basedOn7Total,recalced6Sched.get(0),updated7Sched.get(0));
                 addDailyRecToList(cycle6Sched, 5, startingGroove, rank, recs);
                 addDailyRecToList(recalced7Sched, 6, nextGroove6, rank, recs);
             }
 
         }
-        else
-        {
-            if(cycle7Sched.getBestRec().getWeightedValue() > cycle6Sched.getBestRec().getWeightedValue())
+        else if(restDay == 5)
             {
                 var newLimited = cycle7Sched.getBestRec().getLimitedUses(limitedUse);
                 addRestToList(getBestBruteForceSchedules(5, startingGroove, newLimited, 6, alternatives, rank), 5, rank, recs);
                 addDailyRecToList(cycle7Sched, 6, startingGroove, rank, recs);
             }
-            else
-            {
-                addDailyRecToList(cycle6Sched, 5, startingGroove, rank, recs);
-                addRestToList(getBestBruteForceSchedules(6, startingGroove, limitedUse, 6, alternatives, rank), 6, rank, recs);
-            }
+        else if(restDay == 6)
+        {
+            addDailyRecToList(cycle6Sched, 5, startingGroove, rank, recs);
+            addRestToList(getBestBruteForceSchedules(6, startingGroove, limitedUse, 6, alternatives, rank), 6, rank, recs);
         }
+
         return recs;
     }
 
-    private int getTotalForRecs(List<DailyRecommendation> recs)
+    private int getTotalForRecs(List<DailyRecommendation> recs, boolean display)
     {
         int total = 0;
         for(DailyRecommendation rec : recs)
         {
+            int value = rec.getDailyValue();
+
             if(!rec.isRestRecommended())
-                total += rec.getDailyValue();
+            {
+                if(display)
+                    LOG.info("Value for C"+(rec.getDay()+1)+" grooveless "+rec.getGroovelessValue()+", with "+rec.getBestRec().getStartingGroove()+" groove: "+value);
+
+                total += value;
+            }
+            else if(display)
+            {
+                LOG.info("Value for C"+(rec.getDay()+1)+" grooveless "+rec.getGroovelessValue()+" (REST)");
+            }
         }
         return total;
     }
 
-    public List<DailyRecommendation> getLateDays(int rank, Map<Item, Integer> limitedUse, int startingGroove)
+    public List<DailyRecommendation> getLateDays(int rank, Map<Item, Integer> limitedUse, int startingGroove, int restDay)
     {
         clearLateDayUsage();
 
@@ -996,7 +1005,7 @@ public class Solver
 
         // I'm just hardcoding this, This could almost certainly be improved
         List<DailyRecommendation> c5Recs = new ArrayList<>();
-        //if (bestDay == 4) // Day 5 is best
+        if (rested != 4) //Only calc on C5 if we aren't resting C5
         {
             cycle5Sched = getBestBruteForceSchedules(4, startingGroove, limitedUse, 6, alternatives, rank);
             LOG.info("Calcing based on c5");
@@ -1006,22 +1015,22 @@ public class Solver
             cycle6Sched = getBestBruteForceSchedules(5, newStartingGroove, limitedUse, 6, alternatives, rank);
             cycle7Sched = getBestBruteForceSchedules(6, newStartingGroove, limitedUse, 6, alternatives, rank);
 
-            if(rested < 0 || rested >= 4)
+            if(rested > 4) //Rested later
             {
-                //Haven't rested, need to pick 5 or 7
-                if(cycle6Sched.getBestRec().getWeightedValue() > cycle7Sched.getBestRec().getWeightedValue())
+                //Haven't rested, need to pick 6 or 7
+                if(rested==6)
                 {
                     addDailyRecToList(cycle6Sched, 5, newStartingGroove, rank, c5Recs);
                     addRestToList(getBestBruteForceSchedules(6, newStartingGroove, limitedUse, 6, alternatives, rank), 6, rank, c5Recs);
                 }
-                else
+                else if(rested==5)
                 {
                     var newLimited = cycle7Sched.getBestRec().getLimitedUses(limitedUse);
                     addRestToList(getBestBruteForceSchedules(5, newStartingGroove, newLimited, 6, alternatives, rank), 5, rank, c5Recs);
                     addDailyRecToList(cycle7Sched, 6, newStartingGroove, rank, c5Recs);
                 }
             }
-            else //Using all 3
+            else //Rested earlier, using all 3
             {
                 addCraftedFromCycle(5, cycle6Sched.getBestRec(), rank);
                 var recalced7Sched = getBestBruteForceSchedules(6, newStartingGroove, limitedUse, 6, alternatives, rank);
@@ -1046,30 +1055,30 @@ public class Solver
         groove = startingGroove;
         clearLateDayUsage();
         List<DailyRecommendation> c7Recs = new ArrayList<>();
-        //else if (bestDay == 6) // Day 7 is best
+        if (rested != 6) // Only calc based on C7 if we aren't resting C7
         {
             cycle7Sched = getBestBruteForceSchedules(6, startingGroove, limitedUse, 6, alternatives, rank);
             LOG.info("Calcing based on c7");
             Map<Item,Integer> reserved7Set = cycle7Sched.getBestRec().getLimitedUses(limitedUse);
 
-            if(rested < 0 || rested >= 4)//We only care about one of 5 or 6
+            if(rested == 4 || rested == 5) //We only care about one of 5 or 6
             {
                 cycle5Sched = getBestBruteForceSchedules(4, startingGroove, reserved7Set, 6, alternatives, rank);
                 cycle6Sched = getBestBruteForceSchedules(5, startingGroove, reserved7Set, 6, alternatives, rank);
 
-                if(cycle5Sched.getBestRec().getWeightedValue() > cycle6Sched.getBestRec().getWeightedValue())
+                if(rested == 5)
                 {
                     addDailyRecToList(cycle5Sched, 4, startingGroove, rank, c7Recs);
                     addRestToList(getBestBruteForceSchedules(5, startingGroove, reserved7Set, 6, alternatives, rank), 5, rank, c7Recs);
                 }
-                else
+                else //if(rested == 4)
                 {
                     var newLimited = cycle6Sched.getBestRec().getLimitedUses(reserved7Set);
                     addRestToList(getBestBruteForceSchedules(4, startingGroove, newLimited, 6, alternatives, rank), 4, rank, c7Recs);
                     addDailyRecToList(cycle6Sched, 5, startingGroove, rank, c7Recs);
                 }
             }
-            else
+            else //Rested earlier, using all 3 schedules
             {
                 cycle5Sched = getBestBruteForceSchedules(4, startingGroove, reserved7Set, 6, alternatives, rank);
 
@@ -1119,10 +1128,10 @@ public class Solver
         groove = startingGroove;
         clearLateDayUsage();
         List<DailyRecommendation> c6Recs = new ArrayList<>();
-        //else // Best day is Day 6
+        if(rested != 5) // Only calc based on C6 if we aren't resting C6
         {
             cycle6Sched = getBestBruteForceSchedules(5, startingGroove, limitedUse, 6, alternatives, rank);
-            LOG.info("Calcing based on c6");
+            //LOG.info("Calcing based on c6");
             addCraftedFromCycle(5, cycle6Sched.getBestRec(), rank);
 
             Map<Item,Integer> reserved6 = cycle6Sched.getBestRec().getLimitedUses(limitedUse);
@@ -1144,23 +1153,23 @@ public class Solver
             var onlyCycle5Sched = getBestBruteForceSchedules(4, startingGroove,
                     reservedOnly6, 6, alternatives, rank);
 
-            if(rested < 0 || rested >= 4)
+            if(rested == 4 || rested == 6)
             {
                 //We only care about either 5 or 7, not both
-                int best56Combo = cycle6Sched.getBestRec().getWeightedValue() + recalcedCycle5Sched.getBestRec().getWeightedValue();
-                int best67Combo = cycle6Sched.getBestRec().getWeightedValue() + recalcedCycle7Sched.getBestRec().getWeightedValue();
-                int best76Combo = onlyCycle6Sched.getBestRec().getWeightedValue() + onlyCycle7Sched.getBestRec().getWeightedValue();
 
-                int bestOverall = Math.max(best76Combo, Math.max(best67Combo, best56Combo));
-                if(bestOverall == best56Combo)
+                if(rested == 6) //Rested C7
                 {
+                    //Using best 5-6 combo
                     addDailyRecToList(recalcedCycle5Sched, 4, startingGroove, rank, c6Recs);
                     addDailyRecToList(getBestBruteForceSchedules(5, groove, limitedUse, 6, alternatives, rank), 5, groove, rank, c6Recs);
                     addRestToList(getBestBruteForceSchedules(6, groove, limitedUse, 6, alternatives, rank), 6, rank, c6Recs);
                 }
-                else
+                else //rested C5
                 {
-                    if(bestOverall == best67Combo)
+                    int best67Combo = cycle6Sched.getBestRec().getWeightedValue() + recalcedCycle7Sched.getBestRec().getWeightedValue();
+                    int best76Combo = onlyCycle6Sched.getBestRec().getWeightedValue() + onlyCycle7Sched.getBestRec().getWeightedValue();
+
+                    if(best67Combo > best76Combo)
                     {
                         var newLimited = cycle6Sched.getBestRec().getLimitedUses(limitedUse);
                         addRestToList(getBestBruteForceSchedules(4, startingGroove, newLimited, 6, alternatives, rank), 4, rank, c6Recs);
@@ -1194,120 +1203,25 @@ public class Solver
             }
         }
 
-        int c5Value = getTotalForRecs(c5Recs);
-        int c6Value = getTotalForRecs(c6Recs);
-        int c7Value = getTotalForRecs(c7Recs);
+        int c5Value = getTotalForRecs(c5Recs, false);
+        int c6Value = getTotalForRecs(c6Recs, false);
+        int c7Value = getTotalForRecs(c7Recs, false);
         int bestValue = Math.max(c5Value, Math.max(c6Value, c7Value));
 
-        LOG.info("Based on C5 total: {}, Based on C6 total: {}, Based on C7 total: {}", c5Value, c6Value, c7Value);
+        //LOG.info("Based on C5 total: {}, Based on C6 total: {}, Based on C7 total: {}", c5Value, c6Value, c7Value);
         if(bestValue == c5Value)
         {
-            LOG.info("Recs based on C5 are best");
+           // LOG.info("Recs based on C5 are best");
             return c5Recs;
         }
         else if(bestValue == c6Value)
         {
-            LOG.info("Recs based on C6 are best");
+           // LOG.info("Recs based on C6 are best");
             return c6Recs;
         }
-        LOG.info("Recs based on C7 are best");
+      //  LOG.info("Recs based on C7 are best");
         return c7Recs;
     }
-
-    private boolean isWorseThanAllFollowing(CycleSchedule rec,
-            int day, boolean checkC5, int rank, Map<Item,Integer> limitedUse)
-    {
-        int groove = getStartingGroove(day, rank);
-        int worstInFuture = 99999;
-        c5WorstFuture = checkC5;
-        c5AverageValue = 0;
-        int weightedValue = rec.getWeightedValue();
-        LOG.info("Comparing d{} rank {}: {} ({}) to worst-case future days", (day + 1), rank, rec, weightedValue);
-
-
-        Map<Item,Integer> reservedSet = null;
-        if(limitedUse != null)
-            reservedSet = new HashMap<>(limitedUse);
-
-        for (int d = day + 1; d < 7; d++)
-        {
-            CycleSchedule solution = getBestSchedule(d, groove, reservedSet, rank);
-            if(solution == null)
-            {
-                LOG.error("Failed to get rest comparison for day {}. Abandoning rest checks.", d+1);
-                return false;
-            }
-
-            int solutionValue = solution.getWeightedValue();
-            if (day == 3 && d == 4) // We have a lot of info about this specific pair so
-                                    // we might as well use it
-            {
-                c5AverageValue = getD5EV(solution);
-                solutionValue = c5AverageValue;
-                LOG.info("We're on C4, so compare to average value for C5 (instead of worst): "+c5AverageValue);
-            }
-
-            worstInFuture = Math.min(worstInFuture, solutionValue);
-            reservedSet = solution.getLimitedUses(reservedSet);
-            
-            if (checkC5 && solutionValue < c5AverageValue) //If we're checking a later day and it's worse than our best D5
-            {
-                LOG.info("C{} ({}) worse than our C5 estimate ({}), so not guaranteed resting C5.", d+1, solutionValue, c5AverageValue);
-                c5WorstFuture = false;
-            }
-
-        }
-        LOG.info("Worst future day: {}", worstInFuture);
-           // System.out.println("Worst future day: " + worstInFuture);
-
-        return weightedValue <= worstInFuture;
-    }
-
-    // Specifically for comparing D4 to D5
-    public int getD5EV(CycleSchedule solution)
-    {
-        LOG.trace("Testing against D5 solution " + solution);
-        List<ItemInfo> c5Peaks = new ArrayList<>();
-        for (Item item : solution.getItems())
-            if (items[item.ordinal()].peak == Cycle5 && !c5Peaks.contains(items[item.ordinal()]))
-                c5Peaks.add(items[item.ordinal()]);
-        for (Item item : solution.getSubItems())
-            if (items[item.ordinal()].peak == Cycle5 && !c5Peaks.contains(items[item.ordinal()]))
-                c5Peaks.add(items[item.ordinal()]);
-
-
-        int sum = solution.getWeightedValue();
-        int permutations = (int) Math.pow(2, c5Peaks.size());
-        LOG.trace("C5 peaks: " + c5Peaks.size() + ", permutations: " + permutations);
-
-        for (int p = 1; p < permutations; p++)
-        {
-            for (int i = 0; i < c5Peaks.size(); i++)
-            {
-                boolean strong = ((p) & (1 << i)) != 0; // I can't believe I'm using a bitwise and
-                LOG.trace("Checking permutation " + p + " for item "+ c5Peaks.get(i).item + " " + (strong ? "strong" : "weak"));
-                if (strong)
-                    c5Peaks.get(i).peak = Cycle5Strong;
-                else
-                    c5Peaks.get(i).peak = Cycle5Weak;
-            }
-
-            int toAdd = solution.getWeightedValue();
-            LOG.trace("Permutation " + p + " has value " + toAdd);
-            sum += toAdd;
-        }
-
-        LOG.trace("Sum: " + sum + " average: " + sum / permutations);
-        sum /= permutations;
-
-        for (ItemInfo item : c5Peaks)
-        {
-            item.peak = Cycle5; // Set back to normal
-        }
-
-        return sum;
-    }
-
     public BruteForceSchedules getRestOfDayRecs(int day, int hoursLeft, int rank, Item startingItem)
     {
         if(rank > maxIslandRank)
@@ -1376,8 +1290,8 @@ public class Solver
     {
         //generate vacation recs
         var popData = popularityRepository.findByWeek(currentWeek);
-        /*if(!"live".equals(activeProfile))
-            return popData.getPopularity();*/
+        if(!"live".equals(activeProfile))
+            return popData.getPopularity();
 
         LOG.info("Generating vacation recs");
         LOG.info("Getting popularity data for next week: {}", popData.getNextPopularity());
@@ -1406,8 +1320,11 @@ public class Solver
 
         int[] ranks = {5,9,11,15,18};
 
+
         for(int rank : ranks)
         {
+            rested = -1;
+            groove = 0;
             var recs = getRecForDayOn(1, rank, null, true);
             if(recs == null)
                 continue;
@@ -2064,7 +1981,5 @@ public class Solver
             semiSafeSchedules.remove(workshop); // It doesn't seem to update the key when updating the value, so we delete the key first
             semiSafeSchedules.put(workshop, subValue);
         }
-
-
     }
 }
