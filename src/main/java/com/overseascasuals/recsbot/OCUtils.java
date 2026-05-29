@@ -266,12 +266,10 @@ public class OCUtils
         return builder.build();
     }
 
-    public static List<EmbedCreateSpec> generateNextWeekEmbed(int season, List<DailyRecommendation> recs, int rank, int total)
+    public static EmbedCreateSpec generateNextWeekEmbed(int season, List<DailyRecommendation> recs, int rank, int total)
     {
-        List<EmbedCreateSpec> embeds = new ArrayList<>();
-
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations for Rank "+rank);
-
+        builder.timestamp(Instant.now());
         //var messageSpec = MessageCreateSpec.builder();
 
         builder.color(Color.SUMMER_SKY);
@@ -280,29 +278,20 @@ public class OCUtils
             for(int i=0;i<recs.size();i++)
             {
                 if(recs.get(i).isRestRecommended())
-                    builder.addField("Cycle "+(i+2), getRestText(), false);
+                    builder.addField("Cycle "+(i+2), getRestText(), rank<15);
                 else
                     addPredictiveRec(builder, recs.get(i), i+2, false, true);
-
-                //Split in two if we're also showing 4th workshop recs
-                if(i==2 && rank > 15)
-                {
-                    embeds.add(builder.build());
-                    builder = EmbedCreateSpec.builder().color(Color.SUMMER_SKY);
-                }
             }
         }
 
-        if(total > 0)
+        /*if(total > 0)
         {
             builder.addField("","",false);
             builder.addField("Total Weekly Value", String.format("%,d", total)+cowriesEmoji, false);
-        }
+        }*/
 
         //messageSpec.addEmbed(builder.build());
-        builder.timestamp(Instant.now());
-        embeds.add(builder.build());
-        return embeds;
+        return builder.build();
     }
 
     private static void addPredictiveRec(EmbedCreateSpec.Builder builder, DailyRecommendation fullRec, int cycle, boolean rest, boolean showValues)
