@@ -1131,7 +1131,7 @@ public class Solver
         if(rested != 5) // Only calc based on C6 if we aren't resting C6
         {
             cycle6Sched = getBestBruteForceSchedules(5, startingGroove, limitedUse, 6, alternatives, rank);
-            //LOG.info("Calcing based on c6");
+            LOG.info("Calcing based on c6");
             addCraftedFromCycle(5, cycle6Sched.getBestRec(), rank);
 
             Map<Item,Integer> reserved6 = cycle6Sched.getBestRec().getLimitedUses(limitedUse);
@@ -1208,7 +1208,7 @@ public class Solver
         int c7Value = getTotalForRecs(c7Recs, false);
         int bestValue = Math.max(c5Value, Math.max(c6Value, c7Value));
 
-        //LOG.info("Based on C5 total: {}, Based on C6 total: {}, Based on C7 total: {}", c5Value, c6Value, c7Value);
+        LOG.info("Based on C5 total: {}, Based on C6 total: {}, Based on C7 total: {}", c5Value, c6Value, c7Value);
         if(bestValue == c5Value)
         {
            // LOG.info("Recs based on C5 are best");
