@@ -280,7 +280,7 @@ public class OCUtils
                 if(recs.get(i).isRestRecommended())
                     builder.addField("Cycle "+(i+2), getRestText(), rank<15);
                 else
-                    addPredictiveRec(builder, recs.get(i), i+2, false, true);
+                    addPredictiveRec(builder, recs.get(i), i+2, false, false);
             }
         }
 

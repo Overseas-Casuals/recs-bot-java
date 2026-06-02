@@ -174,20 +174,20 @@ public class GetPeaksTask implements ScheduledTask
             peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
             //Test commands
-            /*{
+            {
                 //next week
                 if (day == startDay)
                 {
                     var nextWeekRecs = solver.getVacationRecs(17);
-                    var nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 17);
+                    var nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 17, -1);
                     channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level next week recs."), error -> LOG.error("Error posting high level next week:", error));
                     nextWeekRecs = solver.getVacationRecs(6);
-                    nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 6);
+                    nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 6, -1);
                     channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level next week recs."), error -> LOG.error("Error posting low level next week:", error));
                 }
 
                 //this week
-                if (day < 6)
+               /* if (day < 6)
                 {
                     var thisWeekRecs = solver.getRecForDayOn(day + 1, 10, null, false);
                     var thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 10, day + 1);
@@ -196,18 +196,18 @@ public class GetPeaksTask implements ScheduledTask
                     thisWeekRecs = solver.getRecForDayOn(day + 1, 20, List.of(Item.Macuahuitl), false);
                     thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 20, day + 1);
                     channel.createMessage().withEmbeds(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level this week recs."), error -> LOG.error("Error posting high level this week for C"+(finalDay +2), error));
-                }
+                }*/
 
                 //today
-                var todayRecs = solver.getRestOfDayRecs(day, 22, 10, null);
+                /*var todayRecs = solver.getRestOfDayRecs(day, 22, 10, null);
                 var todayEmbed = OCUtils.generateTodayEmbed(week, day, 22, todayRecs, 10);
                 channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted low-level today recs."), error -> LOG.error("Error posting low level today:", error));
                 todayRecs = solver.getRestOfDayRecs(day, 22, 20, null);
                 todayEmbed = OCUtils.generateTodayEmbed(week, day, 22, todayRecs, 20);
-                channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted high-level today recs."), error -> LOG.error("Error posting high level today:", error));
+                channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted high-level today recs."), error -> LOG.error("Error posting high level today:", error));*/
 
-                channel.createMessage("All commands? posted").block();
-            }*/
+                //channel.createMessage("All commands? posted").block();
+            }
 
             if (list == null || list.size() == 0)
             {
