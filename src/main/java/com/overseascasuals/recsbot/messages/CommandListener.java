@@ -132,7 +132,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
     private InteractionReplyEditMono deferredPeaks(ChatInputInteractionEvent event)
     {
-        List<Item> crafts;
+        Set<Item> crafts;
         try{
             crafts = getItemsFromEvent(event, "craft");
         }
@@ -173,7 +173,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
     }
     private InteractionReplyEditMono deferredFavors(ChatInputInteractionEvent event)
     {
-        List<Item> favorsRaw = null;
+        Set<Item> favorsRaw = null;
         try{
             favorsRaw = getItemsFromEvent(event, "favor");
         }
@@ -541,7 +541,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             solver.getDailyRecommendations(week, day, true);
         }
 
-        List<Item> items;
+        Set<Item> items;
         try
         {
             items = getItemsFromEvent(event);
@@ -651,15 +651,15 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         return event.editReply().withEmbeds(embed);
     }
 
-    private List<Item> getItemsFromEvent(ChatInputInteractionEvent event) throws IllegalArgumentException
+    private Set<Item> getItemsFromEvent(ChatInputInteractionEvent event) throws IllegalArgumentException
     {
         if(event.getOption("no_rare_mats").isPresent() && event.getOption("no_rare_mats").flatMap(ApplicationCommandInteractionOption::getValue).map(ApplicationCommandInteractionOptionValue::asBoolean).get())
             return Solver.rareMatItems;
         return getItemsFromEvent(event, "nocraft");
     }
-    private List<Item> getItemsFromEvent(ChatInputInteractionEvent event, String prefix) throws IllegalArgumentException
+    private Set<Item> getItemsFromEvent(ChatInputInteractionEvent event, String prefix) throws IllegalArgumentException
     {
-        List<Item> items = new ArrayList<>();
+        Set<Item> items = new TreeSet<>(); //TreeSet so list is consistently ordered
         for(int i=1; i<=6; i++)
         {
             if(event.getOption(prefix+i).isPresent())

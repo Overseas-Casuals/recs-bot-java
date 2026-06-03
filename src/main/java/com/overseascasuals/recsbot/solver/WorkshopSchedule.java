@@ -322,7 +322,6 @@ public class WorkshopSchedule
        
         Map<Item, Integer> used = new HashMap<>();
 
-
         /*if(limitedUse.size() == 9 && items.size() == 5 && items.get(0) == Item.CulinaryKnife && items.get(1) == Item.Butter && items.get(2) == Item.Jam
                 && items.get(3) == Item.Butter && items.get(4) == Item.Jam)
             verboseLogging = true;*/
