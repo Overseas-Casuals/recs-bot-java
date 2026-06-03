@@ -93,7 +93,6 @@ public class GetPeaksTask implements ScheduledTask
     private MessageChannel channel;
     private MessageChannel peakChannel;
     private Channel archiveChannel;
-    private MessageChannel fortuneChannel;
 
     @Override
     public String getCron()
@@ -110,7 +109,6 @@ public class GetPeaksTask implements ScheduledTask
                 .cast(MessageChannel.class).block();
         archiveChannel = client.getChannelById(Snowflake.of(archiveChannelID))
                 /*.cast(MessageChannel.class)*/.block();
-        fortuneChannel = client.getChannelById(Snowflake.of(fortuneChannelID)).cast(MessageChannel.class).block();
         this.local = local;
     }
 
@@ -174,9 +172,10 @@ public class GetPeaksTask implements ScheduledTask
             peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
             //Test commands
+            if(local)
             {
                 //next week
-                if (day == startDay)
+                /*if (day == 0)
                 {
                     var nextWeekRecs = solver.getVacationRecs(17);
                     var nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 17, -1);
@@ -184,7 +183,7 @@ public class GetPeaksTask implements ScheduledTask
                     nextWeekRecs = solver.getVacationRecs(6);
                     nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 6, -1);
                     channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level next week recs."), error -> LOG.error("Error posting low level next week:", error));
-                }
+                }*/
 
                 //this week
                /* if (day < 6)
@@ -206,7 +205,7 @@ public class GetPeaksTask implements ScheduledTask
                 todayEmbed = OCUtils.generateTodayEmbed(week, day, 22, todayRecs, 20);
                 channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted high-level today recs."), error -> LOG.error("Error posting high level today:", error));*/
 
-                //channel.createMessage("All commands? posted").block();
+                channel.createMessage("All commands? posted").block();
             }
 
             if (list == null || list.size() == 0)
