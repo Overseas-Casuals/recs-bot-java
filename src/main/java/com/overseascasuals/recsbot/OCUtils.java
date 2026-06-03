@@ -348,7 +348,7 @@ public class OCUtils
             addPredictiveRec(builder, rec, startDay+i, recs.get(i).isRestRecommended(), true);
 
             //Add break after index 2 if size is 6, add break after index 2 if size is 5, index 1 if size is 4 or 3
-            if(recs.size() > 3 && i == (recs.size()-1)/2 )
+            if(recs.size() > 3 && i == (recs.size()-1)/2 && rank >= 15) //Only need to split if showing 4th workshop
             {
                 embeds.add(builder.build());
                 builder = EmbedCreateSpec.builder();
