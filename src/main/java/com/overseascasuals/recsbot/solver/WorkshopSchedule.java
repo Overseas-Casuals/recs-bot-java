@@ -353,7 +353,7 @@ public class WorkshopSchedule
     }
     public Map<Item, Integer> getLimitedUses(Map<Item,Integer> previousLimitedUses, boolean subSchedule)
     {
-        int numWorkshops = 3;
+        int numWorkshops = Solver.getNumWorkshops(rank);
         if(subSchedule)
             numWorkshops = 1;
         Map<Item,Integer> limitedUses;
