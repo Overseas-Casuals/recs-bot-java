@@ -1,6 +1,9 @@
 package com.overseascasuals.recsbot.json;
 
 import com.overseascasuals.recsbot.mysql.CraftPeaks;
+import com.overseascasuals.recsbot.solver.Solver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
@@ -19,6 +22,7 @@ import java.util.Map;
 
 @Service
 public class RestService {
+    Logger LOG = LoggerFactory.getLogger(RestService.class);
     @Value("${peakDB.url}")
     private String peakDbURL;
     private final RestTemplate restTemplate;
@@ -37,6 +41,10 @@ public class RestService {
     public String postPeaks(int week, int day, List<CraftPeaks> peaks) throws RestClientException
     {
         StringBuilder peaksb = new StringBuilder();
+        if(peaks == null || peaks.size()< Solver.items.length)
+        {
+            return "Peaks passed into post peaks method: "+(peaks==null?"null":peaks.size())+", items: "+ Solver.items.length;
+        }
         for(var peak : peaks)
         {
             peaksb.append(peak.getPeak()).append(',');

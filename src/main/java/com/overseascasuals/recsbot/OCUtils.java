@@ -1,11 +1,8 @@
 package com.overseascasuals.recsbot;
 
-import com.overseascasuals.recsbot.data.DailyRecommendation;
-import com.overseascasuals.recsbot.data.Item;
-import com.overseascasuals.recsbot.data.RestOfWeekRec;
-import com.overseascasuals.recsbot.data.WorkshopValue;
+import com.overseascasuals.recsbot.data.*;
 import com.overseascasuals.recsbot.solver.CycleSchedule;
-import com.overseascasuals.recsbot.solver.WorkshopSchedule;
+import com.overseascasuals.recsbot.solver.Solver;
 import discord4j.core.object.entity.Message;
 import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.MessageCreateSpec;
@@ -14,19 +11,21 @@ import discord4j.rest.util.Color;
 
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class OCUtils
 {
-    public static String cowriesEmoji = " <:OC_BlueShell:1035493003655127071>";
+    public static String cowriesEmoji = " <:OC_SeafarerCowrie:1109399604203626536>";
+    public static int altsToDisplay = 5;
     private static String getDateStr(int season)
     {
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d");
-        Calendar calendar = Calendar.getInstance();
+
+        TimeZone timeZone = TimeZone.getTimeZone("UTC");
+        Calendar calendar = Calendar.getInstance(timeZone);
+        sdf.setTimeZone(timeZone);
+
         calendar.setTime(new Date(1661241600000L));
         calendar.add(Calendar.DAY_OF_YEAR, (season-1)*7);
         var month = calendar.get(Calendar.MONTH);
@@ -39,250 +38,294 @@ public class OCUtils
         dateStr += " - " + sdf.format(calendar.getTime());
         return dateStr;
     }
-    public static MessageCreateSpec generateRecEmbedMessage(int season, DailyRecommendation rec, String c1PeakRole, String squawkboxRole)
+
+    public static EmbedCreateSpec getPeaksEmbed(List<ItemInfo> items, int week)
     {
-
-        var messageSpec = MessageCreateSpec.builder();
-
-
-        if(rec.isTentative())
-        {
-            var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations");
-            builder.timestamp(Instant.now());
-            messageSpec.content("Tentative rec detected! <@&"+c1PeakRole+">");
-
-            //builder.color(Color.RED);
-            if(rec.isRestRecommended())
-            {
-                builder.addField("Tentative Recommendation",getRestText(), false);
-            }
-
-            else
-            {
-                boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.get(0).getValue().getGroove() > 0);
-                builder.addField("Tentative Recommendation", rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), inline)
-                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
-
-                if(rec.getBestRec().getStartingGroove() != 0)
-                    builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue() + cowriesEmoji, true);
-
-                if(rec.get(0).getValue().getGroove() > 0)
-                    builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
-            }
-            builder.addField("\u200B", "\u200B", false)
-                    .addField("Required Info", rec.getTroublemakers().stream().map(Item::getDisplayName).collect(Collectors.joining(", ")), true)
-                    .addField("Optional Info", rec.getBystanders().stream().map(Item::getDisplayName).collect(Collectors.joining(", ")), true);
-
-            /*var timeToComplete = Instant.now().truncatedTo(ChronoUnit.HOURS).plus(9, ChronoUnit.HOURS);
-            builder.addField("Estimated Completion", "<t:"+timeToComplete.getEpochSecond()+":R>", true);*/
-            messageSpec.addEmbed(builder.build());
-        }
-        else
-        {
-            messageSpec.content("<@&"+squawkboxRole+">");
-            messageSpec.addEmbed(getGeneralRecEmbed(season, rec));
-        }
-
-
-        return messageSpec.build();
-    }
-
-    public static EmbedCreateSpec getGeneralRecEmbed(int season, DailyRecommendation rec)
-    {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations for Rank "+rec.getMaxRank());
-
-        if(rec.getMaxRank() < 0)
-            builder.title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(rec.getDay()+1)+" Recommendations");
+        var builder = EmbedCreateSpec.builder().title("Peak Info for Season "+week);
         builder.timestamp(Instant.now());
-
-        if(rec.isRestRecommended())
-            builder.color(Color.SUMMER_SKY).addField("Main Recommendation",getRestText(), false);
-        else
+        String peakStr;
+        for(int i=0; i<items.size(); i++)
         {
-
-            String title = "Main Recommendation";
-            builder.color(Color.SEA_GREEN);
-            if(rec.getOldRec() != null)
+            ItemInfo info = items.get(i);
+            switch(info.popularityRatio)
             {
-                builder.title("Cycle "+(rec.getDay()+1)+" Update!").color(Color.MOON_YELLOW);
-                title = "Updated Recommendation";
+                case 140 ->{peakStr="<:OC_VeryHigh:1035399592004558878> Very High";}
+                case 120 ->{peakStr="<:OC_High:1035379587884003418> High";}
+                case 100 ->{peakStr="<:OC_Average:1035379549153800204> Average";}
+                case 80 ->{peakStr="<:OC_Low:1035379597052743700> Low";}
+                default -> {peakStr="";}
             }
-
-            boolean inline = !(rec.getBestRec().getStartingGroove() != 0 && rec.get(0).getValue().getGroove() > 0);
-            builder.addField(title, rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), inline)
-                    .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()) + (rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
-
-            if(rec.getBestRec().getStartingGroove() != 0)
-                    builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue() + cowriesEmoji, true);
-
-            if(rec.get(0).getValue().getGroove() > 0)
-                builder.addField("Estimated Bonus", String.valueOf(rec.get(0).getValue().getGroove() * 3), true);
-
-            if(rec.getOldRec() != null)
+            peakStr+="\n";
+            switch(info.peak)
             {
-                builder.addField("", "", false);
-                boolean oldInline = !(rec.getBestRec().getStartingGroove() != 0 && rec.getOldValue().getGroove() > 0);
-
-                builder.addField("Original Recommendation", rec.getOldRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), oldInline)
-                        .addField("Grooveless Value", String.valueOf(rec.getOldGrooveless())+(rec.getBestRec().getStartingGroove() == 0? cowriesEmoji : ""), true);
-
-                if(rec.getBestRec().getStartingGroove() != 0)
-                        builder.addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", String.valueOf(rec.getOldRec().getValue())+ cowriesEmoji, true);
-
-                if(rec.getOldValue().getGroove() > 0)
-                    builder.addField("Estimated Bonus", String.valueOf(rec.getOldValue().getGroove() * 3), true);
-            }
-        }
-
-
-
-        if(rec.size() > 1 && rec.getOldRec() == null)
-        {
-            if(rec.getMaxRank() > 0)
-            {
-                //Add alts also
-                //builder.addField("\u200B", "\u200B", false);
-                builder.addField("", "", false);
-
-                StringBuilder altSb = new StringBuilder();
-                StringBuilder grossSb = new StringBuilder();
-                for(var alt : rec)
-                {
-                    String altText = "**"+alt.getValue().getWeighted() +"**\u00A0\u00A0" + alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
-                    altSb.append(altText).append('\n');
-                    grossSb.append(alt.getValue().getWeighted()).append('\n');
+                case Unknown -> {
+                    peakStr+="Unknown Peak";
                 }
-                altSb.setLength(altSb.length()-1);
-                grossSb.setLength(grossSb.length()-1);
-
-                builder.addField("Alternatives by Value", altSb.toString(), true);
-                       // .addField("Weighted Value", grossSb.toString(), true);
-                //.addField("Net", netSb.toString(), true);
-            }
-            else
-            {
-                if(rec.isRestRecommended())
-                {
-                    CycleSchedule sched = new CycleSchedule(rec.getDay(), 0);
-                    sched.setForAllWorkshops(rec.get(0).getKey().getItems());
-
-                    //Show one alt
-                    builder.addField("If You Can't Rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true)
-                            .addField("Grooveless Value","||"+sched.getValue()+"||", true);
+                case Cycle2Weak -> {
+                    peakStr+="Cycle 2 Weak";
                 }
-                builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
-                        "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);
+                case Cycle2Strong -> {
+                    peakStr+="Cycle 2 Strong";
+                }
+                case Cycle3Weak -> {
+                    peakStr+="Cycle 3 Weak";
+                }
+                case Cycle3Strong -> {
+                    peakStr+="Cycle 3 Strong";
+                }
+                case Cycle4Weak -> {
+                    peakStr+="Cycle 4 Weak";
+                }
+                case Cycle4Strong -> {
+                    peakStr+="Cycle 4 Strong";
+                }
+                case Cycle5Weak -> {
+                    peakStr+="Cycle 5 Weak";
+                }
+                case Cycle5Strong -> {
+                    peakStr+="Cycle 5 Strong";
+                }
+                case Cycle6Weak -> {
+                    peakStr+="Cycle 6 Weak";
+                }
+                case Cycle6Strong -> {
+                    peakStr+="Cycle 6 Strong";
+                }
+                case Cycle7Weak -> {
+                    peakStr+="Cycle 7 Weak";
+                }
+                case Cycle7Strong -> {
+                    peakStr+="Cycle 7 Strong";
+                }
+                case Cycle45 -> {
+                    peakStr+="Cycle 4 or 5";
+                }
+                case Cycle5 -> {
+                    peakStr+="Cycle 5";
+                }
+                case Cycle67 -> {
+                    peakStr+="Cycle 6 or 7";
+                }
+                case Cycle2Unknown -> {
+                    peakStr+="Cycle 2";
+                }
             }
+            if(i<items.size()-1)
+                peakStr+="\n\u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E";
+
+            builder.addField(info.item.getDisplayNameWithEmoji()+"\u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E", peakStr, true);
         }
         return builder.build();
     }
-
-    public static EmbedCreateSpec createCrimeTimePost(int season, List<DailyRecommendation> recs, List<DailyRecommendation> crimeRecs, String crimeTimeRole, int crimeTotal)
+    private static List<String> squawks = List.of("*squawk*", "*brawk*", "*SQUAWK*", "*braaaaawk*", "*SQUAAAAAWK*", "*squawk*", "*brawk*","*squawk*", "*brawk*","*squawk*");
+    private static List<String> comfort = List.of(" It's okay.", " Don't worry.", " It's intended.", " It's fine.", " Everything's fine.", " *squawk*", "");
+    public static String getFlavorText(List<ArchiveSchedule> schedules)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Crime Time Recommendations");
-        builder.timestamp(Instant.now());
-        var messageSpec = MessageCreateSpec.builder();
-        messageSpec.content("<@&"+crimeTimeRole+">");
-
-        builder.color(Color.SEA_GREEN);
-        boolean crimeDiff = false;
-        boolean crimeTotalDiff = true;
-
-        for(int i=0; i<3; i++)
+        List<CycleSchedule> cycles = new ArrayList<>();
+        for(int i=0; i<schedules.size(); i++)
         {
-            var rec = recs.get(i);
-            var crimeRec = crimeRecs.get(i);
-            if (rec.isRestRecommended() || !crimeRec.getBestRec().getItems().equals(rec.getBestRec().getItems())) {
-                crimeDiff = true;
-                builder.addField("Crime Time Cycle "+(i+5),  crimeRec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")) , true)
-                        .addField("Grooveless Value",  String.valueOf(crimeRec.getGroovelessValue()), true)
-                        .addField("With " + crimeRec.getBestRec().getStartingGroove() + " Groove",  crimeRec.getDailyValue() + cowriesEmoji , true);
-            }
-            else
+            CycleSchedule sched = new CycleSchedule(i+1, 0, Solver.maxIslandRank);
+            if(schedules.get(i).getItems().size() > 0)
             {
-                crimeTotalDiff = false;
+                sched.setForFirstThreeWorkshops(schedules.get(i).getItems());
+                sched.setFourthWorkshop(schedules.get(i).getSubItems());
+                cycles.add(sched);
             }
         }
-
-        if(crimeTotalDiff)
+        return _getFlavorText(cycles);
+    }
+    private static String _getFlavorText(List<CycleSchedule> list)
+    {
+        var breaks = dayWithEfficiencyBreak(list);
+        StringBuilder sb = new StringBuilder(" ");
+        if(breaks.size()>0)
         {
-            builder.addField("","",false);
+            if(Math.random()<.5)
+                sb.append(getRandomInList(squawks)).append(" ");
+
+            sb.append("Yes, the break in efficiency bonus on cycle");
+            if(breaks.size()>1)
+                sb.append("s");
+            sb.append(" ");
+            var iter = breaks.iterator();
+            int first = iter.next();
+            sb.append(first+1);
+            while(iter.hasNext())
+            {
+                int next = iter.next();
+                if(!iter.hasNext()) //this is the last one
+                    sb.append(" and ").append(next+1);
+                else
+                    sb.append(", ").append(next+1);
+            }
+            sb.append(" is on purpose.").append(getRandomInList(comfort));
+
+            if(Math.random()<.25)
+                sb.append(" ").append(squawks.get((int)(Math.random() * squawks.size())));
+
+            return sb.toString();
         }
-        else if(crimeDiff)
-        {
-            builder.description("Use the normal squawkbox recommendations except for the days below!");
-            builder.addField("","",false);
-        }
 
-        else
-            builder.description("You use the same schedules as the normal squawkbox recommendations this season!");
+        if(Math.random()<.1)
+            sb.append(getRandomInList(squawks));
 
-
-        builder.addField("Total Weekly Value", crimeTotal+cowriesEmoji, false);
-        builder.addField("","",false);
-        builder.addField("Info","Want to learn more? See Crime Time Information in <#1034953674100842516>",false);
-
-        return builder.build();
+        return sb.toString();
     }
 
-    public static EmbedCreateSpec createCombinedC4Post(int season, List<DailyRecommendation> recs, String squawkboxRole, int total)
+    private static String getRandomInList(List<String> list)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Cycle 5-7 Recommendations");
-        builder.timestamp(Instant.now());
-        var messageSpec = MessageCreateSpec.builder();
+        return list.get((int)(Math.random() * list.size()));
+    }
 
-        builder.color(Color.SEA_GREEN);
+    private static Set<Integer> dayWithEfficiencyBreak(List<CycleSchedule> recs)
+    {
+        Set<Integer> breaks = new HashSet<>();
+        for(var rec:recs)
+        {
+            var items = rec.getItems();
+            for(int i=1;i<items.size();i++)
+            {
+                if(!Solver.items[items.get(i).ordinal()].getsEfficiencyBonus(Solver.items[items.get(i-1).ordinal()]))
+                    breaks.add(rec.getDay());
+            }
+            items = rec.getSubItems();
+            for(int i=1;i<items.size();i++)
+            {
+                if(!Solver.items[items.get(i).ordinal()].getsEfficiencyBonus(Solver.items[items.get(i-1).ordinal()]))
+                    breaks.add(rec.getDay());
+            }
+        }
+        return breaks;
+    }
 
-        for(int i=0; i<3; i++)
+    public static List<EmbedCreateSpec> createCombinedRecPost(int season, List<ArchiveSchedule> recs, int total)
+    {
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Recommendations"/*+" for Rank "+recs.get(0).getMaxRank()*/);
+
+        List<EmbedCreateSpec> embeds = new ArrayList<>();
+
+        for(int i=0; i<recs.size(); i++)
         {
             if(i>0)
                 builder.addField("","",false);
+            builder.color(Color.SEA_GREEN);
+
             var rec = recs.get(i);
 
-            if(rec.isRestRecommended())
+            boolean ws4Diff = !rec.getItems().equals(rec.getSubItems())&& rec.getSubItems().size()>0;
+            if(rec.getItems().size() == 0)
             {
-                builder.addField("Cycle "+(i+5),getRestText(), false);
-                CycleSchedule sched = new CycleSchedule(rec.getDay(), 0);
-                sched.setForAllWorkshops(rec.get(0).getKey().getItems());
-
-                //Show one alt
-                builder.addField("If You Can't Rest...", "||"+rec.get(0).getKey().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+"||", true)
-                        .addField("Grooveless Value","||"+sched.getValue()+"||", true);
+                builder.addField("Cycle "+(i+2),getRestText(), false);
             }
             else
             {
-                builder.addField("Cycle "+(i+5), rec.getBestRec().getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true)
-                        .addField("Grooveless Value", String.valueOf(rec.getGroovelessValue()), true)
-                        .addField("With "+ rec.getBestRec().getStartingGroove() +" Groove", rec.getDailyValue()+ cowriesEmoji, true);
+                String title = ws4Diff?"First 3 Workshops":"All Workshops";
+                builder.addField("Cycle "+(i+2), "**"+title+"**\n"+rec.getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+                if(ws4Diff && rec.getSubItems().size()>0)
+                    builder.addField(".", "**4th Workshop**\n"+rec.getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+
+                builder.addField("","",false)
+                        .addField("Grooveless Value", rec.getGroovelessValue() + (rec.getStartingGroove() == 0? cowriesEmoji : ""), true);
+
+                if(rec.getStartingGroove() != 0)
+                    builder.addField("With "+ rec.getStartingGroove() +" Groove", rec.getValue() + cowriesEmoji, true);
+            }
+            if(i == 2)
+            {
+                embeds.add(builder.build());
+                builder = EmbedCreateSpec.builder();
             }
         }
 
         //builder.addField("\u200B", "\u200B", false);
-        builder.addField("","",false);
-        builder.addField("Total Weekly Value", String.format("%,d", total)+cowriesEmoji, false);
+        if(total > 0)
+        {
+            builder.addField("","",false);
+            builder.addField("Total Weekly Value", String.format("%,d", total)+cowriesEmoji, false);
+        }
         builder.addField("","",false);
         builder.addField("Alternatives", "Missing materials? Forgot to set today's schedule? Taking a break from the island?\n" +
                 "Use ?recsbot in <#1034985297391407126> to learn how to get personalized alternatives!", false);
+        builder.timestamp(Instant.now());
+        embeds.add(builder.build());
 
+        return embeds;
+    }
+
+    public static EmbedCreateSpec favorsEmbed(int season, List<List<Item>> favorSchedules)
+    {
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Personalized Favor Schedules");
+        builder.timestamp(Instant.now());
+        //var messageSpec = MessageCreateSpec.builder();
+
+        builder.color(Color.BISMARK);
+        for(int i=0;i<favorSchedules.size(); i++)
+        {
+            builder.addField("Schedule #"+(i+1), favorSchedules.get(i).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+        }
         return builder.build();
     }
 
-    public static EmbedCreateSpec generateNextWeekEmbed(int season, List<List<Item>> recs, int rank)
+    public static EmbedCreateSpec generateNextWeekEmbed(int season, List<DailyRecommendation> recs, int rank, int total)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations for Rank "+rank);
         builder.timestamp(Instant.now());
         //var messageSpec = MessageCreateSpec.builder();
 
         builder.color(Color.SUMMER_SKY);
-        builder.addField("Cycle 2", recs.get(1).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
-                .addField("Cycle 3", recs.get(4).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
-                .addField("Cycle 4", recs.get(2).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
-                .addField("Cycle 5", recs.get(3).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
-                .addField("Cycle 6", recs.get(0).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")),true)
-                .addField("Cycle 7", getRestText(),true);
+        if(recs.size()==6) //New next week, supply info!
+        {
+            for(int i=0;i<recs.size();i++)
+            {
+                if(recs.get(i).isRestRecommended())
+                    builder.addField("Cycle "+(i+2), getRestText(), rank<15);
+                else
+                    addPredictiveRec(builder, recs.get(i), i+2, false, false);
+            }
+        }
+
+        /*if(total > 0)
+        {
+            builder.addField("","",false);
+            builder.addField("Total Weekly Value", String.format("%,d", total)+cowriesEmoji, false);
+        }*/
 
         //messageSpec.addEmbed(builder.build());
         return builder.build();
+    }
+
+    private static void addPredictiveRec(EmbedCreateSpec.Builder builder, DailyRecommendation fullRec, int cycle, boolean rest, boolean showValues)
+    {
+        CycleSchedule rec = fullRec.getBestRec();
+        boolean ws4Diff = !rec.getItems().equals(rec.getSubItems()) && rec.getSubItems().size() > 0;
+        String recString;
+        if(!ws4Diff)
+            recString = "**All Workshops**\n";
+        else
+            recString = "**First 3 Workshops**\n";
+        recString+=rec.getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"));
+
+        String title = "Cycle "+cycle;
+        if(rest)
+        {
+            recString = "||"+recString+"||";
+            title+= " - Rest";
+        }
+
+        builder.addField(title, recString, true);
+        if(rec.getSubItems().size()>0 && !rec.getSubItems().equals(rec.getItems()))
+            builder.addField(".", (rest?"||":"")+"**4th Workshop**\n"+rec.getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"))+(rest?"||":""), true);
+        if(rec.getRank()>=15)
+            builder.addField("", "", false);
+
+        if(showValues)
+        {
+            int groove = rec.getStartingGroove();
+            builder.addField("Grooveless Value", (rest?"||":"") + fullRec.getGroovelessValue() + (rest?"||":groove==0?cowriesEmoji:""), true);
+            if(!rest && groove > 0)
+                builder.addField("With "+groove+" Groove", fullRec.getDailyValue()+cowriesEmoji, true);
+            builder.addField("", "", false);
+        }
     }
 
     private static String getRestText()
@@ -290,31 +333,39 @@ public class OCUtils
         return "<:zzz:1068453995816964176> Rest <:zzz:1068453995816964176>";
     }
 
-    public static EmbedCreateSpec generateThisWeekEmbed(int season, RestOfWeekRec recs, int rank)
+    public static List<EmbedCreateSpec> generateThisWeekEmbed(int season, List<DailyRecommendation> recs, int rank, int total)
     {
-        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Vacation Recommendations for Rank "+rank);
-        if(rank<0)
-            builder.title("Season "+season+" ("+getDateStr(season)+") Fortune-Telling Recommendations");
-        builder.timestamp(Instant.now());
+        var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+") Recommendations for Rank "+rank);
 
-        builder.color(Color.SUMMER_SKY);
-        int startDay = 8-recs.getRecs().size();
+        int startDay = 8-recs.size();
 
-        for(int i=0; i<recs.getRecs().size(); i++)
+        List<EmbedCreateSpec> embeds = new ArrayList<>();
+
+        for(int i=0; i<recs.size(); i++)
         {
-            String recString = recs.getRecs().get(i).stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n"));
-            if(!recs.isRested() && i==recs.getWorstIndex())
-                builder.addField("Cycle "+(startDay+i)+" - Rest", "||"+recString+"||", true);
-            else
-                builder.addField("Cycle "+(startDay+i), recString, true);
+            builder.color(Color.SUMMER_SKY);
+            DailyRecommendation rec = recs.get(i);
+            addPredictiveRec(builder, rec, startDay+i, recs.get(i).isRestRecommended(), true);
+
+            //Add break after index 2 if size is 6, add break after index 2 if size is 5, index 1 if size is 4 or 3
+            if(recs.size() > 3 && i == (recs.size()-1)/2 && rank >= 15) //Only need to split if showing 4th workshop
+            {
+                embeds.add(builder.build());
+                builder = EmbedCreateSpec.builder();
+            }
         }
 
-        if(rank<0)
-            builder.addField("Info", "This is a _predictive_ schedule. It's an educated guess, but still a guess at the rest of the season. If you want optimal recommendations, check daily in <#1034941158993952809>.", false);
+        if(total > 0)
+        {
+            builder.addField("","",false);
+            builder.addField("Total Weekly Value", String.format("%,d", total)+cowriesEmoji, false);
+        }
+        builder.timestamp(Instant.now());
+        embeds.add(builder.build());
 
-        return builder.build();
+        return embeds;
     }
-    public static EmbedCreateSpec generateTodayEmbed(int season, int cycle, int hours, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs, int rank)
+    public static EmbedCreateSpec generateTodayEmbed(int season, int cycle, int hours, BruteForceSchedules recs, int rank)
     {
         var builder = EmbedCreateSpec.builder().title("Season "+season+" ("+getDateStr(season)+"), Cycle "+(cycle+1)+" Partial Schedule for Rank "+rank);
         builder.timestamp(Instant.now());
@@ -325,9 +376,22 @@ public class OCUtils
 
         if(recs != null && recs.size() > 0 && recs.get(0).getKey().getItems().size() > 0)
         {
+            CycleSchedule rec = recs.getBestRec();
+            boolean ws4Diff = !rec.getItems().equals(rec.getSubItems()) && rec.getSubItems().size() > 0;
+            String title;
+            if(!ws4Diff)
+                title = "All Workshops";
+            else
+                title = "First 3 Workshops";
+
+            builder.addField(title, rec.getItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+            if(rec.getSubItems().size()>0 && !rec.getSubItems().equals(rec.getItems()))
+                builder.addField("4th Workshop", rec.getSubItems().stream().map(Item::getDisplayWithEmojiAndTime).collect(Collectors.joining("\n")), true);
+
             StringBuilder altSb = new StringBuilder();
-            for(var alt : recs)
+            for(int i = 0; i < altsToDisplay && i< recs.size(); i++)
             {
+                var alt = recs.get(i);
                 if(alt.getKey().getItems().size() > 0)
                 {
                     String altText = "**"+alt.getValue().getWeighted() +"**\u00A0\u00A0" + alt.getKey().getItems().stream().map(Item::getDisplayName).collect(Collectors.joining(" - "));
@@ -336,7 +400,7 @@ public class OCUtils
             }
             altSb.setLength(altSb.length()-1);
 
-            builder.addField("Schedules by Value", altSb.toString(), true);
+            builder.addField("Schedules by Value", altSb.toString(), false);
         }
         else
             builder.addField("Schedules by Value", "None available", false);
@@ -346,46 +410,46 @@ public class OCUtils
         return builder.build();
     }
 
-    public static MessageEditSpec addCurrentDay(int day, DailyRecommendation rec, Message origMessage)
+    public static MessageEditSpec fixBadArchive(Message origMessage)
     {
-        String content = origMessage.getContent();
-        content += getArchiveContent(day, rec);
-        MessageEditSpec messageEditSpec = MessageEditSpec.builder().contentOrNull(content).build();
+        String old = origMessage.getContent();
+        String corrected = old/*.replace("6722", "6721")
+                .replace("36,976", "36,974")*/;
+        MessageEditSpec messageEditSpec = MessageEditSpec.builder().contentOrNull(corrected).build();
         return messageEditSpec;
     }
 
-    public static MessageEditSpec addFinalTotal(List<DailyRecommendation> recs, int week, int total, Message origMessage)
+    public static String newArchiveContent(int thisWeek, List<ArchiveSchedule> recs, int total)
     {
-        String content = origMessage.getContent();
-        for(int i=0; i<3; i++)
+        StringBuilder sb = new StringBuilder("**__Season "+thisWeek+" ("+getDateStr(thisWeek)+")__**");
+
+        for(int day = 0; day < recs.size(); day++)
         {
-            content += getArchiveContent(4+i, recs.get(i));
+            ArchiveSchedule rec = recs.get(day);
+            sb.append("\n* **C"+(day+2)+":** ");
+            if(rec.getItems().size() == 0)
+            {
+                sb.append("Rest");
+            }
+            else
+            {
+                boolean ws3Diff = !rec.getItems().equals(rec.getSubItems());
+                sb.append(rec.getGroovelessValue()+cowriesEmoji);
+                if(rec.getStartingGroove() > 0)
+                    sb.append(" ("+rec.getValue()+cowriesEmoji+" "+rec.getStartingGroove()+" Groove)");
+
+                sb.append(": " + rec.getItems().stream().map(Item::getDisplayName)
+                        .collect(Collectors.joining(" - ")));
+
+                if(ws3Diff)
+                {
+                    sb.append("\n * WS4: "+rec.getSubItems().stream().map(Item::getDisplayName)
+                            .collect(Collectors.joining(" - ")));
+                }
+            }
+
         }
-        content+="\n**Season "+week+" Total:** "+ String.format("%,d", total)+cowriesEmoji;
-        MessageEditSpec messageEditSpec = MessageEditSpec.builder().contentOrNull(content).build();
-        return messageEditSpec;
-    }
-
-    private static String getArchiveContent(int day, DailyRecommendation rec)
-    {
-        String content="\n**• C"+(day+1)+":** ";
-        if(rec.isRestRecommended())
-        {
-            content += "Rest";
-            return content;
-        }
-
-        content+=rec.getGroovelessValue()+cowriesEmoji;
-        if(rec.getBestRec().getStartingGroove() > 0)
-            content+=" ("+rec.getDailyValue()+cowriesEmoji+" "+rec.getBestRec().getStartingGroove()+" Groove)";
-        content+=": " + rec.getBestRec().getItems().stream().map(Item::getDisplayNameWithEmoji)
-                .collect(Collectors.joining(" - "));
-
-        return content;
-    }
-
-    public static String newArchiveContent(int nextWeek)
-    {
-        return "**__Season "+nextWeek+" ("+getDateStr(nextWeek)+")__**";
+        sb.append("\n**Season "+thisWeek+" Total:** "+ String.format("%,d", total)+cowriesEmoji);
+        return sb.toString();
     }
 }

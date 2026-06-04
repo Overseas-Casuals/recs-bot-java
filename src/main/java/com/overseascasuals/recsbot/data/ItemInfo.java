@@ -1,15 +1,11 @@
 package com.overseascasuals.recsbot.data;
-import com.overseascasuals.recsbot.messages.MessageListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import static com.overseascasuals.recsbot.data.Supply.*;
-import static com.overseascasuals.recsbot.data.DemandShift.*;
 import static com.overseascasuals.recsbot.data.ItemCategory.*;
 import static com.overseascasuals.recsbot.data.PeakCycle.*;
 

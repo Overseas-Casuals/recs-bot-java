@@ -6,5 +6,6 @@ Skyrocketing,
 Increasing,
 None,
 Decreasing,
-Plummeting
+Plummeting,
+    InvalidDemand;
 }

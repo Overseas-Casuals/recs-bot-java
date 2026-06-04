@@ -19,14 +19,16 @@ public class WorkshopSchedule
     public int currentIndex = 0; //Used for cycle scheduler to figure out crafts stuff
 
     Map<RareMaterial,Integer> rareMaterialsRequired;
+    private int rank;
     
-    public WorkshopSchedule(List<Item> crafts)
+    public WorkshopSchedule(List<Item> crafts, int rank)
     {
         completionHours = new ArrayList<>();
         this.crafts = new ArrayList<>();
         items = new ArrayList<>();
         rareMaterialsRequired = new HashMap<>();
         setCrafts(crafts);
+        this.rank = rank;
     }
     
     public void setCrafts(List<Item> newCrafts)
@@ -78,9 +80,10 @@ public class WorkshopSchedule
     public int getValueForCurrent(int day, int craftedSoFar, int currentGroove, boolean isEfficient, boolean verboseLogging)
     {
         ItemInfo craft = crafts.get(currentIndex);        
-        int baseValue = craft.baseValue * Solver.WORKSHOP_BONUS * (100+currentGroove) / 10000;
+        //int baseValue = craft.baseValue * Solver.getWorkshopBonus(rank) * (100+currentGroove) / 10000;
+        int baseValue = (int)(craft.baseValue * (Solver.getWorkshopBonus(rank)/100f) * (100+currentGroove) / 100);
         int supply = craft.getSupplyOnDay(day) + craftedSoFar;
-        int adjustedValue = baseValue * craft.popularityRatio * ItemInfo.getSupplyBucket(supply).multiplier  / 10000;
+        int adjustedValue =(int) (baseValue * (craft.popularityRatio/100f) * (ItemInfo.getSupplyBucket(supply).multiplier/100f));
         
         if(isEfficient)
             adjustedValue *= 2;
@@ -108,12 +111,20 @@ public class WorkshopSchedule
         return cost;
     }
     
-    public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested, Map<Item,ReservedHelper> reservedHelpers) {
+    public WorkshopValue getValueWithGrooveEstimate(int day, int startingGroove, boolean rested, Map<Item,ReservedHelper> reservedHelpers, boolean subSchedule) {
         boolean verboseLogging = false;
-        /*if(day == 1 && items.size() == 4 && items.get(0) == Item.Brush && items.get(1) == Item.Crook && items.get(2) == Item.Brush
-                && items.get(3) == Item.Crook)
+
+        /*if(day == 3 && items.size() == 4 && items.get(0) == Item.Brush && items.get(1) == Item.SharkOil && items.get(2) == Item.Brush
+                && items.get(3) == Item.SpruceRoundShield)
             verboseLogging = true;*/
 
+        /*if(day == 1 && items.size() == 5 && items.get(0) == Item.Dressing && items.get(1) == Item.Butter && items.get(2) == Item.Horn
+                && items.get(3) == Item.BoiledEgg && items.get(4) == Item.CawlCennin)
+            verboseLogging = true;*/
+
+        /*if(day == 3 && items.size() == 6 && items.get(0) == Item.Butter && items.get(1) == Item.Dressing && items.get(2) == Item.Butter
+                && items.get(3) == Item.Dressing && items.get(4) == Item.Butter && items.get(5) == Item.Dressing)
+            verboseLogging = true;*/
 
         int expectedGroove = 3;
         int effCrafts = 0;
@@ -132,7 +143,7 @@ public class WorkshopSchedule
             LOG.info("Calculating workshop value for day {} and crafts {}  ({} above 4) Rested? {}. Crafting days after this: {}", day + 1, Arrays.toString(items.toArray()), deltaGroove, rested, daysToGroove);
 
         //How many days will it take to hit max normally
-        int estimatedGroovePerDay = expectedGroove * NUM_WORKSHOPS;
+        int estimatedGroovePerDay = expectedGroove * Solver.getNumWorkshops(rank);
         int expectedStartingGroove = startingGroove + estimatedGroovePerDay;
 
         boolean groovePenalty = false;
@@ -140,7 +151,7 @@ public class WorkshopSchedule
         if (deltaGroove < 0)
         {
             groovePenalty = true;
-            expectedStartingGroove += NUM_WORKSHOPS * deltaGroove;
+            expectedStartingGroove += Solver.getNumWorkshops(rank) * deltaGroove;
 
             if(expectedStartingGroove < 0)
                 expectedStartingGroove = 0;
@@ -155,11 +166,11 @@ public class WorkshopSchedule
             int fullDays = 0;
             int numRowsOfPartialDay = 0;
             int expectedEndingGroove = expectedStartingGroove;
-            while (craftingDaysLeft > 0 && expectedEndingGroove < Solver.GROOVE_MAX)
+            while (craftingDaysLeft > 0 && expectedEndingGroove < Solver.getMaxGroove(rank))
             {
                 if(verboseLogging)
-                    LOG.info("Have {} crafting days after today, should end at {} groove, seeing what happens tomorrow after we get to {}", craftingDaysLeft, expectedEndingGroove, expectedEndingGroove + estimatedGroovePerDay);
-                if (expectedEndingGroove + estimatedGroovePerDay + NUM_WORKSHOPS - 1 <= Solver.GROOVE_MAX)
+                    LOG.info("Have {} crafting days after today, should end at {} groove, seeing what happens tomorrow after we get to {}", craftingDaysLeft, expectedEndingGroove, Math.min(expectedEndingGroove + estimatedGroovePerDay, Solver.getMaxGroove(rank)));
+                if (expectedEndingGroove + estimatedGroovePerDay + Solver.getNumWorkshops(rank) - 1 <= Solver.getMaxGroove(rank))
                 {
                     fullDays++;
                     expectedEndingGroove += estimatedGroovePerDay;
@@ -169,9 +180,9 @@ public class WorkshopSchedule
                 }
                 else
                 {
-                    int grooveToGo = Solver.GROOVE_MAX - expectedEndingGroove;
-                    numRowsOfPartialDay = (grooveToGo + 1) / NUM_WORKSHOPS;
-                    expectedEndingGroove = Solver.GROOVE_MAX;
+                    int grooveToGo = Solver.getMaxGroove(rank) - expectedEndingGroove;
+                    numRowsOfPartialDay = (grooveToGo + 1) / Solver.getNumWorkshops(rank);
+                    expectedEndingGroove = Solver.getMaxGroove(rank);
                     if(verboseLogging)
                         LOG.info("There's {} groove left to add today for bonus craft #{}, so lets say that's {} rows", grooveToGo, i+1, numRowsOfPartialDay);
                 }
@@ -185,11 +196,11 @@ public class WorkshopSchedule
                 default -> grooveBonus += fullDays;
             }
 
-            expectedStartingGroove+=NUM_WORKSHOPS;
+            expectedStartingGroove+=Solver.getNumWorkshops(rank);
             if(verboseLogging)
                 LOG.info("Groove bonus {}% over {} days, with the last day giving {} rows", grooveBonus, daysToGroove, numRowsOfPartialDay);
         }
-        float valuePerDay = Solver.averageDayValue;
+        float valuePerDay = Solver.getAverageDayValue(rank);
 
         grooveBonus = (grooveBonus * valuePerDay) / 100f;
 
@@ -209,13 +220,14 @@ public class WorkshopSchedule
 
         int prepeakBonus = 0;
 
+        int numWorkshops = subSchedule?1:3;
 
         for(int i=0; i<getNumCrafts(); i++)
         {
             ItemInfo completedCraft = getCurrentCraft();
             boolean efficient = currentCraftIsEfficient();
             int previouslyCrafted = numCrafted.getOrDefault(completedCraft.item, 0);
-            int nextGroove = Math.min(startingGroove + i*NUM_WORKSHOPS, Solver.GROOVE_MAX);
+            int nextGroove = Math.min(startingGroove + i*Solver.getNumWorkshops(rank), Solver.getMaxGroove(rank));
             int currentValue = getValueForCurrent(day, previouslyCrafted, nextGroove, efficient, verboseLogging);
 
             if((strongRatio62>0 || strongRatio63 >0) && day == 1 && completedCraft.peak == PeakCycle.Cycle2Unknown)
@@ -223,7 +235,7 @@ public class WorkshopSchedule
                 double ratio = 0;
                 if(completedCraft.item.ordinal() < 50)
                     ratio = strongRatio62;
-                else if(completedCraft.item.ordinal() < 60)
+                else
                     ratio = strongRatio63;
 
 
@@ -239,7 +251,7 @@ public class WorkshopSchedule
 
             workshopValue += currentValue;
             currentIndex++;
-            int amountCrafted = efficient? NUM_WORKSHOPS*2 : NUM_WORKSHOPS;
+            int amountCrafted = efficient? numWorkshops*2 : numWorkshops; //Only assume we're making up to 6 crafts
             numCrafted.put(completedCraft.item, previouslyCrafted + amountCrafted);
 
             if (verboseLogging)
@@ -287,38 +299,41 @@ public class WorkshopSchedule
         for(int i=0;i<crafts.size();i++)
         {
             if(crafts.get(i).couldPrePeak(day))
-                prepeakBonus+= Solver.helperPenalty*(i==0?1:2);
+                prepeakBonus+= Solver.prepeakBonus *(i==0?1:2);
         }
 
 
         //Allow for the accounting for materials if desired
 
-        var value = new WorkshopValue( workshopValue, grooveValue, getMaterialCost(), helperPenalty, prepeakBonus);
+        int matCost = getMaterialCost();
+        var value = new WorkshopValue( workshopValue, grooveValue, matCost, helperPenalty, prepeakBonus);
 
         if(verboseLogging)
-            LOG.info("Schedule {} has workshop value {}, grooveValue {}, helperPenalty {}, and prepeak bonus {}. Weighted: {}", items, workshopValue, grooveValue, helperPenalty, prepeakBonus, value.getWeighted());
+            LOG.info("Schedule {} has workshop value {}, grooveValue {}, matCost {}, helperPenalty {}, and prepeak bonus {}. Weighted: {}", items, workshopValue, grooveValue, matCost, helperPenalty, prepeakBonus, value.getWeighted());
 
 
         return value;
     }
     
-    public boolean usesTooMany(Map<Item,Integer> limitedUse, boolean verboseLogging)
+    public boolean usesTooMany(Map<Item,Integer> limitedUse, boolean subSchedule, boolean verboseLogging)
     {
         if(limitedUse == null || limitedUse.size() == 0)
             return false;
        
         Map<Item, Integer> used = new HashMap<>();
 
-
         /*if(limitedUse.size() == 9 && items.size() == 5 && items.get(0) == Item.CulinaryKnife && items.get(1) == Item.Butter && items.get(2) == Item.Jam
                 && items.get(3) == Item.Butter && items.get(4) == Item.Jam)
             verboseLogging = true;*/
+        int numWorkshops = 3;
+        if(subSchedule)
+            numWorkshops = 1;
 
         for(int i=0; i<items.size(); i++)
         {
-            int amountMade = NUM_WORKSHOPS;
+            int amountMade = numWorkshops;
             if(i > 0 && Solver.items[items.get(i-1).ordinal()].getsEfficiencyBonus(Solver.items[items.get(i).ordinal()]))
-                amountMade += NUM_WORKSHOPS;
+                amountMade += numWorkshops;
 
             used.put(items.get(i), used.getOrDefault(items.get(i), 0) + amountMade);
         }
@@ -336,14 +351,11 @@ public class WorkshopSchedule
         }
         return false;
     }
-
-    public Map<Item, Integer> getLimitedUses()
+    public Map<Item, Integer> getLimitedUses(Map<Item,Integer> previousLimitedUses, boolean subSchedule)
     {
-        return getLimitedUses(null);
-    }
-    
-    public Map<Item, Integer> getLimitedUses(Map<Item,Integer> previousLimitedUses)
-    {
+        int numWorkshops = Solver.getNumWorkshops(rank);
+        if(subSchedule)
+            numWorkshops = 1;
         Map<Item,Integer> limitedUses;
         if(previousLimitedUses == null)
             limitedUses = new HashMap<>();
@@ -359,7 +371,7 @@ public class WorkshopSchedule
             if(i > 0)
                 isEfficient = Solver.items[items.get(i-1).ordinal()].getsEfficiencyBonus(Solver.items[items.get(i).ordinal()]);
             
-            limitedUses.put(items.get(i), limitedUses.get(items.get(i))-3 - (isEfficient?3:0));
+            limitedUses.put(items.get(i), Math.max(limitedUses.get(items.get(i))-numWorkshops - (isEfficient?numWorkshops:0), 0));
         }
         
         return limitedUses;
@@ -389,7 +401,8 @@ public class WorkshopSchedule
         {
             WorkshopSchedule otherWorkshop = (WorkshopSchedule)other;
             
-            return rareMaterialsRequired.equals(otherWorkshop.rareMaterialsRequired);
+            //return rareMaterialsRequired.equals(otherWorkshop.rareMaterialsRequired);
+            return items.equals(otherWorkshop.items);
             
         }
         return false;
@@ -399,6 +412,8 @@ public class WorkshopSchedule
     {
         for(var itemSet : otherItemSets)
         {
+            if(rareMaterialsRequired.equals(itemSet))
+                return true;
             boolean isSuperset = true;
             for(var entry : itemSet.entrySet())
             {
@@ -418,9 +433,40 @@ public class WorkshopSchedule
         //If we made it through each set without returning true, we aren't a superset of anything
         return false;
     }
+    public boolean interferesWithMe(List<Item> subSchedule, boolean verbose)
+    {
+        int currentHour = 0;
+        for(var item : subSchedule)
+        {
+            if(items.contains(item))
+            {
+                int lastStartingHour = lastStartingHourForItem(item);
+                if(verbose)
+                    LOG.info("Item {} is contained in both the workshop and the suggested subschedule. Current hour {}, last starting hour {}", item, currentHour, lastStartingHour);
+                if(currentHour < lastStartingHour)
+                    return true;
+            }
+            currentHour += Solver.items[item.ordinal()].time;
+        }
+        return false;
+    }
+
+    private int lastStartingHourForItem(Item item)
+    {
+        int currentHour = 24;
+        for(int i=items.size()-1; i>=0; i--)
+        {
+            var currentItem = items.get(i);
+            currentHour -= Solver.items[currentItem.ordinal()].time;
+            if(currentItem==item)
+                return currentHour;
+        }
+        return -1;
+    }
     
     public int hashCode()
     {
-        return rareMaterialsRequired.hashCode();
+        //return rareMaterialsRequired.hashCode();
+        return items.hashCode();
     }
 }

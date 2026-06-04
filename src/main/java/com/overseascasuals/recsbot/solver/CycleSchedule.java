@@ -1,8 +1,10 @@
 package com.overseascasuals.recsbot.solver;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
+import java.util.Map;
+
 import com.overseascasuals.recsbot.data.*;
-import com.overseascasuals.recsbot.messages.MessageListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,29 +12,50 @@ public class CycleSchedule
 {
     Logger LOG = LoggerFactory.getLogger(CycleSchedule.class);
     int day;
+    public int getDay()
+    {
+        return day;
+    }
+    int rank;
+    public int getRank()
+    {
+        return rank;
+    }
     private int startingGroove;
 
     private int endingGroove;
-    WorkshopSchedule[] workshops = new WorkshopSchedule[3];
+    private int grooveBonus = -1;
+    private int otherWeights = -1;
+    WorkshopSchedule[] workshops = new WorkshopSchedule[Solver.NUM_WORKSHOPS];
     HashMap<Item, Integer> numCrafted;
     
-    public CycleSchedule(int day, int groove)
+    public CycleSchedule(int day, int groove, int rank)
     {
+        this.rank = rank;
         this.day = day;
-        startingGroove = groove;
+        startingGroove = Math.min(groove, Solver.getMaxGroove(rank));
     }
     
-    public void setForAllWorkshops(List<Item> crafts)
+    public void setForFirstThreeWorkshops(List<Item> crafts)
     {
-        workshops[0] = new WorkshopSchedule(crafts);
-        workshops[1] = new WorkshopSchedule(crafts);
-        workshops[2] = new WorkshopSchedule(crafts);
+        workshops[0] = new WorkshopSchedule(crafts, rank);
+        workshops[1] = new WorkshopSchedule(crafts, rank);
+        if(Solver.getNumWorkshops(rank)>2)
+            workshops[2] = new WorkshopSchedule(crafts, rank);
+        else if(workshops[2] == null)
+            workshops[2] = new WorkshopSchedule(new ArrayList<>(), rank);
+        if(workshops[3] == null)
+            workshops[3] = new WorkshopSchedule(new ArrayList<>(), rank);
+    }
+    public void setFourthWorkshop(List<Item> crafts)
+    {
+        workshops[3] = new WorkshopSchedule(crafts, rank);
     }
     
     public void setWorkshop(int index, List<Item> crafts)
     {
         if(workshops[index] == null)
-            workshops[index] = new WorkshopSchedule(crafts);
+            workshops[index] = new WorkshopSchedule(crafts, rank);
         else
             workshops[index].setCrafts(crafts);
     }
@@ -41,6 +64,7 @@ public class CycleSchedule
     {
         return workshops[0].getItems();
     }
+    public List<Item> getSubItems() { return workshops[3].getItems(); }
 
     public int getValue()
     {
@@ -81,8 +105,8 @@ public class CycleSchedule
            
            totalCowries += cowriesThisHour;
            currentGroove += grooveToAdd;
-           if(currentGroove > Solver.GROOVE_MAX)
-               currentGroove = Solver.GROOVE_MAX;
+           if(currentGroove > Solver.getMaxGroove(rank))
+               currentGroove = Solver.getMaxGroove(rank);
            craftsToAdd.forEach((k, v) ->  {numCrafted.put(k, numCrafted.getOrDefault(k, 0) + v); });
            
        }
@@ -102,11 +126,52 @@ public class CycleSchedule
         }
         return cost;
     }
-    
+
+    public int getGrooveBonus()
+    {
+            return grooveBonus;
+    }
+
+    public void setGrooveBonus(boolean rested, Map<Item, ReservedHelper> reservedHelpers)
+    {
+        grooveBonus = 0;
+        otherWeights = 0;
+        for(int i=0;i<workshops.length;i++)
+        {
+            var workshop = workshops[i];
+            if(workshop.getItems().size() > 0)
+            {
+                var value = workshop.getValueWithGrooveEstimate(day, startingGroove, rested, reservedHelpers, i>=3);
+                grooveBonus+= value.getGroove();
+                otherWeights+= value.getPeakBonus() - value.getPenalty();
+            }
+
+        }
+    }
+
+    public int getWeightedValue()
+    {
+        return getWeightedValue(false);
+    }
+    public int getWeightedValue(boolean verbose)
+    {
+        if(grooveBonus == -1)
+            throw new RuntimeException("Getting weighted value from cycle schedule before groove bonus set");
+        if(verbose)
+            LOG.info("Getting weighted value for schedule {}, grooveBonus: {}, other weights: {}, material cost: {}", this, grooveBonus, otherWeights, getMaterialCost());
+        return getValue(verbose) + grooveBonus + otherWeights - (int)(getMaterialCost() * Solver.materialWeight);
+    }
+
+    public Map<Item, Integer> getLimitedUses(Map<Item, Integer> limitedUse)
+    {
+        limitedUse = workshops[0].getLimitedUses(limitedUse, false);
+        limitedUse = workshops[3].getLimitedUses(limitedUse, true);
+        return limitedUse;
+    }
     @Override
     public String toString()
     {
-        return "Day: "+(day+1)+", Items: " + workshops[0].toString() + ", Starting groove: "+startingGroove+", Ending groove: "+endingGroove;
+        return "Day: "+(day+1)+", Items: " + workshops[0].toString() + " Sub items: "+workshops[3].toString()+", Starting groove: "+startingGroove+", Ending groove: "+endingGroove;
     }
     public boolean equals(Object other)
     {

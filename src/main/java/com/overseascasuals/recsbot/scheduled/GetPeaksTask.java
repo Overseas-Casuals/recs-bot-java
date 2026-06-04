@@ -1,29 +1,24 @@
 package com.overseascasuals.recsbot.scheduled;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.overseascasuals.recsbot.OCUtils;
-import com.overseascasuals.recsbot.data.DailyRecommendation;
-import com.overseascasuals.recsbot.json.ItemSupply;
+import com.overseascasuals.recsbot.data.ArchiveSchedule;
+import com.overseascasuals.recsbot.data.Item;
+import com.overseascasuals.recsbot.data.ScheduleSet;
 import com.overseascasuals.recsbot.json.RestService;
-import com.overseascasuals.recsbot.json.TCDay;
 import com.overseascasuals.recsbot.mysql.*;
 import com.overseascasuals.recsbot.solver.Solver;
-import com.overseascasuals.recsbot.twitter.RecsTweet;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.MessageCreateSpec;
-import discord4j.discordjson.json.ChannelData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.helpers.MessageFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
 
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -65,8 +60,6 @@ public class GetPeaksTask implements ScheduledTask
     String c1PeakRole;
     @Value("${discord.squawkboxRole}")
     String squawkboxRole;
-    @Value("${discord.crimeRole}")
-    String crimeTimeRole;
 
     @Value("${testing.startDay}")
     int startDayOverride;
@@ -91,16 +84,15 @@ public class GetPeaksTask implements ScheduledTask
     @Autowired
     Solver solver;
 
-    private String cron = "0 10 8 ? * TUE-FRI";
+    private String cron = "10 0 8 ? * *";
 
     private GatewayDiscordClient client;
 
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    public static ObjectMapper objectMapper = new ObjectMapper();
 
     private MessageChannel channel;
     private MessageChannel peakChannel;
     private Channel archiveChannel;
-    private MessageChannel fortuneChannel;
 
     @Override
     public String getCron()
@@ -117,7 +109,6 @@ public class GetPeaksTask implements ScheduledTask
                 .cast(MessageChannel.class).block();
         archiveChannel = client.getChannelById(Snowflake.of(archiveChannelID))
                 /*.cast(MessageChannel.class)*/.block();
-        fortuneChannel = client.getChannelById(Snowflake.of(fortuneChannelID)).cast(MessageChannel.class).block();
         this.local = local;
     }
 
@@ -129,779 +120,117 @@ public class GetPeaksTask implements ScheduledTask
 
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int actualDay = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+
         int startDay = actualDay;
         int endDay = actualDay;
 
         if(local)
         {
-            if(startDayOverride != -1)
-                startDay = startDayOverride;
-            if(endDayOverride != -1)
-                endDay = endDayOverride;
             if(weekOverride != -1)
                 week = weekOverride;
+            startDay = startDayOverride;
+            endDay = endDayOverride;
         }
 
-        LOG.info("Getting info on day {} with start day {}, end day {}, and week {}\nOverrides: start {} end {} week {}", actualDay, startDay, endDay, week, startDayOverride, endDayOverride, weekOverride);
-        for(int recDay = startDay; recDay<= endDay; recDay++)
+        LOG.info("Getting info on week {}\nOverrides: week {}, startDay {}, endDay {}",  week, weekOverride, startDayOverride, endDayOverride);
+
+        int peakWeek = (week - 59) % 100 + 59; //159 should be 59. 201 should be 101. 378 should be 78
+        List<CraftPeaks> peaksByDay = peakRepository.findPeaksByDay(peakWeek, 3);
+        if(peaksByDay == null || peaksByDay.size() < Solver.getNumItems(week))
         {
-            boolean validTCPeaks = false;
-            List<TCDay> tcDays = null;
-            List<TCDay> chinaDays = null;
-            boolean alreadyHavePeaks = false;
-            String response = null;
-
-            int peakday = Math.min(recDay, 3);
-            List<CraftPeaks> peaksByDay = peakRepository.findPeaksByDay(week, peakday);
-            if(peaksByDay != null && peaksByDay.size() >= Solver.getNumItems(week))
+            if(week < 159)
             {
-                LOG.info("Peaks for day {} already found. Skipping grabbing from TC.", peakday+1);
-                alreadyHavePeaks = true;
-            }
-            else
-            {
-                LOG.info("Nothing found in DB, getting info from TC");
-                try
-                {
-                    response = restService.getURLResponse(tcURL);
-                    //Parse data from JSON
-                    if(response != null)
-                        tcDays = objectMapper.readValue(response, new TypeReference<>(){});
-
-                    validTCPeaks = tcDays != null && tcDays.size() > recDay && tcDays.get(recDay) != null && tcDays.get(recDay).getObjects() != null && tcDays.get(recDay).getObjects().size() > 0;
-                    if(validTCPeaks)
-                    {
-                        response = restService.getURLResponse(tcChinaURL);
-                        //Parse data from JSON
-                        if(response != null)
-                            chinaDays = objectMapper.readValue(response, new TypeReference<>(){});
-                    }
-                }
-                catch(Exception e)
-                {
-                    LOG.error("Error parsing data from TC: "+response, e);
-                    validTCPeaks = false;
-                }
-            }
-
-            if(validTCPeaks)
-            {
-                if(recDay > 0)
-                    peaksByDay = peakRepository.findPeaksByDay(week, recDay-1);
-                else
-                    peaksByDay = new ArrayList<>();
-                List<CraftPeaks> lastWeeksPeaks = peakRepository.findPeaksByDay(week-1, 3);
-
-                validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, chinaDays, week, recDay, true);
-                if(!validTCPeaks && recDay != 1) //C2 is too important to just use 6.3 peaks. We need that china data
-                {
-                    LOG.info("China peaks were invalid, trying from global data");
-                    if(recDay > 0)
-                        peaksByDay = peakRepository.findPeaksByDay(week, recDay-1);
-                    else
-                        peaksByDay = new ArrayList<>();
-                    validTCPeaks = validate62Peaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay, false);
-                }
-
-                if(validTCPeaks)
-                    validTCPeaks = validate63Peaks(peaksByDay, lastWeeksPeaks, tcDays, week, recDay);
-            }
-            else if (!alreadyHavePeaks)
-            {
-                LOG.error("Invalid info gotten from TC: {}", response);
-                if(tcDays!=null)
-                {
-                    LOG.error("TC days size: {}", tcDays.size());
-                    if(tcDays.size() > recDay)
-                        LOG.error("Current TC data for day {}: {}", recDay, tcDays.get(recDay));
-                    else
-                        LOG.error("TC doesn't have enough data for day {}", recDay);
-                }
-                else
-                    LOG.error("TC days is null");
-            }
-
-
-            if(validTCPeaks)
-            {
-                //Send to DB
-                if(recDay==0)
-                {
-                    //write popularity data
-                    Popularity pop = new Popularity();
-                    pop.setWeek(week);
-                    pop.setPopularity(tcDays.get(0).getPopularity());
-                    pop.setNextPopularity(tcDays.get(0).getPredictedPopularity());
-                    popularityRepository.save(pop);
-                    try{
-                        LOG.info("Sending popularity to island.ws: "+restService.postPopularity(week,tcDays.get(0).getPopularity(),  tcDays.get(0).getPredictedPopularity()));
-                    }
-                    catch(RestClientException e)
-                    {
-                        LOG.error("Failed to send popularity to peak DB", e);
-                        peakChannel.createMessage("<@"+miennaID+"> Couldn't connect to peak database to send popularity").subscribe();
-                    }
-
-                }
-
-                for(var singlePeak : peaksByDay)
-                {
-                    peakRepository.save(singlePeak);
-                }
-
-                try {
-                    LOG.info("Sending peaks to island.ws: " + restService.postPeaks(week, recDay, peaksByDay));
-                }
-                catch(RestClientException e)
-                {
-                    LOG.error("Failed to send peaks to peak DB", e);
-                    peakChannel.createMessage("<@"+miennaID+"> Couldn't connect to peak database to send peaks").subscribe();
-                }
-
-            }
-            else if (!alreadyHavePeaks)
-            {
-                ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-
-                LOG.warn("Peaks were invalid. Rescheduling");
-                int delay = 15;
-                scheduler.schedule(this, delay, TimeUnit.MINUTES);
-                scheduler.shutdown();
+                LOG.error("This is exclusively 159 and over code. Please leave.");
                 return;
             }
-            //Also send to Discord
 
+            LOG.info("Peaks for week {} not found???? Help.", peakWeek);
+            return;
+        }
 
-            List<DailyRecommendation> list;
+        for(int day=startDay; day<=endDay; day++)
+        {
+            List<ArchiveSchedule> list;
 
             try
             {
-                list = solver.getDailyRecommendations(week, recDay, false, peaksByDay);
-            }
-            catch(Exception e)
+                list = solver.getDailyRecommendations(week, day, false, peaksByDay);
+            } catch (Exception e)
             {
                 LOG.error("Error running recs. Rescheduling. ", e);
 
                 ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
                 int delay = 15;
-
+                long timestamp = System.currentTimeMillis() + delay * 1000 * 60;
+                peakChannel.createMessage("Error running recs. Rescheduling for <t:" + timestamp / 1000 + ":t>").subscribe();
                 scheduler.schedule(this, delay, TimeUnit.MINUTES);
                 scheduler.shutdown();
                 return;
             }
 
-            var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).toArray();
+            var peaksArray = peaksByDay.stream().map(CraftPeaks::getPeak).limit(Solver.getNumItems(week)).toArray();
             peakChannel.createMessage("peaks: " + Arrays.toString(peaksArray)).subscribe();
 
-            if(list == null || list.size() == 0)
+            //Test commands
+            if(local)
             {
-                if(list == null || recDay < 4)
+                //next week
+                /*if (day == 0)
+                {
+                    var nextWeekRecs = solver.getVacationRecs(17);
+                    var nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 17, -1);
+                    channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level next week recs."), error -> LOG.error("Error posting high level next week:", error));
+                    nextWeekRecs = solver.getVacationRecs(6);
+                    nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 6, -1);
+                    channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level next week recs."), error -> LOG.error("Error posting low level next week:", error));
+                }*/
+
+                //this week
+               /* if (day < 6)
+                {
+                    var thisWeekRecs = solver.getRecForDayOn(day + 1, 10, null, false);
+                    var thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 10, day + 1);
+                    int finalDay = day;
+                    channel.createMessage().withEmbeds(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level this week recs."), error -> LOG.error("Error posting low level this week for C"+(finalDay +2), error));
+                    thisWeekRecs = solver.getRecForDayOn(day + 1, 20, List.of(Item.Macuahuitl), false);
+                    thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 20, day + 1);
+                    channel.createMessage().withEmbeds(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level this week recs."), error -> LOG.error("Error posting high level this week for C"+(finalDay +2), error));
+                }*/
+
+                //today
+                /*var todayRecs = solver.getRestOfDayRecs(day, 22, 10, null);
+                var todayEmbed = OCUtils.generateTodayEmbed(week, day, 22, todayRecs, 10);
+                channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted low-level today recs."), error -> LOG.error("Error posting low level today:", error));
+                todayRecs = solver.getRestOfDayRecs(day, 22, 20, null);
+                todayEmbed = OCUtils.generateTodayEmbed(week, day, 22, todayRecs, 20);
+                channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted high-level today recs."), error -> LOG.error("Error posting high level today:", error));*/
+
+                channel.createMessage("All commands? posted").block();
+            }
+
+            if (list == null || list.size() == 0)
+            {
+                if (day == 0)
                     peakChannel.createMessage("<@" + miennaID + "> No recs returned").subscribe();
-            }
-            else
-            {
-                var lastArchiveMessageID = archiveChannel.getRestChannel().getData().map(ChannelData::lastMessageId).block().get().orElseThrow();
-
-                if(list.get(0).getOldRec() != null)
-                {
-                    var recs = list.get(0);
-                    if(recs.getOldRec().getItems().equals(recs.getBestRec().getItems()))
-                    {
-                        //archiveChannel.createMessage("<@&"+archiveRole+"> Final value for Cycle "+(recs.getDay()+1)+"!\n"+recs.getBestRec().getItems()+" = "+recs.getDailyValue()+" ("+recs.getGroovelessValue()+" grooveless)").subscribe(message -> {LOG.info("Successfully posted final value: {}", message.getContent());}, error -> { LOG.error("Error posting updated cycle value:",error); });
-                    }
-                    else
-                    {
-                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).subscribe(message -> {LOG.info("Successfully posted day-of update: {}", message.getEmbeds());}, error -> { LOG.error("Error posting updated cycle schedule:",error); });;
-                        trySendTweet(week, recs);
-                    }
-
-                    list.remove(0);
-
-                    //Add to archive
-                    var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
-                    archive.edit(OCUtils.addCurrentDay(recDay, recs, archive)).subscribe(message -> {LOG.info("Successfully posted new day to archive: {}", message.getContent());}, error -> { LOG.error("Error posting new archive day:",error);});
-                }
-                if(recDay == 3)
-                {
-                    int numDays = list.size()/3;
-                    for(int i=0; i<numDays;i++)
-                    {
-                        var combinedC4Post = MessageCreateSpec.builder().content("<@&"+squawkboxRole+"> <@&"+crimeTimeRole+">");
-
-                        var c4Message = OCUtils.createCombinedC4Post(week, list, squawkboxRole, solver.totalValue);
-
-                        combinedC4Post.addEmbed(c4Message);
-
-                        channel.createMessage(combinedC4Post.build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted C4 recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting C4 combined post:",error); });
-                        for(int d=0;d<3;d++)
-                        {
-                            trySendTweet(week, list.get(d));
-                        }
-                        //Pop the first 3 recs and start again
-                        //Note: Like, test this before we do multiple ranks again
-                        if(i==numDays-1)
-                        {
-                            var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
-                            archive.edit(OCUtils.addFinalTotal(list, week, solver.totalValue, archive)).subscribe(message -> {LOG.info("Successfully posted final total to archive: {}", message.getContent());}, error -> { LOG.error("Error posting final total to archive:",error);});
-                        }
-
-                        list.remove(0);
-                        list.remove(0);
-                        list.remove(0);
-
-
-                    }
-                    if(solver.fortuneValue > 0)
-                    {
-                        fortuneChannel.createMessage("Season total: "+String.format("%,d", solver.fortuneValue)+OCUtils.cowriesEmoji).subscribe(message -> {LOG.info("Successfully posted fortune teller total: {}", message.getContent());}, error -> { LOG.error("Error posting fortune-teller total:",error);});
-                    }
-                    archiveChannel.getRestChannel().createMessage(OCUtils.newArchiveContent(week+1)).subscribe(message -> {LOG.info("Successfully posted new archive post: {}", message.content());}, error -> { LOG.error("Error posting new archive post:",error);});
-                }
-                else
-                {
-                    if(recDay == 1)
-                    {
-                        var embed = OCUtils.generateThisWeekEmbed(week, solver.fortuneTellerRecs, -1);
-
-                        fortuneChannel.createMessage(MessageCreateSpec.builder().content("<@&"+clairvoyantRole+">").addEmbed(embed).build()).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted fortune teller recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting fortune-teller recs:",error);});
-                    }
-                    for(var recs : list)
-                    {
-                        channel.createMessage(OCUtils.generateRecEmbedMessage(week, recs.withRank(-1), c1PeakRole, squawkboxRole)).flatMap(Message::publish).subscribe(message -> {LOG.info("Successfully posted recs: {}", message.getEmbeds());}, error -> { LOG.error("Error posting recs:",error); });
-                        trySendTweet(week, recs);
-                        if(recs.isRestRecommended())
-                        {
-                            var archive = client.getMessageById(Snowflake.of(archiveChannelID), Snowflake.of(lastArchiveMessageID)).block();
-                            archive.edit(OCUtils.addCurrentDay(recDay+1, recs, archive)).subscribe(message -> {LOG.info("Successfully posted new rest day to archive: {}", message.getContent());}, error -> { LOG.error("Error posting new rest day to archive:",error);});
-                        }
-                    }
-
-                }
-            }
-        }
-    }
-
-    private void trySendTweet(int week, DailyRecommendation rec)
-    {
-        try{
-            RecsTweet.sendRec(week, rec, !local);
-        }
-        catch(Exception e)
-        {
-            LOG.error("Error tweeting!!",e);
-        }
-    }
-
-
-
-    private boolean validate62Peaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<TCDay> tcDays, int week, int day, boolean china)
-    {
-        day = Math.min(day, 3);
-        if(tcDays == null)
-            return false;
-
-        boolean valid;
-
-        LOG.info("Validating TC peaks from day {} for items 1-50", day+1);
-
-        int num2Weak = 0;
-        int num2Strong = 0;
-        int num3Strong = 0;
-        int num3Weak = 0;
-        int num4Weak = 0;
-        int num4Strong = 0;
-        int num5Weak = 0;
-        int num5Strong = 0;
-        int num6Weak = 0;
-        int num6Strong = 0;
-        int num7Weak = 0;
-        int num7Strong = 0;
-        int num45 = 0;
-        int num67 = 0;
-        int num5 = 0;
-
-        if(day >= tcDays.size() || tcDays.get(day) == null)
-        {
-            LOG.warn("Could not find today's data in TC data. Only found "+tcDays.size()+" days. Needed day "+(day+1));
-            return false;
-        }
-
-        //Day 1
-        if(day==0)
-        {
-            int num2Unk = 0;
-            for(int i=0; i<50; i++)
-            {
-                var lastWeekPeak = oldPeaks.get(i);
-                ItemSupply supply = tcDays.get(0).getObjects().get(lastWeekPeak.getPeakID().getItemID());
-                String peakString;
-                if(supply.getSupply() == Surplus)
-                    return false;
-                else if(supply.getSupply() == Insufficient)
-                {
-                    if(supply.getDemand() == Skyrocketing && lastWeekPeak.getPeakEnum().isReliable)
-                    {
-                        num2Strong++;
-                        peakString = "2S";
-                    }
-                    else if (supply.getDemand() == Increasing)
-                    {
-                        num2Weak++;
-                        peakString = "2W";
-                    }
-                    else if (supply.getDemand() == None) { //This will never happen again. RIP None. 6.2-6.2
-                        num2Strong++;
-                        peakString = "2S";
-                    }
-                    else if(china && supply.getDemand() == Decreasing)
-                    {
-                        num2Weak++;
-                        peakString = "2W";
-                    }
-                    else
-                    {
-                        num2Unk++;
-                        peakString = "2U";
-                    }
-                }
-                else
-                    peakString = "U1";
-
-                CraftPeaks newCraft = new CraftPeaks();
-                newCraft.setPeak(peakString);
-                newCraft.setPeakID(new PeakID(week, day, supply.getId()));
-                newPeaks.add(newCraft);
+                continue;
             }
 
-            if (num2Strong == 4)
-                for (int i = 0; i < 50; i++)
-                    if (newPeaks.get(i).getPeak().equals("2U"))
-                        newPeaks.get(i).setPeak("2W");
-            if (num2Weak == 4)
-                for (int i = 0; i < 50; i++)
-                    if (newPeaks.get(i).getPeak().equals("2U"))
-                        newPeaks.get(i).setPeak("2S");
+            //Post recs
+            var combinedPost = MessageCreateSpec.builder().content("<@&" + squawkboxRole + ">" + OCUtils.getFlavorText(list));
+            var recsMessage = OCUtils.createCombinedRecPost(week, list, solver.totalValue);
+            combinedPost.addAllEmbeds(recsMessage);
+            channel.createMessage(combinedPost.build()).flatMap(Message::publish).subscribe(message -> {
+                LOG.info("Successfully posted recs: {}", message.getEmbeds());
+            }, error -> {
+                LOG.error("Error posting combined post:", error);
+            });
 
-            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::toString).collect(Collectors.joining(", "));
-            valid = num2Unk+num2Strong+num2Weak==8 && num2Strong<=4 && num2Weak<=4;
-            LOG.info(MessageFormatter.format("As of day 1, 1-50 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
-
-            LOG.info("Peaks for 1-50 C1: num2Strong={}/4, num2Weak={}/4, num2Unknown={}/0", num2Strong, num2Weak, num2Unk);
-
-
-            return valid;
+            //Post archive
+            archiveChannel.getRestChannel().createMessage(OCUtils.newArchiveContent(week, solver.archiveRecs, solver.totalValue)).subscribe(message -> {
+                LOG.info("Successfully posted new archive post: {}", message.content());
+            }, error -> {
+                LOG.error("Error posting new archive post:", error);
+            });
         }
-
-
-        //Day 2
-        if(day==1)
-        {
-            for (int i = 0; i < 50; i++)
-            {
-                CraftPeaks currentPeak = newPeaks.get(i);
-                currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
-                ItemSupply supply = tcDays.get(1).getObjects().get(i+1);
-                if (supply.getSupply() == Nonexistent) {
-                    num2Strong++;
-                    currentPeak.setPeak("2S");
-                }
-                else if (supply.getSupply() == Insufficient && (currentPeak.getPeak().equals("2U") || currentPeak.getPeak().equals("2W")))
-                {
-                    num2Weak++;
-                    currentPeak.setPeak("2W");
-                }
-                else if (supply.getSupply() == Insufficient) //Peaks D3 or 6/7
-                {
-                    if (supply.getDemand() == Skyrocketing)
-                    {
-                        num3Strong++;
-                        currentPeak.setPeak("3S");
-                    }
-                    else if(china && supply.getDemand() == Increasing)
-                    {
-                        num3Weak++;
-                        currentPeak.setPeak("3W");
-                    }
-                    else
-                    {
-                        num67++;
-                        currentPeak.setPeak("67");;
-                    }
-                }
-                else
-                {
-                    num45++;
-                    currentPeak.setPeak("45");;
-                }
-            }
-            valid = num2Strong == 4 && num2Weak == 4 && num3Strong == 4 && num45 == 16 && ((!china && num67 == 22) || (china && num67 == 18 && num3Weak == 4));
-
-            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::toString).collect(Collectors.joining(", "));
-            LOG.info(MessageFormatter.format("As of day 2, 1-50 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
-
-            LOG.info("peaks for 1-50 D2 "+", num2Strong = "+num2Strong+"/4"+", num2Weak = "+num2Weak+"/4"+", num3Strong = "+num3Strong+"/4"+", num3Weak = "+num3Weak+"/4"+", num45 = "+num45+"/16"+", num67 = "+num67+"/18");
-
-            return valid;
-        }
-
-
-
-        if(day==2) {
-            //Day 3
-            for (int i = 0; i < 50; i++) {
-                CraftPeaks currentPeak = newPeaks.get(i);
-                currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
-                ItemSupply supply = tcDays.get(2).getObjects().get(i + 1);
-                if (currentPeak.getPeak().equals("45")) {
-                    if (supply.getSupply() == Insufficient) //potentialPeaks 4
-                    {
-                        if (supply.getDemand() == Skyrocketing) {
-                            num4Strong++;
-                            currentPeak.setPeak("4S");
-                        } else {
-                            num4Weak++;
-                            currentPeak.setPeak("4W");
-                        }
-                    } else //potentialPeaks 5
-                    {
-                        num5++;
-                        currentPeak.setPeak("5U");
-                    }
-                } else if (currentPeak.getPeak().equals("67")) {
-                    if(supply.getSupply() == Insufficient)
-                    {
-                        num3Weak++;
-                        currentPeak.setPeak("3W");
-                    }
-                    else if (supply.getSupply() == Sufficient && supply.getDemand() == Decreasing) {
-                        num6Weak++;
-                        currentPeak.setPeak("6W");
-                    } else {
-                        num67++;
-                    }
-                }
-                else if(currentPeak.getPeak().equals("3W"))
-                    num3Weak++;
-            }
-            valid = num3Weak == 4 && num4Weak == 4 && num4Strong == 4 && num5 == 8 && num6Weak == 4 && num67 == 14;
-
-            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::toString).collect(Collectors.joining(", "));
-            LOG.info(MessageFormatter.format("As of day 3, 1-50 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
-
-                LOG.info("Peaks for 1-50 D3 "+ ", num3Weak = " + num3Weak + "/4"  + ", num4Weak = " + num4Weak + "/4" + ", num4Strong = " + num4Strong + "/4" + ", num5 = " + num5 + "/8" + ", num6Weak = " + num6Weak + "/4" + ", num67 = " + num67 + "/14");
-
-            return valid;
-        }
-
-        //Day 4
-        for (int i = 0; i < 50; i++)
-        {
-            CraftPeaks currentPeak = newPeaks.get(i);
-            currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
-            ItemSupply supply = tcDays.get(3).getObjects().get(i + 1);
-
-            if (currentPeak.getPeak().equals("67") && supply.getSupply() == Sufficient)
-            {
-                if (supply.getDemand() == Skyrocketing)
-                {
-                    num6Strong++;
-                    currentPeak.setPeak("6S");
-                }
-                else if (supply.getDemand() == Increasing)
-                {
-                    num7Weak++;
-                    currentPeak.setPeak("7W");
-                }
-                else
-                {
-                    num7Strong++;
-                    currentPeak.setPeak("7S");
-                }
-            }
-            else if (currentPeak.getPeak().equals("5U"))
-            {
-                if (supply.getSupply() == Insufficient)
-                {
-                    if (supply.getDemand() == Skyrocketing) {
-                        num5Strong++;
-                        currentPeak.setPeak("5S");
-                    }
-                    else
-                    {
-                        num5Weak++;
-                        currentPeak.setPeak("5W");
-                    }
-                }
-            }
-        }
-        valid = num5Weak == 4 && num5Strong == 4 && num6Strong == 4 && num7Weak == 5 && num7Strong == 5;
-
-        String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()<=50).map(CraftPeaks::toString).collect(Collectors.joining(", "));
-        LOG.info(MessageFormatter.format("As of day 4, 1-50 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
-
-            LOG.info("peaks for 1-50 D4 "+", num5Weak = "+num5Weak+"/4"+", num5Strong = "+num5Strong+"/4"
-                    +", num6Strong = "+num6Strong+"/4"+", num7Weak = "+num7Weak+"/5"
-                    +", num7Strong = "+num7Strong+"/5");
-        return valid;
-    }
-
-    private boolean validate63Peaks(List<CraftPeaks> newPeaks, List<CraftPeaks> oldPeaks, List<TCDay> tcDays, int week, int day)
-    {
-        day = Math.min(day, 3);
-        boolean valid;
-
-        LOG.info("Validating TC peaks from day {} for items 51-60", day+1);
-
-        if(day >= tcDays.size())
-        {
-            LOG.warn("Could not find today's data in TC data. Only found "+tcDays.size()+" days. Needed day "+(day+1));
-            return false;
-        }
-
-        //Day 1
-        if(day==0)
-        {
-            int num2Strong = 0;
-            int num2Weak = 0;
-            int num2Unk = 0;
-            for(int i=50; i<60; i++)
-            {
-                var lastWeekPeak = oldPeaks.get(i);
-                ItemSupply supply = tcDays.get(0).getObjects().get(lastWeekPeak.getPeakID().getItemID());
-                String peakString;
-                if(supply.getSupply() == Surplus)
-                    return false;
-                else if(supply.getSupply() == Insufficient)
-                {
-                    if(supply.getDemand() == Skyrocketing && lastWeekPeak.getPeakEnum().isReliable)
-                    {
-                        num2Strong++;
-                        peakString = "2S";
-                    }
-                    else if (supply.getDemand() == Increasing || supply.getDemand() == Decreasing)
-                    {
-                        num2Weak++;
-                        peakString = "2W";
-                    }
-                    else if (supply.getDemand() == None) {
-                        num2Strong++;
-                        peakString = "2S";
-                    }
-                    else
-                    {
-                        num2Unk++;
-                        peakString = "2U";
-                    }
-
-                }
-                else
-                    peakString = "U1";
-
-                CraftPeaks newCraft = new CraftPeaks();
-                newCraft.setPeak(peakString);
-                newCraft.setPeakID(new PeakID(week, day, supply.getId()));
-                newPeaks.add(newCraft);
-            }
-
-            if (num2Strong == 1 && num2Unk == 1)
-                for (int i = 50; i < newPeaks.size(); i++)
-                    if (newPeaks.get(i).getPeak().equals("2U"))
-                        newPeaks.get(i).setPeak("2W");
-            if (num2Weak == 1 && num2Unk == 1)
-                for (int i = 50; i < newPeaks.size(); i++)
-                    if (newPeaks.get(i).getPeak().equals("2U"))
-                        newPeaks.get(i).setPeak("2S");
-
-            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>50 && peak.getPeakID().getItemID()<=60).map(CraftPeaks::toString).collect(Collectors.joining(", "));
-            valid = num2Unk + num2Strong + num2Weak <=2 && num2Strong <= 1 && num2Weak <= 1 && num2Unk <=2;
-
-            LOG.info(MessageFormatter.format("As of day 1, 51-60 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
-
-            LOG.error("peaks for 51-60 C1: num2Strong={}/1?, num2Weak={}/1?, num2Unknown={}/0", num2Strong, num2Weak, num2Unk);
-
-
-            return valid;
-        }
-
-
-        //Day 2
-        if(day==1)
-        {
-            int num2Strong = 0;
-            int num2Weak = 0;
-            int num3Strong = 0;
-            int num67 = 0;
-            int num45 = 0;
-            for (int i = 50; i < 60; i++)
-            {
-                CraftPeaks currentPeak = newPeaks.get(i);
-                currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
-                ItemSupply supply = tcDays.get(1).getObjects().get(i+1);
-                if (supply.getSupply() == Nonexistent) {
-                    num2Strong++;
-                    currentPeak.setPeak("2S");
-                }
-                else if (supply.getSupply() == Insufficient && (currentPeak.getPeak().equals("2U") || currentPeak.getPeak().equals("2W")))
-                {
-                    num2Weak++;
-                    currentPeak.setPeak("2W");
-                }
-                else if (supply.getSupply() == Insufficient) //Peaks D3 or 6/7
-                {
-                    if (supply.getDemand() == Skyrocketing)
-                    {
-                        num3Strong++;
-                        currentPeak.setPeak("3S");
-                    }
-                    else
-                    {
-                        num67++;
-                        currentPeak.setPeak("67");;
-                    }
-                }
-                else
-                {
-                    num45++;
-                    currentPeak.setPeak("45");;
-                }
-            }
-            valid = num2Strong <= 1 && num2Weak <=1 && num3Strong <=1 && num45 <= 4 && num67 <= 5;
-
-            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>50 && peak.getPeakID().getItemID()<=60).map(CraftPeaks::toString).collect(Collectors.joining(", "));
-            LOG.info(MessageFormatter.format("As of day 2, 51-60 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
-
-                LOG.info("Peaks for 51-60 D2 "+", num2Strong = "+num2Strong+"/1?"+", num2Weak = "+num2Weak+"/1?"+", num3Strong = "+num3Strong+"/1?"+", num45 = "+num45+"/4?"+", num67 = "+num67+"/5?");
-
-            return valid;
-        }
-
-
-
-        if(day==2) {
-            int num4Strong = 0;
-            int num5 = 0;
-            int num4Weak = 0;
-            int num3Weak = 0;
-            int num67 = 0;
-            int num6Weak = 0;
-            int numEarlier = 0;
-            //Day 3
-            for (int i = 50; i < 60; i++) {
-                CraftPeaks currentPeak = newPeaks.get(i);
-                currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
-                ItemSupply supply = tcDays.get(2).getObjects().get(i + 1);
-                if (currentPeak.getPeak().equals("45")) {
-                    if (supply.getSupply() == Insufficient) //potentialPeaks 4
-                    {
-                        if (supply.getDemand() == Skyrocketing) {
-                            num4Strong++;
-                            currentPeak.setPeak("4S");
-                        } else {
-                            num4Weak++;
-                            currentPeak.setPeak("4W");
-                        }
-                    } else //potentialPeaks 5
-                    {
-                        num5++;
-                        currentPeak.setPeak("5U");
-                    }
-                } else if (currentPeak.getPeak().equals("67")) {
-                    if(supply.getSupply() == Insufficient)
-                    {
-                        num3Weak++;
-                        currentPeak.setPeak("3W");
-                    }
-                    else if (supply.getSupply() == Sufficient && supply.getDemand() == Decreasing) {
-                        num6Weak++;
-                        currentPeak.setPeak("6W");
-                    } else {
-                        num67++;
-                    }
-                }
-                else if(currentPeak.getPeak().equals("3W"))
-                    num3Weak++;
-                else
-                {
-                    numEarlier++;
-                }
-
-            }
-            valid = num3Weak <= 1 && num4Weak <= 1 && num4Strong <= 1 && num5 <= 2 && num6Weak <=1 && num67 <=3 && numEarlier+num3Weak+num4Weak+num4Strong+num5+num6Weak+num67 == 10;
-
-            String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>50 && peak.getPeakID().getItemID()<=60).map(CraftPeaks::toString).collect(Collectors.joining(", "));
-            LOG.info(MessageFormatter.format("As of day 3, 51-60 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
-
-                LOG.info("peaks for 51-60 C3 "+ ", num3Weak = " + num3Weak + "/1"  + ", num4Weak = " + num4Weak + "/1" + ", num4Strong = " + num4Strong + "/1" +
-                        ", num5 = " + num5 + "/2" + ", num6Weak = " + num6Weak + "/1" + ", num67 = " + num67 + "/3. Peaked earlier: {}",numEarlier);
-
-            return valid;
-        }
-
-        int num6Strong = 0;
-        int num7Weak = 0;
-        int num7Strong = 0;
-        int num5Strong = 0;
-        int num5Weak = 0;
-
-        int numEarlier = 0;
-        //Day 4
-        for (int i = 50; i < 60; i++)
-        {
-
-            CraftPeaks currentPeak = newPeaks.get(i);
-            currentPeak.setPeakID(new PeakID(week, day, currentPeak.getPeakID().getItemID()));
-            ItemSupply supply = tcDays.get(3).getObjects().get(i + 1);
-
-            if (currentPeak.getPeak().equals("67"))
-            {
-                if(supply.getSupply() == Sufficient)
-                {
-                    if (supply.getDemand() == Skyrocketing)
-                    {
-                        num6Strong++;
-                        currentPeak.setPeak("6S");
-                    }
-                    else if (supply.getDemand() == Increasing)
-                    {
-                        num7Weak++;
-                        currentPeak.setPeak("7W");
-                    }
-                    else
-                    {
-                        num7Strong++;
-                        currentPeak.setPeak("7S");
-                    }
-                }
-            }
-            else if (currentPeak.getPeak().equals("5U"))
-            {
-                if (supply.getSupply() == Insufficient)
-                {
-                    if (supply.getDemand() == Skyrocketing) {
-                        num5Strong++;
-                        currentPeak.setPeak("5S");
-                    }
-                    else
-                    {
-                        num5Weak++;
-                        currentPeak.setPeak("5W");
-                    }
-                }
-            }
-            else
-            {
-                numEarlier++;
-            }
-        }
-        valid = num5Weak <= 1 && num5Strong <=1 && num6Strong <=1 && num7Weak <=1 && num7Strong <= 1 && numEarlier + num5Weak + num5Strong + num6Strong + num7Weak + num7Strong == 10;
-
-        String peaks = newPeaks.stream().filter(peak -> peak.getPeakID().getItemID()>50 && peak.getPeakID().getItemID()<=60).map(CraftPeaks::toString).collect(Collectors.joining(", "));
-
-        LOG.info(MessageFormatter.format("As of day 4, 51-60 safe? {}, Peaks: {}, ", valid, peaks).getMessage());
-
-            LOG.info("peaks for 51-60 C4"+", num5Weak = "+num5Weak+"/1"+", num5Strong = "+num5Strong+"/1"
-                    +", num6Strong = "+num6Strong+"/1"+", num7Weak = "+num7Weak+"/1"
-                    +", num7Strong = "+num7Strong+"/1 Peaked earlier: {}",numEarlier);
-        return valid;
     }
 }

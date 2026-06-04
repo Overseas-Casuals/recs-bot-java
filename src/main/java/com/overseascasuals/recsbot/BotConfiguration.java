@@ -12,7 +12,6 @@ import discord4j.core.event.domain.Event;
 import discord4j.core.event.domain.lifecycle.ReadyEvent;
 import discord4j.core.object.command.ApplicationCommandOption;
 import discord4j.core.object.entity.User;
-import discord4j.discordjson.Id;
 import discord4j.discordjson.json.*;
 import discord4j.rest.request.RouteMatcher;
 import discord4j.rest.response.ResponseFunction;
@@ -29,22 +28,17 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.resources.ConnectionProvider;
 import reactor.retry.Retry;
 
-import java.time.Duration;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @EnableScheduling
 @Configuration
 @Profile("!test")
 public class BotConfiguration implements CommandLineRunner
 {
-    private static Logger LOG = LoggerFactory.getLogger(BotConfiguration.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BotConfiguration.class);
 
     @Autowired
     CraftRepository craftRepository;
@@ -95,8 +89,8 @@ public class BotConfiguration implements CommandLineRunner
 
 
 
-        //registerCommands(client);
         //deregisterCommands(client);
+        //registerCommands(client);
 
         this.taskList = taskList;
 
@@ -128,6 +122,7 @@ public class BotConfiguration implements CommandLineRunner
 
     private void registerCommands(GatewayDiscordClient client)
     {
+        long guildId = 1034534280757522442L;
 
         List<ApplicationCommandRequest> commands = new ArrayList<>();
         Long applicationId = client.getRestClient().getApplicationId().block();
@@ -136,108 +131,37 @@ public class BotConfiguration implements CommandLineRunner
             LOG.error("Null application ID. Unable to register commands");
             return;
         }
+        /*ApplicationCommandRequest editPostRequest = ApplicationCommandRequest.builder().name("Fix").type(3).build();
+        commands.add(editPostRequest);*/
 
         // Build our command's definition
-        ApplicationCommandRequest setPeakRequest = ApplicationCommandRequest.builder()
-                .name("set_peak")
-                .description("Sets the peak of a craft on Cycle 2 or 3")
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("item")
-                        .description("The item to set the peak of")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .required(true)
-                        .autocomplete(true)
-                        .build()
-                )
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("c2_peak")
-                        .description("Whether the C2 peak is strong or weak")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .required(false)
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Strong").value("strong").build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Weak").value("weak").build())
-                        .build())
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("c3_peak")
-                        .description("Whether the item peaks C3 or C6/7")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .required(false)
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("3W").value("3W").build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("6/7").value("6/7").build())
-                        .build())
-                .defaultMemberPermissions("0")
-                .dmPermission(false)
-                .build();
-        commands.add(setPeakRequest);
 
-        ApplicationCommandRequest setCraftsRequest = ApplicationCommandRequest.builder()
-                .name("set_schedule")
-                .description("Overrides the schedule for a certain day")
+        ApplicationCommandRequest favorsRequest = ApplicationCommandRequest.builder()
+                .name("favors")
+                .description("Gets semi-optimized possible schedules to fit one or more of this season's favors")
                 .addOption(ApplicationCommandOptionData.builder()
-                        .name("cycle")
-                        .description("The cycle we're setting the schedule of")
-                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
-                        .required(true)
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cycle 2").value(1).build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cycle 3").value(2).build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cycle 4").value(3).build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cycle 5").value(4).build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cycle 6").value(5).build())
-                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cycle 7").value(6).build())
-                        .build()
-                )
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("rank")
-                        .description("The rank we're setting the schedule of")
-                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
-                        .required(false)
-                        .build())
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("craft_1")
-                        .description("The first craft of the cycle")
+                        .name("favor1")
+                        .description("A favor you'd like help making")
                         .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .autocomplete(true)
                         .required(false)
+                        .autocomplete(true)
                         .build())
                 .addOption(ApplicationCommandOptionData.builder()
-                        .name("craft_2")
-                        .description("The second craft of the cycle")
+                        .name("favor2")
+                        .description("Another favor you'd like help making")
                         .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .autocomplete(true)
                         .required(false)
+                        .autocomplete(true)
                         .build())
                 .addOption(ApplicationCommandOptionData.builder()
-                        .name("craft_3")
-                        .description("The third craft of the cycle")
+                        .name("favor3")
+                        .description("A third favor you'd like help making")
                         .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .autocomplete(true)
                         .required(false)
-                        .build())
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("craft_4")
-                        .description("The fourth craft of the cycle")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
                         .autocomplete(true)
-                        .required(false)
                         .build())
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("craft_5")
-                        .description("The fifth craft of the cycle")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .autocomplete(true)
-                        .required(false)
-                        .build())
-                .addOption(ApplicationCommandOptionData.builder()
-                        .name("craft_6")
-                        .description("The sixth craft of the cycle")
-                        .type(ApplicationCommandOption.Type.STRING.getValue())
-                        .autocomplete(true)
-                        .required(false)
-                        .build())
-                .defaultMemberPermissions("0")
-                .dmPermission(false)
                 .build();
-        commands.add(setCraftsRequest);
+        commands.add(favorsRequest);
 
         ApplicationCommandRequest nextWeekRequest = ApplicationCommandRequest.builder()
                 .name("next_week")
@@ -251,6 +175,54 @@ public class BotConfiguration implements CommandLineRunner
                 .build();
         commands.add(nextWeekRequest);
 
+        ApplicationCommandRequest peakRequest = ApplicationCommandRequest.builder()
+                .name("peak")
+                .description("Displays what cycle a craft will peak, to the best of our knowledge")
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("craft1")
+                        .description("The name of a craft you want to check the peak of")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("craft2")
+                        .description("The name of a craft you want to check the peak of")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("craft3")
+                        .description("The name of a craft you want to check the peak of")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("craft4")
+                        .description("The name of a craft you want to check the peak of")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("craft5")
+                        .description("The name of a craft you want to check the peak of")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("craft6")
+                        .description("The name of a craft you want to check the peak of")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .build();
+        commands.add(peakRequest);
+
         ApplicationCommandRequest thisWeekRequest = ApplicationCommandRequest.builder()
                 .name("this_week")
                 .description("Gets a non-optimized schedule for the rest of the season if you're going to be away")
@@ -259,6 +231,74 @@ public class BotConfiguration implements CommandLineRunner
                         .description("The rank we're requesting the schedule for")
                         .type(ApplicationCommandOption.Type.INTEGER.getValue())
                         .required(false)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("nocraft1")
+                        .description("The name of a craft you can't make")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("nocraft2")
+                        .description("The name of a 2nd craft you can't make")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("nocraft3")
+                        .description("The name of a 3rd craft you can't make")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(false)
+                        .autocomplete(true)
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("nomat1")
+                        .description("The name of a material you don't want to use")
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
+                        .required(false)
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Laver").value(1).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sap").value(2).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Copper Ore").value(3).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Rock Salt").value(4).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sugarcane").value(5).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cotton Boll").value(6).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Tinsand").value(0).build())
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("nomat2")
+                        .description("The name of a 2nd material you don't want to use")
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
+                        .required(false)
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Laver").value(1).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sap").value(2).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Copper Ore").value(3).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Rock Salt").value(4).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sugarcane").value(5).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cotton Boll").value(6).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Tinsand").value(0).build())
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("nomat3")
+                        .description("The name of a 3rd material you don't want to use")
+                        .type(ApplicationCommandOption.Type.INTEGER.getValue())
+                        .required(false)
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Laver").value(1).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sap").value(2).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Copper Ore").value(3).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Rock Salt").value(4).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Sugarcane").value(5).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cotton Boll").value(6).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Tinsand").value(0).build())
+                        .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("no_rare_mats")
+                        .description("Exclude all rare materials (leavings, crops, etc.)")
+                        .type(ApplicationCommandOption.Type.BOOLEAN.getValue())
+                        .required(false)
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Yes").value(true).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("No").value(false).build())
                         .build())
                 .build();
         commands.add(thisWeekRequest);
@@ -344,20 +384,16 @@ public class BotConfiguration implements CommandLineRunner
                         .addChoice(ApplicationCommandOptionChoiceData.builder().name("Cotton Boll").value(6).build())
                         .addChoice(ApplicationCommandOptionChoiceData.builder().name("Tinsand").value(0).build())
                         .build())
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("no_rare_mats")
+                        .description("Exclude all rare materials (leavings, crops, etc.)")
+                        .type(ApplicationCommandOption.Type.BOOLEAN.getValue())
+                        .required(false)
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("Yes").value(true).build())
+                        .addChoice(ApplicationCommandOptionChoiceData.builder().name("No").value(false).build())
+                        .build())
                 .build();
         commands.add(altsRequest);
-
-        ApplicationCommandRequest rerunRequest = ApplicationCommandRequest.builder()
-                .name("rerun")
-                .description("Re-run recs and post them to the right channel")
-                .build();
-        commands.add(rerunRequest);
-
-        ApplicationCommandRequest islandRequest = ApplicationCommandRequest.builder()
-                .name("push_peaks")
-                .description("Pushes peaks to the public database")
-                .build();
-        commands.add(islandRequest);
 
         ApplicationCommandRequest clear_cache = ApplicationCommandRequest.builder()
                 .name("clear_cache")
@@ -371,14 +407,23 @@ public class BotConfiguration implements CommandLineRunner
                 .build();
         commands.add(clear_cache);
 
-
-
+        ApplicationCommandRequest push_peaks = ApplicationCommandRequest.builder()
+                .name("push_peaks")
+                .description("Pushes a given TC state to the peaks database (if it's valid)")
+                .addOption(ApplicationCommandOptionData.builder()
+                        .name("data")
+                        .description("The TC dump")
+                        .type(ApplicationCommandOption.Type.STRING.getValue())
+                        .required(true)
+                        .build())
+                .build();
+        commands.add(push_peaks);
 
         /* Bulk overwrite commands.
         */
-        client.getRestClient().getApplicationService().bulkOverwriteGlobalApplicationCommand(applicationId, commands)
-                .doOnNext(cmd -> LOG.info("Successfully registered Global Command " + cmd.name()))
-                .doOnError(e -> LOG.error("Failed to register global commands", e))
+        client.getRestClient().getApplicationService().bulkOverwriteGuildApplicationCommand(applicationId, guildId, commands)
+                .doOnNext(cmd -> LOG.info("Successfully registered Guild Command " + cmd.name()))
+                .doOnError(e -> LOG.error("Failed to register guild commands", e))
                 .subscribe();
     }
 
@@ -386,20 +431,24 @@ public class BotConfiguration implements CommandLineRunner
     {
         Long applicationId = client.getRestClient().getApplicationId().block();
 
+        List<String> commandsToRemove = Arrays.asList("alts");
 
         var commandIDs = client.getRestClient()
                 .getApplicationService()
-                .getGlobalApplicationCommands(applicationId).map(ApplicationCommandData::id)
-                .map(Id::asLong).collectList()
+                .getGlobalApplicationCommands(applicationId).collectMap(ApplicationCommandData::id, ApplicationCommandData::name)
                 .block();
 
-        for(var id : commandIDs)
-            client.getRestClient().getApplicationService()
-                    .deleteGlobalApplicationCommand(applicationId, id)
-                    .subscribe();
+        for(var id : commandIDs.entrySet())
+        {
+            if(commandsToRemove.contains(id.getValue()))
+            {
+                LOG.info("Deleting command name: {}, ID: {}", id.getValue(), id.getKey());
+                client.getRestClient().getApplicationService()
+                        .deleteGlobalApplicationCommand(applicationId, id.getKey().asLong())
+                        .subscribe();
+            }
 
-// Delete it
-
+        }
     }
 
     @Override
@@ -409,15 +458,27 @@ public class BotConfiguration implements CommandLineRunner
         LOG.info("Getting crafts from day 2 of week 15");
         var response = craftRepository.findCraftsByDay(15,1, 9);
         LOG.info("Found "+response.getCraft1());
+
+        long heapSize = Runtime. getRuntime(). maxMemory();
+        LOG.info("Max heap: "+heapSize+". Total: "+Runtime.getRuntime().totalMemory());
         if(!("local".equals(activeProfile))) return;
 
         LOG.info("Ran taskList {}", taskList);
 
 
 
-        //solver.getRestOfDayRecs(3, 20, 11, Item.GrowthFormula);
-        //solver.getRestOfDayRecs(3, 22, 11, null);
-        //solver.getRecForSingleDay(5, 11, List.of(Item.GarnetRapier), true);
+        //solver.getRestOfDayRecs(0, 20, 19, null);
+        //solver.getRestOfDayRecs(3, 22, 11, null);=
+
+
+        //If we don't have this, it's because we haven't run recs at all
+        //So run recs to get things all set up
+        /*if(!solver.hasRunRecs)
+        {
+            LOG.info("Haven't run recs yet. Doing so now.");
+            solver.getDailyRecommendations(59, 2, true);
+        }
+        solver.getRestOfDayRecs(2, 22, 18, null);*/
         Thread.sleep(5000); //Idk, just make sure things have a chance to finish running?
     }
 }

@@ -21,22 +21,23 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
     int oldGroovelessValue;
 
 
-    public DailyRecommendation(int day, int rank, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs)
+    public DailyRecommendation(int day, int rank, BruteForceSchedules recs, CycleSchedule bestRec, boolean resting)
     {
-        super(recs);
-        this.maxRank = rank;
-        this.day = day;
-        restRecommended = true;
-        bestRec = null;
+        this(day, rank, recs, bestRec);
+        restRecommended = resting;
     }
 
-    public DailyRecommendation(int day, int rank, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs, CycleSchedule bestRec)
+    public DailyRecommendation(int day, int rank, BruteForceSchedules recs, CycleSchedule bestRec)
     {
         super(recs);
         this.maxRank = rank;
         this.day = day;
         restRecommended = false;
         this.bestRec = bestRec;
+        /*if(rank>=15)
+            this.bestRec.setFourthWorkshop(recs.bestSubItems);
+        else
+            this.bestRec.setFourthWorkshop(new ArrayList<>());*/
         int startingGroove = bestRec.getStartingGroove();
         bestRec.setStartingGroove(0);
         groovelessValue = bestRec.getValue();
@@ -44,23 +45,14 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         dailyValue = bestRec.getValue();
     }
 
-    public DailyRecommendation(int day, int rank, List<Map.Entry<WorkshopSchedule, WorkshopValue>> recs, CycleSchedule bestRec, CycleSchedule oldRec, WorkshopValue oldValue)
+    public DailyRecommendation(int day, int rank, BruteForceSchedules recs, CycleSchedule bestRec, CycleSchedule oldRec)
     {
-        super(recs);
-        this.maxRank = rank;
-        this.day = day;
-        restRecommended = false;
-        this.bestRec = bestRec;
-        int startingGroove = bestRec.getStartingGroove();
-        bestRec.setStartingGroove(0);
-        groovelessValue = bestRec.getValue();
-        bestRec.setStartingGroove(startingGroove);
-        dailyValue = bestRec.getValue();
+        this(day, rank, recs, bestRec);
+        int startingGroove = oldRec.getStartingGroove();
         this.oldRec = oldRec;
         oldRec.setStartingGroove(0);
         oldGroovelessValue = oldRec.getValue();
         oldRec.setStartingGroove(startingGroove);
-        this.oldValue = oldValue;
     }
 
     public DailyRecommendation withRank(int rank)
@@ -71,6 +63,9 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
 
     public boolean isRestRecommended() {
         return restRecommended;
+    }
+    public void setRestRecommended(boolean rest) {
+        restRecommended = rest;
     }
 
 
@@ -122,7 +117,7 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
         return maxRank;
     }
 
-    public String prettyPrint(Map.Entry<WorkshopSchedule, WorkshopValue> rec)
+    public static String prettyPrint(Map.Entry<WorkshopSchedule, WorkshopValue> rec)
     {
         return rec.getKey() +"\tGross: "+rec.getValue().getGross()+"\tNet: "+rec.getValue().getNet()+"\tGroove bonus: "+rec.getValue().getGroove()+"\tPenalty: "+rec.getValue().getPenalty()+"\tPeak bonus: "+rec.getValue().getPeakBonus()+" Total: "+rec.getValue().getWeighted();
     }
@@ -130,10 +125,6 @@ public class DailyRecommendation extends ArrayList<Map.Entry<WorkshopSchedule, W
     public CycleSchedule getOldRec()
     {
         return oldRec;
-    }
-    public WorkshopValue getOldValue()
-    {
-        return oldValue;
     }
 
     public int getOldGrooveless()

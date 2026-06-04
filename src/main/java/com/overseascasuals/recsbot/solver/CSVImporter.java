@@ -17,6 +17,7 @@ public class CSVImporter
 {
     Logger LOG = LoggerFactory.getLogger(CSVImporter.class);
     public List<List<Item>> allEfficientChains;
+    public Integer[][] popularityRatios;
 
     public CSVImporter() throws IOException
     {
@@ -33,11 +34,9 @@ public class CSVImporter
                 {
                     itemStr = itemStr.replace(" ", "");
                     itemStr = itemStr.replace("'", "");
-                    itemStr = itemStr.replace("Islefish", "");
-                    itemStr = itemStr.replace("Isleberry", "");
                     
                     if(!itemStr.isBlank())
-                        items.add(Item.valueOf(itemStr));
+                        items.add(Item.getEnum(itemStr));
                     
                 }
                 allEfficientChains.add(items);
@@ -46,7 +45,30 @@ public class CSVImporter
         }
         catch(Exception e)
         {
-            System.out.println("Error importing csv: "+e.getMessage());
+            System.out.println("Error importing chain csv: "+e.getMessage());
         }
+        popularityRatios = new Integer[100][Solver.items.length];
+        int[] ratios = {0, 140, 120, 100, 80};
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new ClassPathResource("popularity.csv").getInputStream())))
+        {
+            int index = 0;
+            String line;
+            while ((line = br.readLine()) != null)
+            {
+
+                String[] values = line.split(",");
+                for(int item = 0; item < Solver.items.length; item++)
+                {
+                    popularityRatios[index][item] = ratios[Integer.parseInt(values[item])];
+                }
+                index++;
+            }
+        }
+        catch(Exception e)
+        {
+            System.out.println("Error importing popularity csv: "+e.getMessage());
+        }
+
     }
 }

@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 
-@Service
+//@Service
 public class PingIslandTask implements ScheduledTask
 {
     private static Logger LOG = LoggerFactory.getLogger(PingIslandTask.class);
@@ -47,7 +47,7 @@ public class PingIslandTask implements ScheduledTask
     public void run() {
 
         try{
-            LOG.info("Pinging {}: {}",peakDbURL, restService.getURLResponse(peakDbURL+"?week=13"));
+            LOG.info("Pinging {}: {}",peakDbURL, restService.getURLResponse(peakDbURL+"?week=13&api=1.3"));
         }
         catch(RestClientException e)
         {

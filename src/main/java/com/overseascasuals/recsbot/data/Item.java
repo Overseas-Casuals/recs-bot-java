@@ -38,10 +38,10 @@ public enum Item
     SaltCod("Salt Cod","<:OC_SaltCod:1035399561914622023>"),
     SquidInk("Squid Ink","<:OC_SquidInk:1035399578704433222>"),
     EssentialDraught("Essential Draught","<:OC_EssentialDraught:1035379572281200660>"),
-    Jam("Jam","<:OC_IsleberryJam:1035379595232428112>"),
+    IsleberryJam("Isleberry Jam","<:OC_IsleberryJam:1035379595232428112>"),
     TomatoRelish("Tomato Relish","<:OC_TomatoRelish:1035399585184624750>"),
     OnionSoup("Onion Soup","<:OC_OnionSoup:1035399544957063168>"),
-    Pie("Pie","<:OC_IslefishPie:1035399552523567124>"),
+    IslefishPie("Islefish Pie","<:OC_IslefishPie:1035399552523567124>"),
     CornFlakes("Corn Flakes","<:OC_CornFlakes:1035379569131262003>"),
     PickledRadish("Pickled Radish","<:OC_PickledRadish:1035399551605018674>"),
     IronAxe("Iron Axe","<:OC_IronAxe:1035379594217406525>"),
@@ -63,7 +63,28 @@ public enum Item
     CawlCennin("Cawl Cennin","<:OC_CawlCennin:1062408571255525467>"),
     Isloaf("Isloaf","<:OC_Isloaf:1062408660329975818>"),
     PopotoSalad("Popoto Salad","<:OC_PopotoSalad:1062408751186980915>"),
-    Dressing("Dressing","<:OC_Dressing:1062408845265207366>");
+    Dressing("Dressing","<:OC_Dressing:1062408845265207366>"),
+    Stove ("Stove", "<:OC_Stove:1110495905741799544>"),
+    Lantern ("Lantern","<:OC_Lantern:1110495841342476320>"),
+    Natron ("Natron","<:OC_Natron:1110495854709719050>"),
+    Bouillabaisse("Bouillabaisse","<:OC_Bouillabaisse:1110495781414256677>"),
+    FossilDisplay("Fossil Display","<:OC_FossilDisplay:1110495810237509745>"),
+    Bathtub ("Bathtub","<:OC_Bathtub:1110495742847619123>"),
+    Spectacles("Spectacles","<:OC_Spectacles:1110495893444112394>"),
+    CoolingGlass("Cooling Glass","<:OC_CoolingGlass:1110495797017059389>"),
+    RunnerBeanSaute("Runner Bean Saute","<:OC_RunnerBeanSaute:1110495881402253392>"),
+    BeetSoup("Beet Soup","<:OC_BeetSoup:1110495769246572654>"),
+    ImamBayildi("Imam Bayildi","<:OC_ImamBayildi:1110495825127292958>"),
+    PickledZucchini("Pickled Zucchini","<:OC_PickledZucchini:1110495869024874509>"),
+    BrassServingDish("Brass Serving Dish", "<:OC_BrassServingDish:1158630308988596264>"),
+    GrindingWheel("Grinding Wheel", "<:OC_GrindingWheel:1158630384049864857>"),
+    DuriumTathlums("Durium Tathlums", "<:OC_DuriumThathlums:1158630360578539520>"),
+    GoldHairpin("Gold Hairpin", "<:OC_GoldHarpin:1158758327472357426>"),
+    MammetAward("Mammet Award", "<:OC_MammetAward:1158758339262566513>"),
+    FruitPunch("Fruit Punch", "<:OC_FruitPunch:1158758315711545425>"),
+    SweetPopotoPie("Sweet Popoto Pie", "<:OC_SweetPopotoPie:1158758361999876208>"),
+    Peperoncino("Peperoncino", "<:OC_Peperoncino:1158758351581216798>"),
+    BuffaloBeanSalad("Buffalo Bean Salad", "<:OC_BuffaloBeanSalad:1158758302109409330>");
     
     private String displayName;
     private String emoji;
@@ -78,4 +99,18 @@ public enum Item
     public String getDisplayNameWithTime() { return displayName + " ("+Solver.getHoursForItem(this)+"h)";}
     public String getDisplayNameWithEmoji() { return emoji + " " + displayName; }
     public String getDisplayWithEmojiAndTime() { return emoji + " " + displayName + " ("+Solver.getHoursForItem(this)+"h)"; }
+    public String getEmoji() { return emoji; }
+
+    public static Item getEnum(String name)
+    {
+        Item item;
+        if(name.equals("Jam"))
+            item = Item.IsleberryJam;
+        else if(name.equals("Pie"))
+            item = Item.IslefishPie;
+        else
+            item = Item.valueOf(name);
+
+        return item;
+    }
 }
