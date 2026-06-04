@@ -13,6 +13,7 @@ public class WorkshopSchedule
 {
     Logger LOG = LoggerFactory.getLogger(WorkshopSchedule.class);
 
+    CraftContext context = null;
     private final List<ItemInfo> crafts;
     private final List<Item> items; //Just a dupe of crafts, but accessible
     List<Integer> completionHours;
@@ -21,7 +22,7 @@ public class WorkshopSchedule
     Map<RareMaterial,Integer> rareMaterialsRequired;
     private int rank;
     
-    public WorkshopSchedule(List<Item> crafts, int rank)
+    public WorkshopSchedule(CraftContext context, List<Item> crafts, int rank)
     {
         completionHours = new ArrayList<>();
         this.crafts = new ArrayList<>();
@@ -29,6 +30,7 @@ public class WorkshopSchedule
         rareMaterialsRequired = new HashMap<>();
         setCrafts(crafts);
         this.rank = rank;
+        this.context = context;
     }
     
     public void setCrafts(List<Item> newCrafts)
@@ -82,13 +84,13 @@ public class WorkshopSchedule
         ItemInfo craft = crafts.get(currentIndex);        
         //int baseValue = craft.baseValue * Solver.getWorkshopBonus(rank) * (100+currentGroove) / 10000;
         int baseValue = (int)(craft.baseValue * (Solver.getWorkshopBonus(rank)/100f) * (100+currentGroove) / 100);
-        int supply = craft.getSupplyOnDay(day) + craftedSoFar;
-        int adjustedValue =(int) (baseValue * (craft.popularityRatio/100f) * (ItemInfo.getSupplyBucket(supply).multiplier/100f));
+        int supply = context.getSupplyOnDay(craft.item, day) + craftedSoFar;
+        int adjustedValue =(int) (baseValue * (context.getPopRatio(craft.item)/100f) * (ItemInfo.getSupplyBucket(supply).multiplier/100f));
         
         if(isEfficient)
             adjustedValue *= 2;
         if(verboseLogging)
-            LOG.info(craft.item+" is worth "+adjustedValue +" with "+currentGroove+" groove at "+ItemInfo.getSupplyBucket(supply)+ " supply ("+supply+") and "+craft.popularityRatio+" popularity with peak "+craft.peak);
+            LOG.info(craft.item+" is worth "+adjustedValue +" with "+currentGroove+" groove at "+ItemInfo.getSupplyBucket(supply)+ " supply ("+supply+") and "+context.getPopRatio(craft.item)+" popularity with peak "+context.getPeak(craft.item));
         
         return adjustedValue;
     }
@@ -230,7 +232,7 @@ public class WorkshopSchedule
             int nextGroove = Math.min(startingGroove + i*Solver.getNumWorkshops(rank), Solver.getMaxGroove(rank));
             int currentValue = getValueForCurrent(day, previouslyCrafted, nextGroove, efficient, verboseLogging);
 
-            if((strongRatio62>0 || strongRatio63 >0) && day == 1 && completedCraft.peak == PeakCycle.Cycle2Unknown)
+            if((strongRatio62>0 || strongRatio63 >0) && day == 1 && context.getPeak(completedCraft.item) == PeakCycle.Cycle2Unknown)
             {
                 double ratio = 0;
                 if(completedCraft.item.ordinal() < 50)
@@ -276,7 +278,7 @@ public class WorkshopSchedule
                 if(verboseLogging)
                     LOG.info("We're not using main item {}", kvp.getKey());
                 ItemInfo mainItem = Solver.items[kvp.getKey().ordinal()];
-                if(mainItem.peaksOnOrBeforeDay(day, null)) //Item has peaked already so it's fine
+                if(context.peaksOnOrBeforeDay(mainItem.item, day)) //Item has peaked already so it's fine
                     continue;
                 if(verboseLogging)
                     LOG.info("Main item {} hasn't peaked yet", kvp.getKey());
@@ -298,7 +300,7 @@ public class WorkshopSchedule
 
         for(int i=0;i<crafts.size();i++)
         {
-            if(crafts.get(i).couldPrePeak(day))
+            if(context.couldPrePeak(crafts.get(i).item, day))
                 prepeakBonus+= Solver.prepeakBonus *(i==0?1:2);
         }
 

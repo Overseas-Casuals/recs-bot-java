@@ -39,15 +39,15 @@ public class OCUtils
         return dateStr;
     }
 
-    public static EmbedCreateSpec getPeaksEmbed(List<ItemInfo> items, int week)
+    public static EmbedCreateSpec getPeaksEmbed(CraftContext context, List<Item> items, int week)
     {
         var builder = EmbedCreateSpec.builder().title("Peak Info for Season "+week);
         builder.timestamp(Instant.now());
         String peakStr;
         for(int i=0; i<items.size(); i++)
         {
-            ItemInfo info = items.get(i);
-            switch(info.popularityRatio)
+            Item item = items.get(i);
+            switch(context.getPopRatio(item))
             {
                 case 140 ->{peakStr="<:OC_VeryHigh:1035399592004558878> Very High";}
                 case 120 ->{peakStr="<:OC_High:1035379587884003418> High";}
@@ -56,7 +56,7 @@ public class OCUtils
                 default -> {peakStr="";}
             }
             peakStr+="\n";
-            switch(info.peak)
+            switch(context.getPeak(item))
             {
                 case Unknown -> {
                     peakStr+="Unknown Peak";
@@ -113,7 +113,7 @@ public class OCUtils
             if(i<items.size()-1)
                 peakStr+="\n\u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E";
 
-            builder.addField(info.item.getDisplayNameWithEmoji()+"\u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E", peakStr, true);
+            builder.addField(item.getDisplayNameWithEmoji()+"\u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E \u200E", peakStr, true);
         }
         return builder.build();
     }
@@ -124,7 +124,7 @@ public class OCUtils
         List<CycleSchedule> cycles = new ArrayList<>();
         for(int i=0; i<schedules.size(); i++)
         {
-            CycleSchedule sched = new CycleSchedule(i+1, 0, Solver.maxIslandRank);
+            CycleSchedule sched = new CycleSchedule(null, i+1, 0, Solver.maxIslandRank);
             if(schedules.get(i).getItems().size() > 0)
             {
                 sched.setForFirstThreeWorkshops(schedules.get(i).getItems());

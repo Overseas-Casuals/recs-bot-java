@@ -31,11 +31,10 @@ public class CraftContext
             {-4, -4, 10, 0, 0, 0, 0} //Cycle2Unknown
     };
 
+    private Set<Item> reservedItems = new HashSet<>();
+    private Map<Item, ReservedHelper> reservedHelpers = new HashMap<>();
 
-    private final Set<Item> reservedItems = new HashSet<>();
-    private final Map<Item, ReservedHelper> reservedHelpers = new HashMap<>();
-
-    public Map<Integer, List<Item>> dailySchedules = new HashMap<>();
+    public Map<Integer,ScheduleSet> dailySchedules = new HashMap<>();
 
     private static Logger LOG = LoggerFactory.getLogger(CraftContext.class);
     private final Map<Integer, Integer> startingGroovePerDay = new HashMap<>();
@@ -56,7 +55,7 @@ public class CraftContext
         startingGroovePerDay.put(1,0);
     }
 
-    public CraftContext(CraftContext other)
+    public CraftContext(CraftContext other, int day)
     {
         this();
 
@@ -66,16 +65,49 @@ public class CraftContext
             popularity.add(other.popularity.get(i));
             craftedPerDay.add(new int[7]);
         }
+        for(int d=0;d<day; d++)
+        {
+            for(int i = 0; i < craftedPerDay.size(); i++)
+            {
+                craftedPerDay.get(i)[d] = other.craftedPerDay.get(i)[d];
+            }
+            startingGroovePerDay.put(d+1, other.startingGroovePerDay.get(d+1));
+            dailySchedules.put(d, other.dailySchedules.get(d));
+        }
+        if(other.rested < day)
+            rested = day;
+        reservedHelpers = other.reservedHelpers;
+        reservedItems = other.reservedItems;
+
+        groove = other.startingGroovePerDay.get(day+1);
     }
 
     public  Map<Item, ReservedHelper> getReservedHelpers()
     {
         return reservedHelpers;
     }
+    public Set<Item> getReservedItems() { return reservedItems; }
+
+    public void clearReserved()
+    {
+        reservedItems.clear();
+        reservedHelpers.clear();
+    }
     public int getStartingGroove(int day)
     {
         return startingGroovePerDay.get(day);
     }
+
+    public int getStartingGroove(int day, int rank)
+    {
+        return startingGroovePerDay.get(day) * Solver.getNumWorkshops(rank) / Solver.getNumWorkshops(Solver.maxIslandRank) ;
+    }
+
+    public void setStartingGroove(int day, int groove)
+    {
+        startingGroovePerDay.put(day, groove);
+    }
+
     public int getGroove()
     {
         return groove;
@@ -84,10 +116,7 @@ public class CraftContext
     {
         groove = newGroove;
     }
-    public void setStartingGroovePerDay(int day, int groove)
-    {
-        startingGroovePerDay.put(day, groove);
-    }
+    public void addGroove(int grooveDiff) { groove += grooveDiff;}
     public int getPopRatio(Item item)
     {
         return popularity.get(item.ordinal());
@@ -113,6 +142,12 @@ public class CraftContext
         this.rested = rested;
     }
 
+    public boolean restedAlready(int today)
+    {
+        return rested > 0 && rested <= today;
+    }
+
+
     public void addInitialData(int pop, PeakCycle peak)
     {
         popularity.add(pop);
@@ -135,7 +170,23 @@ public class CraftContext
         craftedPerDay.get(item.ordinal())[day]=0;
     }
 
-    private int getCraftedBeforeDay(Item item, int day)
+    public void clearDayUsage(List<Integer> days)
+    {
+        for(Integer day : days)
+        {
+            for(var item : craftedPerDay)
+            {
+                item[day] = 0;
+            }
+        }
+    }
+
+    public void clearLateDayUsage()
+    {
+        clearDayUsage(List.of(4,5,6));
+    }
+
+    public int getCraftedBeforeDay(Item item, int day)
     {
         int sum = 0;
         for(int c=0; c<day; c++)
@@ -161,6 +212,8 @@ public class CraftContext
 
         return supply;
     }
+
+
 
     public boolean peaksOnOrBeforeDay(Item item, int day)
     {

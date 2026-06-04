@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 public class CycleSchedule
 {
     Logger LOG = LoggerFactory.getLogger(CycleSchedule.class);
+    private CraftContext context;
     int day;
     public int getDay()
     {
@@ -21,6 +22,7 @@ public class CycleSchedule
     {
         return rank;
     }
+
     private int startingGroove;
 
     private int endingGroove;
@@ -29,8 +31,9 @@ public class CycleSchedule
     WorkshopSchedule[] workshops = new WorkshopSchedule[Solver.NUM_WORKSHOPS];
     HashMap<Item, Integer> numCrafted;
     
-    public CycleSchedule(int day, int groove, int rank)
+    public CycleSchedule(CraftContext context, int day, int groove, int rank)
     {
+        this.context = context;
         this.rank = rank;
         this.day = day;
         startingGroove = Math.min(groove, Solver.getMaxGroove(rank));
@@ -38,24 +41,24 @@ public class CycleSchedule
     
     public void setForFirstThreeWorkshops(List<Item> crafts)
     {
-        workshops[0] = new WorkshopSchedule(crafts, rank);
-        workshops[1] = new WorkshopSchedule(crafts, rank);
+        workshops[0] = new WorkshopSchedule(context, crafts, rank);
+        workshops[1] = new WorkshopSchedule(context, crafts, rank);
         if(Solver.getNumWorkshops(rank)>2)
-            workshops[2] = new WorkshopSchedule(crafts, rank);
+            workshops[2] = new WorkshopSchedule(context, crafts, rank);
         else if(workshops[2] == null)
-            workshops[2] = new WorkshopSchedule(new ArrayList<>(), rank);
+            workshops[2] = new WorkshopSchedule(context, new ArrayList<>(), rank);
         if(workshops[3] == null)
-            workshops[3] = new WorkshopSchedule(new ArrayList<>(), rank);
+            workshops[3] = new WorkshopSchedule(context, new ArrayList<>(), rank);
     }
     public void setFourthWorkshop(List<Item> crafts)
     {
-        workshops[3] = new WorkshopSchedule(crafts, rank);
+        workshops[3] = new WorkshopSchedule(context, crafts, rank);
     }
     
     public void setWorkshop(int index, List<Item> crafts)
     {
         if(workshops[index] == null)
-            workshops[index] = new WorkshopSchedule(crafts, rank);
+            workshops[index] = new WorkshopSchedule(context, crafts, rank);
         else
             workshops[index].setCrafts(crafts);
     }

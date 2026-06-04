@@ -14,20 +14,22 @@ public class BruteForceSchedules extends ArrayList<Map.Entry<WorkshopSchedule, W
 {
     private static Logger LOG = LoggerFactory.getLogger(BruteForceSchedules.class);
 
+    private CraftContext context;
     private List<Item> bestSubItems;
     private CycleSchedule bestRec;
     private int day;
     private int startingGroove;
-    public BruteForceSchedules(List<Map.Entry<WorkshopSchedule, WorkshopValue>> list, int day, int startingGroove)
+    public BruteForceSchedules(CraftContext context, List<Map.Entry<WorkshopSchedule, WorkshopValue>> list, int day, int startingGroove)
     {
         super(list);
         this.day =day;
         this.startingGroove = startingGroove;
+        this.context = context;
     }
 
     public void setBestSubItems(List<Map.Entry<WorkshopSchedule, WorkshopValue>> safeSchedules, boolean rested, Map<Item, ReservedHelper> reservedHelpers, int rank)
     {
-        bestRec = new CycleSchedule(day, startingGroove, rank);
+        bestRec = new CycleSchedule(context, day, startingGroove, rank);
         if(size() == 0)
             return;
 

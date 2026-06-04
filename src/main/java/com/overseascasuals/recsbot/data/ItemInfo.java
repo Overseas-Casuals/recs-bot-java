@@ -12,12 +12,6 @@ import static com.overseascasuals.recsbot.data.PeakCycle.*;
 public class ItemInfo
 {
     private static Logger LOG = LoggerFactory.getLogger(ItemInfo.class);
-    //Contains exact supply values for concrete paths and worst-case supply values for tentative ones
-
-    
-    private static final PeakCycle[][] PEAKS_TO_CHECK = {{Cycle3Weak, Cycle3Strong, Cycle67, Cycle45}, //Day2
-            {Cycle4Weak, Cycle4Strong, Cycle6Weak, Cycle5, Cycle67}, //Day3
-            {Cycle5Weak, Cycle5Strong, Cycle6Strong, Cycle7Weak, Cycle7Strong}}; //Day4
     
     //Constant info
     public Item item;
@@ -42,7 +36,6 @@ public class ItemInfo
         
         if(mats != null)
             materialsRequired.forEach((k, v) -> {materialValue+=k.cowrieValue * v;});
-        
     }
     
     public boolean getsEfficiencyBonus(ItemInfo other)
@@ -69,8 +62,13 @@ public class ItemInfo
             return Surplus;
         return Overflowing;
     }
-    public int getSuffValueWithPopularity(int popularityRatio)
+    public int getSufficientValue(CraftContext context)
     {
-        return baseValue * popularityRatio / 100;
+        return baseValue * context.getPopRatio(item) / 100;
+    }
+
+    public int getValueOnDay(CraftContext context, int day)
+    {
+        return baseValue * context.getPopRatio(item) * getSupplyBucket(context.getSupplyOnDay(item, day)).multiplier / 10000;
     }
 }
