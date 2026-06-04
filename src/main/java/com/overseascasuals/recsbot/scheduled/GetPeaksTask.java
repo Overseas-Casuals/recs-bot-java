@@ -153,9 +153,11 @@ public class GetPeaksTask implements ScheduledTask
         {
             List<ArchiveSchedule> list;
 
+            long solverTime = System.currentTimeMillis();
             try
             {
                 list = solver.getDailyRecommendations(week, day, false, peaksByDay);
+                solverTime = System.currentTimeMillis() - solverTime;
             } catch (Exception e)
             {
                 LOG.error("Error running recs. Rescheduling. ", e);
@@ -176,15 +178,19 @@ public class GetPeaksTask implements ScheduledTask
             if(local)
             {
                 //next week
-                /*if (day == 0)
+                if (day == 0)
                 {
+                    long rank17Time = System.currentTimeMillis();
                     var calculatedNextWeek = solver.getRecForDayOn(new CraftContext(Solver.nextWeekContext,0), 1, 17, null, false);
+                    rank17Time = System.currentTimeMillis() - rank17Time;
                     var nextWeekEmbeds = OCUtils.generateThisWeekEmbed(week+1, calculatedNextWeek, 17, -1);
-                    channel.createMessage().withEmbeds(nextWeekEmbeds).subscribe(message -> LOG.info("Successfully posted high-level calculated next week recs."), error -> LOG.error("Error posting high level calced next week", error));
+                    channel.createMessage("Took "+rank17Time+" ms").withEmbeds(nextWeekEmbeds).subscribe(message -> LOG.info("Successfully posted high-level calculated next week recs."), error -> LOG.error("Error posting high level calced next week", error));
+                    long rank6Time = System.currentTimeMillis();
                     calculatedNextWeek = solver.getRecForDayOn(new CraftContext(Solver.nextWeekContext,0), 1, 6, null, false);
+                    rank6Time = System.currentTimeMillis() - rank6Time;
                     nextWeekEmbeds = OCUtils.generateThisWeekEmbed(week+1, calculatedNextWeek, 6, -1);
-                    channel.createMessage().withEmbeds(nextWeekEmbeds).subscribe(message -> LOG.info("Successfully posted low-level calculated next week recs."), error -> LOG.error("Error posting low level calced next week", error));
-                }*/
+                    channel.createMessage("Took "+rank6Time+" ms").withEmbeds(nextWeekEmbeds).subscribe(message -> LOG.info("Successfully posted low-level calculated next week recs."), error -> LOG.error("Error posting low level calced next week", error));
+                }
 
                 //this week
                /* if (day < 6)
@@ -217,7 +223,7 @@ public class GetPeaksTask implements ScheduledTask
             }
 
             //Post recs
-            var combinedPost = MessageCreateSpec.builder().content("<@&" + squawkboxRole + ">" + OCUtils.getFlavorText(list));
+            var combinedPost = MessageCreateSpec.builder().content("<@&" + squawkboxRole + "> Took "+solverTime+" ms. " + OCUtils.getFlavorText(list));
             var recsMessage = OCUtils.createCombinedRecPost(week, list, solver.totalValue);
             combinedPost.addAllEmbeds(recsMessage);
             channel.createMessage(combinedPost.build()).flatMap(Message::publish).subscribe(message -> {
