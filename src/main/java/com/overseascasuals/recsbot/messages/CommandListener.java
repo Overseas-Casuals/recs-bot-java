@@ -80,17 +80,17 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
             switch (command) {
                 case "next_week" -> {
-                    return event.deferReply().then(Mono.defer(() -> deferredNextWeekCommand(event)));
+                    return event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event, true)));
                 }
                 case "this_week" -> {
-                    return event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event)));
+                    return event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event, false)));
                 }
                 case "today" -> {
                     return event.deferReply().then(Mono.defer(() -> deferredTodayCommand(event)));
                 }
                 case "alts" -> {
                     LOG.info("Alts");
-                    return event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event)));
+                    return event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event, false)));
                 }
                 case "clear_cache" -> {
                     return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredClearCache(event)));
@@ -445,60 +445,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         return event.editReply("Cleared");
     }
 
-    private InteractionReplyEditMono deferredNextWeekCommand(ChatInputInteractionEvent event)
-    {
-        int rank = maxIslandRank;
-        if(event.getOption("rank").isPresent())
-        {
-            try
-            {
-                rank = Math.toIntExact(event.getOption("rank")
-                        .flatMap(ApplicationCommandInteractionOption::getValue)
-                        .map(ApplicationCommandInteractionOptionValue::asLong).get());
-            }
-            catch (Exception e)
-            {
-                return event.editReply("Try a rank between 1 and 20");
-            }
-        }
-        if(!solver.hasRunRecs)
-        {
-            var d1 = new Date(1661241600000L);
-            var d2 = new Date();
-
-            int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
-            int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
-
-            LOG.info("Haven't run recs yet. Doing so now.");
-            solver.getDailyRecommendations(week, day, true);
-        }
-
-        var recs = solver.getVacationRecs(Math.min(maxIslandRank,rank));
-
-        if(recs == null || recs.size() < 5)
-        {
-            LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-          if(rank >=5 && rank <= maxIslandRank)
-              return event.editReply("No vacation recs returned. <@"+miennaID+">");
-          else
-              return event.editReply("Rank "+rank+" too low to use vacation presets. Check out ?leveling to get presets to use while you level!");
-        }
-
-        if(rank == maxIslandRank)
-            rank++;
-
-        int total = 0;
-        for(DailyRecommendation rec : recs)
-        {
-            if(!rec.isRestRecommended())
-                total+=rec.getDailyValue();
-        }
-        var embed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, recs, rank, total);
-        LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
-        return event.editReply().withEmbeds(embed);
-    }
-
-    private InteractionReplyEditMono deferredThisWeekCommand(ChatInputInteractionEvent event)
+    private InteractionReplyEditMono deferredThisWeekCommand(ChatInputInteractionEvent event, boolean nextWeek)
     {
         int rank = maxIslandRank;
         if(event.getOption("rank").isPresent())
@@ -520,6 +467,9 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
         int week = (int)((d2.getTime()-d1.getTime())/604800000) + 1;
         int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
+
+        if(nextWeek)
+            day = 0;
         if(day==6)
         {
             LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
@@ -545,9 +495,15 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
         List<DailyRecommendation> recs = null;
 
+        CraftContext context = null;
+        if(nextWeek)
+            context = new CraftContext(Solver.nextWeekContext, day);
+        else
+            context = new CraftContext(Solver.canonContext, day);
+
         try
         {
-            recs = solver.getRecForDayOn(new CraftContext(Solver.canonContext, day), day+1, rank, items, false);
+            recs = solver.getRecForDayOn(context, day+1, rank, items, false);
         }
         catch(NullPointerException e)
         {
@@ -581,7 +537,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             }
         }
 
-        var embed = OCUtils.generateThisWeekEmbed(solver.getWeek(), recs, rank, total);
+        var embed = OCUtils.generateThisWeekEmbed(context.getWeek(), recs, rank, total);
         LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
 
         return event.editReply(content).withEmbedsOrNull(embed);

@@ -244,7 +244,7 @@ public class Solver
             canonContext = new CraftContext(week);
             this.day = 0; //Have it 0 while we generate vacation recs, then figure out what day it actually is
 
-            int currentPop = generateVacationRecs(peakWeek);
+            int currentPop = generateVacationRecs(peakWeek, week);
 
             Integer[] popularities = csvImporter.popularityRatios[currentPop];
             for(int i=0;i<items.length&&i<peaks.size();i++)
@@ -1163,28 +1163,24 @@ public class Solver
         return restOfDayRank;
     }
 
-    private int generateVacationRecs(int currentWeek)
+    private int generateVacationRecs(int peakWeek, int realWeek)
     {
         //generate vacation recs
-        var popData = popularityRepository.findByWeek(currentWeek);
+        var popData = popularityRepository.findByWeek(peakWeek);
 
-        nextWeekContext = new CraftContext(currentWeek+1);
-        /*if(!"live".equals(activeProfile))
-            return popData.getPopularity();*/
+        nextWeekContext = new CraftContext(realWeek+1);
 
-        LOG.info("Generating vacation recs");
         LOG.info("Getting popularity data for next week: {}", popData.getNextPopularity());
         int nextPop = popData.getNextPopularity();
 
         Integer[] popularities = csvImporter.popularityRatios[nextPop];
 
-        int nextPeakWeek = (currentWeek+1 - 59) % 100 + 59; //159 should be 59. 201 should be 101. 378 should be 78
+        int nextPeakWeek = (peakWeek+1 - 59) % 100 + 59; //159 should be 59. 201 should be 101. 378 should be 78
 
         List<CraftPeaks> nextWeekPeaks = null;
 
         LOG.info("Getting peak data for next week: {}", nextPeakWeek);
         nextWeekPeaks = peakRepository.findPeaksByDay(nextPeakWeek, 3);
-
 
         for(int i=0;i<items.length;i++)
         {
@@ -1195,19 +1191,6 @@ public class Solver
                 peak = nextWeekPeaks.get(i).getPeakEnum();
 
             nextWeekContext.addInitialData(ratio, peak);
-        }
-
-        int[] ranks = {5,9,11,15,18};
-
-        for(int rank : ranks)
-        {
-            nextWeekContext.setRested(-1);
-            nextWeekContext.setGroove(0);
-            var recs = getRecForDayOn(nextWeekContext,1, rank, null, true);
-            if(recs == null)
-                continue;
-
-            vacationRecs.put(rank, recs);
         }
 
         return popData.getPopularity();

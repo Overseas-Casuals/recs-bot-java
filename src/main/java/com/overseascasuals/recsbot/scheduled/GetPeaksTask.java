@@ -3,6 +3,7 @@ package com.overseascasuals.recsbot.scheduled;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.overseascasuals.recsbot.OCUtils;
 import com.overseascasuals.recsbot.data.ArchiveSchedule;
+import com.overseascasuals.recsbot.data.CraftContext;
 import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.data.ScheduleSet;
 import com.overseascasuals.recsbot.json.RestService;
@@ -177,12 +178,12 @@ public class GetPeaksTask implements ScheduledTask
                 //next week
                 /*if (day == 0)
                 {
-                    var nextWeekRecs = solver.getVacationRecs(17);
-                    var nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 17, -1);
-                    channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level next week recs."), error -> LOG.error("Error posting high level next week:", error));
-                    nextWeekRecs = solver.getVacationRecs(6);
-                    nextWeekEmbed = OCUtils.generateNextWeekEmbed(solver.getWeek() + 1, nextWeekRecs, 6, -1);
-                    channel.createMessage(nextWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level next week recs."), error -> LOG.error("Error posting low level next week:", error));
+                    var calculatedNextWeek = solver.getRecForDayOn(new CraftContext(Solver.nextWeekContext,0), 1, 17, null, false);
+                    var nextWeekEmbeds = OCUtils.generateThisWeekEmbed(week+1, calculatedNextWeek, 17, -1);
+                    channel.createMessage().withEmbeds(nextWeekEmbeds).subscribe(message -> LOG.info("Successfully posted high-level calculated next week recs."), error -> LOG.error("Error posting high level calced next week", error));
+                    calculatedNextWeek = solver.getRecForDayOn(new CraftContext(Solver.nextWeekContext,0), 1, 6, null, false);
+                    nextWeekEmbeds = OCUtils.generateThisWeekEmbed(week+1, calculatedNextWeek, 6, -1);
+                    channel.createMessage().withEmbeds(nextWeekEmbeds).subscribe(message -> LOG.info("Successfully posted low-level calculated next week recs."), error -> LOG.error("Error posting low level calced next week", error));
                 }*/
 
                 //this week
