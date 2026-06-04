@@ -241,7 +241,7 @@ public class Solver
             vacationRecs.clear();
             totalValue = 0;
             archiveRecs = null;
-            canonContext = new CraftContext();
+            canonContext = new CraftContext(week);
             this.day = 0; //Have it 0 while we generate vacation recs, then figure out what day it actually is
 
             int currentPop = generateVacationRecs(peakWeek);
@@ -431,13 +431,13 @@ public class Solver
         return bestLink;
     }
 
-    private String getKeyForAltRequest(int dayToSolve, int rank, Set<Item> items)
+    private String getKeyForAltRequest(int week, int dayToSolve, int rank, Set<Item> items)
     {
         if(rank < 5)
             rank = 1;
         if(rank > maxIslandRank)
             rank = maxIslandRank;
-        String key = dayToSolve+"-"+rank;
+        String key = week+"-"+dayToSolve+"-"+rank;
 
         if(items == rareMatItems)
             key+="-all";
@@ -449,7 +449,7 @@ public class Solver
 
     public List<DailyRecommendation> getRecForDayOn(CraftContext context, int dayToSolve, int rank, Set<Item> forbiddenItems, boolean force)
     {
-        String cacheKey = getKeyForAltRequest(dayToSolve, rank, forbiddenItems);
+        String cacheKey = getKeyForAltRequest(context.getWeek(), dayToSolve, rank, forbiddenItems);
         if(!force && cachedAltRecs.containsKey(cacheKey))
         {
             LOG.info("Found key {} in cache, returning", cacheKey);
@@ -1168,9 +1168,9 @@ public class Solver
         //generate vacation recs
         var popData = popularityRepository.findByWeek(currentWeek);
 
-        nextWeekContext = new CraftContext();
-        if(!"live".equals(activeProfile))
-            return popData.getPopularity();
+        nextWeekContext = new CraftContext(currentWeek+1);
+        /*if(!"live".equals(activeProfile))
+            return popData.getPopularity();*/
 
         LOG.info("Generating vacation recs");
         LOG.info("Getting popularity data for next week: {}", popData.getNextPopularity());

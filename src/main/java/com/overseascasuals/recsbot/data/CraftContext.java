@@ -45,9 +45,11 @@ public class CraftContext
     private int groove = 0;
 
     private int rested = -1;
+    private int week = -1;
 
-    public CraftContext()
+    public CraftContext(int week)
     {
+        this.week = week;
         peaks = new ArrayList<>();
         popularity = new ArrayList<>();
         craftedPerDay = new ArrayList<>();
@@ -57,7 +59,7 @@ public class CraftContext
 
     public CraftContext(CraftContext other, int day)
     {
-        this();
+        this(other.week);
 
         for(int i=0;i<other.popularity.size(); i++)
         {
@@ -82,6 +84,7 @@ public class CraftContext
         groove = other.startingGroovePerDay.get(day+1);
     }
 
+    public int getWeek() { return week; }
     public  Map<Item, ReservedHelper> getReservedHelpers()
     {
         return reservedHelpers;
