@@ -1,6 +1,5 @@
 package com.overseascasuals.recsbot.data;
 
-import com.overseascasuals.recsbot.mysql.Popularity;
 import com.overseascasuals.recsbot.solver.Solver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +39,7 @@ public class CraftContext
     private final Map<Integer, Integer> startingGroovePerDay = new HashMap<>();
     private List<PeakCycle> peaks;
     private List<Integer> popularity;
-    private List<int[]> craftedPerDay; //This might be more memory-efficient as a 2d array of bytes, but does that memory matter?
+    private byte[] craftedPerDay; //Byte array where each item has 7 bytes
     private int groove = 0;
     private int rested = -1;
     private int week = -1;
@@ -48,7 +47,7 @@ public class CraftContext
     public CraftContext(int week)
     {
         this.week = week;
-        craftedPerDay = new ArrayList<>();
+        craftedPerDay = new byte[Solver.items.length * 7];
         startingGroovePerDay.put(0,0);
         startingGroovePerDay.put(1,0);
     }
@@ -63,18 +62,12 @@ public class CraftContext
         reservedHelpers = other.reservedHelpers;
         reservedItems = other.reservedItems;
 
-
         //This must be a deep copy, we modify this all over the place
-        for(int i=0;i<other.popularity.size(); i++)
-        {
-            craftedPerDay.add(new int[7]);
-        }
         for(int d=0;d<=day; d++)
         {
-            //LOG.info("Copying crafted items from C"+(d+1));
-            for(int i = 0; i < craftedPerDay.size(); i++)
+            for(int i = 0; i < craftedPerDay.length; i++)
             {
-                craftedPerDay.get(i)[d] = other.craftedPerDay.get(i)[d];
+                craftedPerDay[i] = other.craftedPerDay[i];
             }
             startingGroovePerDay.put(d+1, other.startingGroovePerDay.get(d+1));
             //LOG.info("C"+(d+1)+"'s ending groove was "+startingGroovePerDay.get(d+1));
@@ -152,31 +145,25 @@ public class CraftContext
 
         popularity.add(pop);
         peaks.add(peak);
-        craftedPerDay.add(new int[7]);
     }
 
     public void setCrafted(Item item, int num, int day)
     {
-        craftedPerDay.get(item.ordinal())[day]=num;
+        craftedPerDay[item.ordinal()*7+day] = (byte)num;
     }
 
     public int getCraftedOnDay(Item item, int day)
     {
-        return craftedPerDay.get(item.ordinal())[day];
-    }
-
-    public void clearCrafted(Item item, int day)
-    {
-        craftedPerDay.get(item.ordinal())[day]=0;
+        return craftedPerDay[item.ordinal()*7+day];
     }
 
     public void clearDayUsage(List<Integer> days)
     {
         for(Integer day : days)
         {
-            for(var item : craftedPerDay)
+            for(int i = 0; i < Solver.items.length; i++)
             {
-                item[day] = 0;
+                craftedPerDay[i*7+day] = 0;
             }
         }
     }
@@ -186,27 +173,13 @@ public class CraftContext
         clearDayUsage(List.of(4,5,6));
     }
 
-    public int getCraftedBeforeDay(Item item, int day)
-    {
-        int sum = 0;
-        for(int c=0; c<day; c++)
-            sum+=craftedPerDay.get(item.ordinal())[c];
-
-        return sum;
-    }
-
-    public int getSupplyAfterCraft(Item item, int day, int newCrafts)
-    {
-        return getSupplyOnDay(item, day) + newCrafts;
-    }
-
     public int getSupplyOnDay(Item item, int day)
     {
         PeakCycle peak = peaks.get(item.ordinal());
         int supply = SUPPLY_PATH[peak.ordinal()][0];
         for(int c=1;c <= day; c++)
         {
-            supply += craftedPerDay.get(item.ordinal())[c-1];
+            supply += craftedPerDay[item.ordinal()*7+c-1];
             supply += SUPPLY_PATH[peak.ordinal()][c];
         }
 
