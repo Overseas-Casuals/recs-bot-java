@@ -40,18 +40,14 @@ public class CraftContext
     private final Map<Integer, Integer> startingGroovePerDay = new HashMap<>();
     private List<PeakCycle> peaks;
     private List<Integer> popularity;
-    private List<int[]> craftedPerDay;
-
+    private List<int[]> craftedPerDay; //This might be more memory-efficient as a 2d array of bytes, but does that memory matter?
     private int groove = 0;
-
     private int rested = -1;
     private int week = -1;
 
     public CraftContext(int week)
     {
         this.week = week;
-        peaks = new ArrayList<>();
-        popularity = new ArrayList<>();
         craftedPerDay = new ArrayList<>();
         startingGroovePerDay.put(0,0);
         startingGroovePerDay.put(1,0);
@@ -61,27 +57,36 @@ public class CraftContext
     {
         this(other.week);
 
+        //Ok for these to be references instead of deep copies, these are never modified
+        peaks = other.peaks;
+        popularity = other.popularity;
+        reservedHelpers = other.reservedHelpers;
+        reservedItems = other.reservedItems;
+
+
+        //This must be a deep copy, we modify this all over the place
         for(int i=0;i<other.popularity.size(); i++)
         {
-            peaks.add(other.peaks.get(i));
-            popularity.add(other.popularity.get(i));
             craftedPerDay.add(new int[7]);
         }
-        for(int d=0;d<day; d++)
+        for(int d=0;d<=day; d++)
         {
+            //LOG.info("Copying crafted items from C"+(d+1));
             for(int i = 0; i < craftedPerDay.size(); i++)
             {
                 craftedPerDay.get(i)[d] = other.craftedPerDay.get(i)[d];
             }
             startingGroovePerDay.put(d+1, other.startingGroovePerDay.get(d+1));
+            //LOG.info("C"+(d+1)+"'s ending groove was "+startingGroovePerDay.get(d+1));
             dailySchedules.put(d, other.dailySchedules.get(d));
+            //LOG.info("C"+(d+1)+"'s schedule was "+dailySchedules.get(d));
         }
-        if(other.rested < day)
+        if(other.rested <= day)
             rested = day;
-        reservedHelpers = other.reservedHelpers;
-        reservedItems = other.reservedItems;
+        //LOG.info("Rested C"+(rested+1));
 
         groove = other.startingGroovePerDay.get(day+1);
+        //LOG.info("Current groove is "+groove);
     }
 
     public int getWeek() { return week; }
@@ -128,31 +133,23 @@ public class CraftContext
     {
         return peaks.get(item.ordinal());
     }
-    public void setPeak(Item item, PeakCycle peak)
-    {
-        peaks.set(item.ordinal(), peak);
-    }
     public int getRested() {
         return rested;
     }
-
-    public boolean restedByDay(int day)
-    {
-        return rested > 0 && rested <= day;
-    }
-
     public void setRested(int rested) {
         this.rested = rested;
     }
-
     public boolean restedAlready(int today)
     {
         return rested > 0 && rested <= today;
     }
-
-
     public void addInitialData(int pop, PeakCycle peak)
     {
+        if(popularity == null)
+            popularity = new ArrayList<>();
+        if(peaks == null)
+            peaks = new ArrayList<>();
+
         popularity.add(pop);
         peaks.add(peak);
         craftedPerDay.add(new int[7]);

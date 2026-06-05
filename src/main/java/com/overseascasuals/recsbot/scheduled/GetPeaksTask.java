@@ -187,22 +187,22 @@ public class GetPeaksTask implements ScheduledTask
                 }*/
 
                 //this week
-               /* if (day < 6)
+               /*if (day < 6)
                 {
-                    var thisWeekRecs = solver.getRecForDayOn(day + 1, 10, null, false);
+                    var thisWeekRecs = solver.getRecForDayOn(new CraftContext(Solver.canonContext, day), day + 1, 10, null, false);
                     var thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 10, day + 1);
                     int finalDay = day;
                     channel.createMessage().withEmbeds(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level this week recs."), error -> LOG.error("Error posting low level this week for C"+(finalDay +2), error));
-                    thisWeekRecs = solver.getRecForDayOn(day + 1, 20, List.of(Item.Macuahuitl), false);
+                    thisWeekRecs = solver.getRecForDayOn(new CraftContext(Solver.canonContext, day),day + 1, 20, Set.of(Item.Macuahuitl), false);
                     thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 20, day + 1);
                     channel.createMessage().withEmbeds(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level this week recs."), error -> LOG.error("Error posting high level this week for C"+(finalDay +2), error));
                 }*/
 
                 //today
-                /*var todayRecs = solver.getRestOfDayRecs(day, 22, 10, null);
+                /*var todayRecs = solver.getRestOfDayRecs(new CraftContext(Solver.canonContext, 6), day, 22, 10, null);
                 var todayEmbed = OCUtils.generateTodayEmbed(week, day, 22, todayRecs, 10);
                 channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted low-level today recs."), error -> LOG.error("Error posting low level today:", error));
-                todayRecs = solver.getRestOfDayRecs(day, 22, 20, null);
+                todayRecs = solver.getRestOfDayRecs(new CraftContext(Solver.canonContext, 6), day, 22, 20, null);
                 todayEmbed = OCUtils.generateTodayEmbed(week, day, 22, todayRecs, 20);
                 channel.createMessage(todayEmbed).subscribe(message -> LOG.info("Successfully posted high-level today recs."), error -> LOG.error("Error posting high level today:", error));*/
 

@@ -581,7 +581,9 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             solver.getDailyRecommendations(week, day, true);
         }
 
-        var recs = solver.getRestOfDayRecs(new CraftContext(Solver.canonContext, day), day, hoursLeft, rank,null);
+        //Need to copy whole context because today assumes you'll follow recs moving forward
+        //It's probably safe to just pass in canon context but that assumes I never modify it at all and that sounds exhausting
+        var recs = solver.getRestOfDayRecs(new CraftContext(Solver.canonContext, 6), day, hoursLeft, rank,null);
 
         if((recs == null || recs.size() == 0) && hoursLeft >= 4)
         {

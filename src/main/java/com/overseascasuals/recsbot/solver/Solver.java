@@ -254,7 +254,7 @@ public class Solver
                 LOG.info("Setting item {} to ratio {} and peak {}", items[i].item, popularities[i], peaks.get(i).getPeakEnum());
             }
 
-            if("live".equals(activeProfile))
+            if("live".equals(activeProfile) || day != 0)
             {
                 //Load previous crafts from db
                 for(int i=1; i<=6; i++)
