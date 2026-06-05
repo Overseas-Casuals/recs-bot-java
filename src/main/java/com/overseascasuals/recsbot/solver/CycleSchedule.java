@@ -1,8 +1,5 @@
 package com.overseascasuals.recsbot.solver;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import com.overseascasuals.recsbot.data.*;
 import org.slf4j.Logger;
@@ -54,14 +51,6 @@ public class CycleSchedule
     {
         workshops[3] = new WorkshopSchedule(context, crafts, rank);
     }
-    
-    public void setWorkshop(int index, List<Item> crafts)
-    {
-        if(workshops[index] == null)
-            workshops[index] = new WorkshopSchedule(context, crafts, rank);
-        else
-            workshops[index].setCrafts(crafts);
-    }
 
     public List<Item> getItems()
     {
@@ -76,30 +65,30 @@ public class CycleSchedule
     public int getValue(boolean verbose)
     {
        numCrafted = new HashMap<>();
-       
-       for(int i=0; i<workshops.length;i++)
-           workshops[i].currentIndex = 0;
+
+        for (WorkshopSchedule workshopSchedule : workshops)
+            workshopSchedule.currentIndex = 0;
        
        int currentGroove = startingGroove;
        
        int totalCowries = 0;
        for(int hour = 4; hour <=24; hour+=2) //Nothing can finish until hour 4
        {
-           HashMap<Item, Integer> craftsToAdd = new HashMap<Item,Integer>();
+           HashMap<Item, Integer> craftsToAdd = new HashMap<>();
            int grooveToAdd = 0;
            int cowriesThisHour = 0;
-           for(int i=0; i<workshops.length;i++)
+           for (WorkshopSchedule workshop : workshops)
            {
-               if(workshops[i].currentCraftCompleted(hour))
+               if (workshop.currentCraftCompleted(hour))
                {
-                   ItemInfo completedCraft = workshops[i].getCurrentCraft();
-                   boolean efficient = workshops[i].currentCraftIsEfficient();
-                   craftsToAdd.put(completedCraft.item, craftsToAdd.getOrDefault(completedCraft.item, 0) + (efficient? 2 : 1));
+                   ItemInfo completedCraft = workshop.getCurrentCraft();
+                   boolean efficient = workshop.currentCraftIsEfficient();
+                   craftsToAdd.put(completedCraft.item, craftsToAdd.getOrDefault(completedCraft.item, 0) + (efficient ? 2 : 1));
 
-                   cowriesThisHour += workshops[i].getValueForCurrent(day, numCrafted.getOrDefault(completedCraft.item, 0), currentGroove, efficient, verbose);
-                   
-                   workshops[i].currentIndex++;
-                   if(workshops[i].currentCraftIsEfficient())
+                   cowriesThisHour += workshop.getValueForCurrent(day, numCrafted.getOrDefault(completedCraft.item, 0), currentGroove, efficient, verbose);
+
+                   workshop.currentIndex++;
+                   if (workshop.currentCraftIsEfficient())
                        grooveToAdd++;
                }
            }
@@ -110,7 +99,7 @@ public class CycleSchedule
            currentGroove += grooveToAdd;
            if(currentGroove > Solver.getMaxGroove(rank))
                currentGroove = Solver.getMaxGroove(rank);
-           craftsToAdd.forEach((k, v) ->  {numCrafted.put(k, numCrafted.getOrDefault(k, 0) + v); });
+           craftsToAdd.forEach((k, v) -> numCrafted.put(k, numCrafted.getOrDefault(k, 0) + v));
            
        }
        
@@ -128,11 +117,6 @@ public class CycleSchedule
             cost+=shop.getMaterialCost();
         }
         return cost;
-    }
-
-    public int getGrooveBonus()
-    {
-            return grooveBonus;
     }
 
     public void setGrooveBonus(boolean rested, Map<Item, ReservedHelper> reservedHelpers)
@@ -180,14 +164,14 @@ public class CycleSchedule
     {
         if(other instanceof CycleSchedule)
         {
-            return workshops.equals(((CycleSchedule)other).workshops);
+            return Arrays.equals(workshops, ((CycleSchedule) other).workshops);
         }
         return false;
     }
     
     public int hashCode()
     {
-        return workshops.hashCode();
+        return Arrays.hashCode(workshops);
     }
 
     public int getStartingGroove() {

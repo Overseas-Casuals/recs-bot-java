@@ -3,9 +3,6 @@ package com.overseascasuals.recsbot.scheduled;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.overseascasuals.recsbot.OCUtils;
 import com.overseascasuals.recsbot.data.ArchiveSchedule;
-import com.overseascasuals.recsbot.data.CraftContext;
-import com.overseascasuals.recsbot.data.Item;
-import com.overseascasuals.recsbot.data.ScheduleSet;
 import com.overseascasuals.recsbot.json.RestService;
 import com.overseascasuals.recsbot.mysql.*;
 import com.overseascasuals.recsbot.solver.Solver;
@@ -25,11 +22,6 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import static com.overseascasuals.recsbot.data.Supply.*;
-import static com.overseascasuals.recsbot.data.DemandShift.*;
-
 @Service
 public class GetPeaksTask implements ScheduledTask
 {
@@ -42,23 +34,8 @@ public class GetPeaksTask implements ScheduledTask
 
     @Value("${discord.archiveChannel}")
     private String archiveChannelID;
-
-    @Value("${discord.fortunetellerChannelID}")
-    private String fortuneChannelID;
-    @Value("${tcUrl}")
-    private String tcURL;
-
-    @Value("${chinaTcUrl}")
-    private String tcChinaURL;
-
     @Value("${mienna}")
     private String miennaID;
-
-    @Value("${discord.clairvoyantRole}")
-    private String clairvoyantRole;
-
-    @Value("${discord.c1HelperRole}")
-    String c1PeakRole;
     @Value("${discord.squawkboxRole}")
     String squawkboxRole;
 

@@ -2,15 +2,11 @@ package com.overseascasuals.recsbot.messages;
 
 import com.overseascasuals.recsbot.OCUtils;
 import com.overseascasuals.recsbot.data.*;
-import com.overseascasuals.recsbot.json.RestService;
-import com.overseascasuals.recsbot.mysql.PeakRepository;
-import com.overseascasuals.recsbot.mysql.PopularityRepository;
 import com.overseascasuals.recsbot.solver.Solver;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.entity.Message;
-import discord4j.core.spec.EmbedCreateSpec;
 import discord4j.core.spec.InteractionReplyEditMono;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,12 +23,6 @@ import java.util.stream.Collectors;
 public class CommandListener implements EventListener<ChatInputInteractionEvent,Message>
 {
     Logger LOG = LoggerFactory.getLogger(CommandListener.class);
-
-    @Value("${discord.squawkboxRole}")
-    String squawkboxRole;
-    @Value("${discord.recsChannel}")
-    String recsChannelID;
-
     @Value("${mienna}")
     private String miennaID;
 
@@ -40,15 +30,6 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
     @Autowired
     Solver solver;
-
-    @Autowired
-    PeakRepository peakRepository;
-
-    @Autowired
-    PopularityRepository popularityRepository;
-
-    @Autowired
-    RestService restService;
 
     public enum Material {Tinsand, Laver, Sap, Copper, RockSalt, Sugarcane, Cotton}
 
@@ -82,15 +63,11 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
                 case "next_week" -> {
                     return event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event, true)));
                 }
-                case "this_week" -> {
+                case "this_week", "alts" -> {
                     return event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event, false)));
                 }
                 case "today" -> {
                     return event.deferReply().then(Mono.defer(() -> deferredTodayCommand(event)));
-                }
-                case "alts" -> {
-                    LOG.info("Alts");
-                    return event.deferReply().then(Mono.defer(() -> deferredThisWeekCommand(event, false)));
                 }
                 case "clear_cache" -> {
                     return event.deferReply().withEphemeral(true).then(Mono.defer(() -> deferredClearCache(event)));
@@ -148,7 +125,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
 
             LOG.info("Haven't run recs yet. Doing so now.");
-            solver.getDailyRecommendations(week, day, true);
+            solver.runDailyRecommendations(week, day, true);
         }
 
         if(crafts.size()>0)
@@ -206,7 +183,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             int day = (int)((d2.getTime()-d1.getTime())/86400000) % 7;
 
             LOG.info("Haven't run recs yet. Doing so now.");
-            solver.getDailyRecommendations(week, day, true);
+            solver.runDailyRecommendations(week, day, true);
         }
 
         //The work
@@ -479,7 +456,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         if(!solver.hasRunRecs)
         {
             LOG.info("Haven't run recs yet. Doing so now.");
-            solver.getDailyRecommendations(week, day, true);
+            solver.runDailyRecommendations(week, day, true);
         }
 
         Set<Item> items;
@@ -578,7 +555,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
         if(!solver.hasRunRecs)
         {
             LOG.info("Haven't run recs yet. Doing so now.");
-            solver.getDailyRecommendations(week, day, true);
+            solver.runDailyRecommendations(week, day, true);
         }
 
         //Need to copy whole context because today assumes you'll follow recs moving forward
