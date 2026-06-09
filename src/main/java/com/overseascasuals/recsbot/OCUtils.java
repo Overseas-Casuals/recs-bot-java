@@ -345,7 +345,10 @@ public class OCUtils
         {
             builder.color(Color.SUMMER_SKY);
             DailyRecommendation rec = recs.get(i);
-            addPredictiveRec(builder, rec, startDay+i, recs.get(i).isRestRecommended(), true);
+            if(recs.get(i).isRestRecommended() && recs.size() == 6)
+                builder.addField("Cycle "+(startDay+i), getRestText(), false);
+            else
+                addPredictiveRec(builder, rec, startDay+i, recs.get(i).isRestRecommended(), true);
 
             //Add break after index 2 if size is 6, add break after index 2 if size is 5, index 1 if size is 4 or 3
             if(recs.size() > 3 && i == (recs.size()-1)/2 && rank >= 15) //Only need to split if showing 4th workshop

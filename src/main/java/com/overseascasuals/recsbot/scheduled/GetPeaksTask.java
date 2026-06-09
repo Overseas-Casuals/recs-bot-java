@@ -3,6 +3,8 @@ package com.overseascasuals.recsbot.scheduled;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.overseascasuals.recsbot.OCUtils;
 import com.overseascasuals.recsbot.data.ArchiveSchedule;
+import com.overseascasuals.recsbot.data.CraftContext;
+import com.overseascasuals.recsbot.data.Item;
 import com.overseascasuals.recsbot.json.RestService;
 import com.overseascasuals.recsbot.mysql.*;
 import com.overseascasuals.recsbot.solver.Solver;
@@ -164,7 +166,7 @@ public class GetPeaksTask implements ScheduledTask
                 }*/
 
                 //this week
-               /*if (day < 6)
+                /*if (day < 6)
                 {
                     var thisWeekRecs = solver.getRecForDayOn(new CraftContext(Solver.canonContext, day), day + 1, 10, null, false);
                     var thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 10, day + 1);
