@@ -155,27 +155,27 @@ public class GetPeaksTask implements ScheduledTask
             if(local)
             {
                 //next week
-                /*if (day == 0)
+                if (day == 0)
                 {
-                    var calculatedNextWeek = solver.getRecForDayOn(new CraftContext(Solver.nextWeekContext,0), 1, 17, null, false);
+                    var calculatedNextWeek = solver.getCachedRec(week+1, 1, 17, null);
                     var nextWeekEmbeds = OCUtils.generateThisWeekEmbed(week+1, calculatedNextWeek, 17, -1);
                     channel.createMessage().withEmbeds(nextWeekEmbeds).subscribe(message -> LOG.info("Successfully posted high-level calculated next week recs."), error -> LOG.error("Error posting high level calced next week", error));
-                    calculatedNextWeek = solver.getRecForDayOn(new CraftContext(Solver.nextWeekContext,0), 1, 6, null, false);
+                    calculatedNextWeek = solver.getCachedRec(week+1, 1, 6, null);
                     nextWeekEmbeds = OCUtils.generateThisWeekEmbed(week+1, calculatedNextWeek, 6, -1);
                     channel.createMessage().withEmbeds(nextWeekEmbeds).subscribe(message -> LOG.info("Successfully posted low-level calculated next week recs."), error -> LOG.error("Error posting low level calced next week", error));
-                }*/
+                }
 
                 //this week
-                /*if (day < 6)
+                if (day < 6)
                 {
-                    var thisWeekRecs = solver.getRecForDayOn(new CraftContext(Solver.canonContext, day), day + 1, 10, null, false);
+                    var thisWeekRecs = solver.getCachedRec(week, day + 1, 10, null);
                     var thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 10, day + 1);
                     int finalDay = day;
                     channel.createMessage().withEmbeds(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted low-level this week recs."), error -> LOG.error("Error posting low level this week for C"+(finalDay +2), error));
-                    thisWeekRecs = solver.getRecForDayOn(new CraftContext(Solver.canonContext, day),day + 1, 20, Set.of(Item.Macuahuitl), false);
+                    thisWeekRecs = solver.getCachedRec(week,day + 1, 20, Set.of(Item.Macuahuitl));
                     thisWeekEmbed = OCUtils.generateThisWeekEmbed(week, thisWeekRecs, 20, day + 1);
                     channel.createMessage().withEmbeds(thisWeekEmbed).subscribe(message -> LOG.info("Successfully posted high-level this week recs."), error -> LOG.error("Error posting high level this week for C"+(finalDay +2), error));
-                }*/
+                }
 
                 //today
                 /*var todayRecs = solver.getRestOfDayRecs(new CraftContext(Solver.canonContext, 6), day, 22, 10, null);

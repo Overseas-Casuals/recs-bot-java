@@ -472,15 +472,12 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
 
         List<DailyRecommendation> recs = null;
 
-        CraftContext context = null;
         if(nextWeek)
-            context = new CraftContext(Solver.nextWeekContext, day);
-        else
-            context = new CraftContext(Solver.canonContext, day);
+            week++;
 
         try
         {
-            recs = solver.getRecForDayOn(context, day+1, rank, items, false);
+            recs = solver.getCachedRec(week, day+1, rank, items);
         }
         catch(NullPointerException e)
         {
@@ -514,7 +511,7 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             }
         }
 
-        var embed = OCUtils.generateThisWeekEmbed(context.getWeek(), recs, rank, total);
+        var embed = OCUtils.generateThisWeekEmbed(week, recs, rank, total);
         LOG.info("Free heap memory: "+Runtime.getRuntime().freeMemory() +"/"+ Runtime.getRuntime().totalMemory());
 
         return event.editReply(content).withEmbedsOrNull(embed);

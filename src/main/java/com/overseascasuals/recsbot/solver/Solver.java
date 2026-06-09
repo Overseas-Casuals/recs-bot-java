@@ -1,7 +1,6 @@
 package com.overseascasuals.recsbot.solver;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.*;
 import com.overseascasuals.recsbot.data.*;
 import com.overseascasuals.recsbot.mysql.*;
 import org.slf4j.Logger;
@@ -23,7 +22,7 @@ import static com.overseascasuals.recsbot.data.RareMaterial.*;
 public class Solver
 {
     Logger LOG = LoggerFactory.getLogger(Solver.class);
-    Cache<String, List<DailyRecommendation>> altCache = Caffeine.newBuilder().build();
+    LoadingCache<String, List<DailyRecommendation>> altCache = Caffeine.newBuilder().build(this::populateCacheForRecs);
 
     @Autowired
     PeakRepository peakRepository;
@@ -357,7 +356,7 @@ public class Solver
             int previousTotal = getValueForWeek(canonContext, previousRecs, maxIslandRank);
 
             LOG.info("Solving current week");
-            var recs = getRecForDayOn(canonContext, 1, rank, null, true);
+            var recs = getRecForDayOn(canonContext, 1, rank, null);
 
             if(recs == null || recs.size() == 0 || recs.get(0) == null)
             {
@@ -437,25 +436,53 @@ public class Solver
         return key;
     }
 
-    public List<DailyRecommendation> getRecForDayOn(CraftContext context, int dayToSolve, int rank, Set<Item> forbiddenItems, boolean force)
+    public List<DailyRecommendation> getCachedRec(int week, int dayToSolve, int rank, Set<Item> forbiddenItems)
     {
-        String cacheKey = getKeyForAltRequest(context.getWeek(), dayToSolve, rank, forbiddenItems);
-        if(force)
-            altCache.invalidate(cacheKey);
-
-        var recs = altCache.get(cacheKey, k -> populateCacheForRecs(context, cacheKey, dayToSolve, rank, forbiddenItems));
+        String cacheKey = getKeyForAltRequest(week, dayToSolve, rank, forbiddenItems);
         
-        return recs;
+        return altCache.get(cacheKey);
     }
 
-    private List<DailyRecommendation> populateCacheForRecs(CraftContext context, String cacheKey, int dayToSolve, int rank, Set<Item> forbiddenItems)
+    private List<DailyRecommendation> populateCacheForRecs(String cacheKey)
+    {
+        LOG.info("Solving recs for key {}", cacheKey);
+
+        var split = cacheKey.split("-");
+        //First 3 are guaranteed
+        int weekToSolve = Integer.parseInt(split[0]);
+        int dayToSolve = Integer.parseInt(split[1]);
+        int rank = Integer.parseInt(split[2]);
+        Set<Item> forbiddenItems = null;
+        if(split.length>3)
+        {
+            forbiddenItems = new TreeSet<>();
+            if(split[3].equals("all"))
+                forbiddenItems = rareMatItems;
+            else
+            {
+                for(int i=3; i< split.length; i++)
+                {
+                    forbiddenItems.add(Item.getEnum(split[i]));
+                }
+            }
+        }
+        CraftContext context;
+        if(weekToSolve == week)
+            context = new CraftContext(canonContext, dayToSolve-1);
+        else
+            context = new CraftContext(nextWeekContext, 0);
+
+        LOG.info("Estimated size of cache: "+altCache.estimatedSize());
+        return getRecForDayOn(context, dayToSolve, rank, forbiddenItems);
+    }
+
+    private List<DailyRecommendation> getRecForDayOn(CraftContext context, int dayToSolve, int rank, Set<Item> forbiddenItems)
     {
         Map<Integer, List<DailyRecommendation>> recsByRestDay = new HashMap<>();
         int bestDayToRest = -1;
         int bestValueWhenResting = -1;
         List<Integer> restDaysToCheck = new ArrayList<>();
 
-        LOG.info("Solving recs for key {}", cacheKey);
 
         int canonRested = context.getRested();
         if(canonRested > 0 && canonRested < dayToSolve)
