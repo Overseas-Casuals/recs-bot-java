@@ -22,7 +22,7 @@ import static com.overseascasuals.recsbot.data.RareMaterial.*;
 public class Solver
 {
     Logger LOG = LoggerFactory.getLogger(Solver.class);
-    LoadingCache<String, List<DailyRecommendation>> altCache = Caffeine.newBuilder().build(this::populateCacheForRecs);
+    AsyncLoadingCache<String, List<DailyRecommendation>> altCache = Caffeine.newBuilder().buildAsync(this::populateCacheForRecs);
 
     @Autowired
     PeakRepository peakRepository;
@@ -311,7 +311,7 @@ public class Solver
 
         restOfDay.clear();
         hoursLeftInDay.clear();
-        altCache.invalidateAll();
+        altCache.synchronous().invalidateAll();
 
         populateReservedItems(canonContext, day+1);
 
@@ -439,8 +439,18 @@ public class Solver
     public List<DailyRecommendation> getCachedRec(int week, int dayToSolve, int rank, Set<Item> forbiddenItems)
     {
         String cacheKey = getKeyForAltRequest(week, dayToSolve, rank, forbiddenItems);
-        
-        return altCache.get(cacheKey);
+
+        var cachedFuture = altCache.get(cacheKey);
+        List<DailyRecommendation> recs = null;
+        try
+        {
+            recs = cachedFuture.get();
+        }
+        catch(Exception e)
+        {
+            LOG.error("Error getting recs from cache "+cacheKey, e);
+        }
+        return recs;
     }
 
     private List<DailyRecommendation> populateCacheForRecs(String cacheKey)
@@ -472,7 +482,6 @@ public class Solver
         else
             context = new CraftContext(nextWeekContext, 0);
 
-        LOG.info("Estimated size of cache: "+altCache.estimatedSize());
         return getRecForDayOn(context, dayToSolve, rank, forbiddenItems);
     }
 
@@ -550,7 +559,7 @@ public class Solver
     }
     public void clearCache(String key)
     {
-        altCache.invalidate(key);
+        altCache.synchronous().invalidate(key);
     }
 
     public int getValueForWeek(CraftContext context, List<ScheduleSet> scheduleSets, int rank)
