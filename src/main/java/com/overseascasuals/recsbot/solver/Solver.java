@@ -440,16 +440,14 @@ public class Solver
     public List<DailyRecommendation> getRecForDayOn(CraftContext context, int dayToSolve, int rank, Set<Item> forbiddenItems, boolean force)
     {
         String cacheKey = getKeyForAltRequest(context.getWeek(), dayToSolve, rank, forbiddenItems);
-        if(force)
-            altCache.invalidate(cacheKey);
+        var cached = altCache.getIfPresent(cacheKey); //Not atomic, but that's fine
+        //This calculation takes a long time, and we'd rather take the risk of running it twice than make every get synchronous
+        if(!force && cached != null)
+        {
+            LOG.info("Found key {} in cache, returning", cacheKey);
+            return cached;
+        }
 
-        var recs = altCache.get(cacheKey, k -> populateCacheForRecs(context, cacheKey, dayToSolve, rank, forbiddenItems));
-        
-        return recs;
-    }
-
-    private List<DailyRecommendation> populateCacheForRecs(CraftContext context, String cacheKey, int dayToSolve, int rank, Set<Item> forbiddenItems)
-    {
         Map<Integer, List<DailyRecommendation>> recsByRestDay = new HashMap<>();
         int bestDayToRest = -1;
         int bestValueWhenResting = -1;
@@ -518,7 +516,12 @@ public class Solver
             }
         }
 
+
         LOG.info("Best day to rest is "+bestDayToRest);
+
+        LOG.info("Caching results for "+cacheKey);
+        altCache.put(cacheKey, recsByRestDay.get(bestDayToRest));
+
         return recsByRestDay.get(bestDayToRest);
     }
     public void clearCache(String key)
