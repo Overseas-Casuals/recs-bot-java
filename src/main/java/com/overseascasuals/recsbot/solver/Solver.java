@@ -1,5 +1,7 @@
 package com.overseascasuals.recsbot.solver;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.overseascasuals.recsbot.data.*;
 import com.overseascasuals.recsbot.mysql.*;
 import org.slf4j.Logger;
@@ -21,6 +23,7 @@ import static com.overseascasuals.recsbot.data.RareMaterial.*;
 public class Solver
 {
     Logger LOG = LoggerFactory.getLogger(Solver.class);
+    Cache<String, List<DailyRecommendation>> altCache = Caffeine.newBuilder().build();
 
     @Autowired
     PeakRepository peakRepository;
@@ -181,7 +184,6 @@ public class Solver
     public static CraftContext nextWeekContext = null;
     private final Map<Integer, BruteForceSchedules> restOfDay = new HashMap<>();
     private final Map<Integer, Integer> hoursLeftInDay = new HashMap<>();
-    private final Map<String, List<DailyRecommendation>> cachedAltRecs = new HashMap<>();
     public int totalValue = 0;
     public static double strongRatio62 = 0;
     public static final double strongRatio63 = 0.5;
@@ -310,7 +312,7 @@ public class Solver
 
         restOfDay.clear();
         hoursLeftInDay.clear();
-        cachedAltRecs.clear();
+        altCache.invalidateAll();
 
         populateReservedItems(canonContext, day+1);
 
@@ -438,12 +440,16 @@ public class Solver
     public List<DailyRecommendation> getRecForDayOn(CraftContext context, int dayToSolve, int rank, Set<Item> forbiddenItems, boolean force)
     {
         String cacheKey = getKeyForAltRequest(context.getWeek(), dayToSolve, rank, forbiddenItems);
-        if(!force && cachedAltRecs.containsKey(cacheKey))
-        {
-            LOG.info("Found key {} in cache, returning", cacheKey);
-            return cachedAltRecs.get(cacheKey);
-        }
+        if(force)
+            altCache.invalidate(cacheKey);
 
+        var recs = altCache.get(cacheKey, k -> populateCacheForRecs(context, cacheKey, dayToSolve, rank, forbiddenItems));
+        
+        return recs;
+    }
+
+    private List<DailyRecommendation> populateCacheForRecs(CraftContext context, String cacheKey, int dayToSolve, int rank, Set<Item> forbiddenItems)
+    {
         Map<Integer, List<DailyRecommendation>> recsByRestDay = new HashMap<>();
         int bestDayToRest = -1;
         int bestValueWhenResting = -1;
@@ -512,18 +518,12 @@ public class Solver
             }
         }
 
-
         LOG.info("Best day to rest is "+bestDayToRest);
-
-        LOG.info("Caching results for "+cacheKey);
-        cachedAltRecs.put(cacheKey, new ArrayList<>(recsByRestDay.get(bestDayToRest))); //I don't think I actually need to do this anymore but I'm too scared to change it
-                                                                                        //Specifically, OCUtils no longer modifies the rec so it shouldn't matter?
-
         return recsByRestDay.get(bestDayToRest);
     }
     public void clearCache(String key)
     {
-        cachedAltRecs.remove(key);
+        altCache.invalidate(key);
     }
 
     public int getValueForWeek(CraftContext context, List<ScheduleSet> scheduleSets, int rank)
