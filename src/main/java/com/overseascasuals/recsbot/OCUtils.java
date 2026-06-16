@@ -204,10 +204,11 @@ public class OCUtils
 
         List<EmbedCreateSpec> embeds = new ArrayList<>();
 
+        builder.addField("Cycle 1", getRestText(true), false);
+
         for(int i=0; i<recs.size(); i++)
         {
-            if(i>0)
-                builder.addField("","",false);
+            builder.addField("","",false);
             builder.color(Color.SEA_GREEN);
 
             var rec = recs.get(i);
@@ -330,8 +331,16 @@ public class OCUtils
 
     private static String getRestText()
     {
-        return "<:zzz:1068453995816964176> Rest <:zzz:1068453995816964176>";
+        return getRestText(false);
     }
+
+    private static String getRestText(boolean c1)
+    {
+        if(!c1)
+            return "<:zzz:1068453995816964176> Rest <:zzz:1068453995816964176>";
+        return "<:zzz:1068453995816964176> Always Rest <:zzz:1068453995816964176>";
+    }
+
 
     public static List<EmbedCreateSpec> generateThisWeekEmbed(int season, List<DailyRecommendation> recs, int rank, int total)
     {
@@ -341,6 +350,8 @@ public class OCUtils
 
         List<EmbedCreateSpec> embeds = new ArrayList<>();
 
+        if(recs.size() == 6)
+            builder.addField("Cycle 1", getRestText(true), false);
         for(int i=0; i<recs.size(); i++)
         {
             builder.color(Color.SUMMER_SKY);
