@@ -545,6 +545,8 @@ public class Solver
             }
         }
 
+        context.setRested(bestDayToRest);
+
         LOG.info("Best day to rest is "+bestDayToRest);
         return recsByRestDay.get(bestDayToRest);
     }
