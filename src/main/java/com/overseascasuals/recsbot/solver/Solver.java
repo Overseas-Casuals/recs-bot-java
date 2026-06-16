@@ -420,13 +420,13 @@ public class Solver
         return bestLink;
     }
 
-    private String getKeyForAltRequest(int week, int dayToSolve, int rank, Set<Item> items)
+    private String getKeyForAltRequest(int week, int dayToSolve, int rank, String dayToRest, Set<Item> items)
     {
         if(rank < 5)
             rank = 1;
         if(rank > maxIslandRank)
             rank = maxIslandRank;
-        String key = week+"-"+dayToSolve+"-"+rank;
+        String key = week+"-"+dayToSolve+"-"+rank+"-"+dayToRest;
 
         if(items == rareMatItems)
             key+="-all";
@@ -436,9 +436,12 @@ public class Solver
         return key;
     }
 
-    public List<DailyRecommendation> getCachedRec(int week, int dayToSolve, int rank, Set<Item> forbiddenItems)
+    public List<DailyRecommendation> getCachedRec(int week, int dayToSolve, int rank, int dayToRest, Set<Item> forbiddenItems)
     {
-        String cacheKey = getKeyForAltRequest(week, dayToSolve, rank, forbiddenItems);
+        String restStr = String.valueOf(dayToRest);
+        if(dayToRest == -1)
+            restStr = "X";
+        String cacheKey = getKeyForAltRequest(week, dayToSolve, rank, restStr, forbiddenItems);
         
         return altCache.get(cacheKey);
     }
@@ -448,19 +451,20 @@ public class Solver
         LOG.info("Solving recs for key {}", cacheKey);
 
         var split = cacheKey.split("-");
-        //First 3 are guaranteed
+        //First 4 are guaranteed
         int weekToSolve = Integer.parseInt(split[0]);
         int dayToSolve = Integer.parseInt(split[1]);
         int rank = Integer.parseInt(split[2]);
+        String dayToRestStr = split[3];
         Set<Item> forbiddenItems = null;
-        if(split.length>3)
+        if(split.length>4)
         {
             forbiddenItems = new TreeSet<>();
-            if(split[3].equals("all"))
+            if(split[4].equals("all"))
                 forbiddenItems = rareMatItems;
             else
             {
-                for(int i=3; i< split.length; i++)
+                for(int i=4; i< split.length; i++)
                 {
                     forbiddenItems.add(Item.getEnum(split[i]));
                 }
@@ -471,6 +475,11 @@ public class Solver
             context = new CraftContext(canonContext, dayToSolve-1);
         else
             context = new CraftContext(nextWeekContext, 0);
+
+        if(!"X".equals(dayToRestStr))
+        {
+            context.setRested(Integer.parseInt(dayToRestStr));
+        }
 
         LOG.info("Estimated size of cache: "+altCache.estimatedSize());
         return getRecForDayOn(context, dayToSolve, rank, forbiddenItems);
@@ -484,11 +493,11 @@ public class Solver
         List<Integer> restDaysToCheck = new ArrayList<>();
 
 
-        int canonRested = context.getRested();
-        if(canonRested > 0 && canonRested < dayToSolve)
+        int rested = context.getRested();
+        if(rested > 0)
         {
-            LOG.info("We have already rested. Don't worry too hard.");
-            restDaysToCheck.add(canonRested);
+            LOG.info("We know our rest day. Don't worry too hard.");
+            restDaysToCheck.add(rested);
         }
         else
         {

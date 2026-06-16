@@ -439,6 +439,21 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             }
         }
 
+        int restDay = -1;
+        if(event.getOption("force_rest").isPresent())
+        {
+            try
+            {
+                restDay = Math.toIntExact(event.getOption("force_rest")
+                        .flatMap(ApplicationCommandInteractionOption::getValue)
+                        .map(ApplicationCommandInteractionOptionValue::asLong).get());
+            }
+            catch (Exception e)
+            {
+                return event.editReply("Failed to parse rest day");
+            }
+        }
+
         var d1 = new Date(1661241600000L);
         var d2 = new Date();
 
@@ -470,14 +485,14 @@ public class CommandListener implements EventListener<ChatInputInteractionEvent,
             return event.editReply(e.getMessage());
         }
 
-        List<DailyRecommendation> recs = null;
+        List<DailyRecommendation> recs;
 
         if(nextWeek)
             week++;
 
         try
         {
-            recs = solver.getCachedRec(week, day+1, rank, items);
+            recs = solver.getCachedRec(week, day+1, rank, restDay, items);
         }
         catch(NullPointerException e)
         {
